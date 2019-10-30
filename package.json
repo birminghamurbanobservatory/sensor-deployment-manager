@@ -1,0 +1,41 @@
+{
+  "name": "sensor-data-manager",
+  "version": "1.0.0",
+  "description": "Manages sensor data.",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "test": "jest",
+    "build": "rm -rf dist && tsc",
+    "build:start": "npm run build && npm start",
+    "build:live": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
+  },
+  "author": "Simon Bell",
+  "license": "ISC",
+  "dependencies": {
+    "@hapi/joi": "^16.1.7",
+    "@mapbox/geojsonhint": "^3.0.0",
+    "bluebird": "^3.7.1",
+    "check-types": "^10.1.2",
+    "cls-hooked": "^4.2.2",
+    "dotenv": "^8.2.0",
+    "event-stream": "github:birminghamurbanobservatory/event-stream#semver:^1.0.0",
+    "mongoose": "^5.7.7",
+    "node-logger": "github:birminghamurbanobservatory/node-logger#semver:^1.0.0",
+    "password-generator": "^2.2.0",
+    "shortid": "^2.2.15"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.19",
+    "@types/lodash": "^4.14.144",
+    "@types/node": "^12.11.7",
+    "@typescript-eslint/eslint-plugin": "^2.5.0",
+    "@typescript-eslint/parser": "^2.5.0",
+    "eslint": "^6.5.1",
+    "jest": "^24.9.0",
+    "nodemon": "^1.19.4",
+    "ts-jest": "^24.1.0",
+    "ts-node": "^8.4.1",
+    "typescript": "^3.6.4"
+  }
+}

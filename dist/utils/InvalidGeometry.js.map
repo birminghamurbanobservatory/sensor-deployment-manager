@@ -1,0 +1,1 @@
+{"version":3,"file":"InvalidGeometry.js","sourceRoot":"","sources":["../../src/utils/InvalidGeometry.ts"],"names":[],"mappings":";;AAAA,qDAAgD;AAEhD,MAAa,eAAgB,SAAQ,uBAAU;IAE7C,YAAmB,UAAkB,iBAAiB;QACpD,KAAK,CAAC,OAAO,CAAC,CAAC,CAAC,sCAAsC;QACtD,MAAM,CAAC,cAAc,CAAC,IAAI,EAAE,GAAG,CAAC,MAAM,CAAC,SAAS,CAAC,CAAC,CAAC,0BAA0B;IAC/E,CAAC;CAEF;AAPD,0CAOC"}
