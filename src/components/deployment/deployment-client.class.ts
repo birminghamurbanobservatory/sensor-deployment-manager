@@ -5,5 +5,5 @@ export class DeploymentClient {
   public description?: string;
   public public?: boolean;
   public createdAt?: string;
-  public updatedAt?: string
+  public updatedAt?: string;
 }

@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createDeployment} from './deployment.controller';
+import {createDeployment, getDeployments} from './deployment.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
@@ -10,7 +10,8 @@ import {DeploymentClient} from './deployment-client.class';
 export async function subscribeToDeploymentEvents(): Promise<void> {
 
   const subscriptionFunctions = [
-    subscribeToDeploymentCreateRequests
+    subscribeToDeploymentCreateRequests,
+    subscribeToDeploymentsGetRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -69,5 +70,40 @@ async function subscribeToDeploymentCreateRequests(): Promise<any> {
 
 
 
+//-------------------------------------------------
+// Get Deployments
+//-------------------------------------------------
+async function subscribeToDeploymentsGetRequests(): Promise<any> {
+
+  const eventName = 'deployments.get.request';
+
+  const deploymentsGetRequestSchema = joi.object({
+    where: joi.object({
+      user: joi.string(),
+      public: joi.boolean()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let deployments: DeploymentClient[];
+    try {
+      const {error: err} = deploymentsGetRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      deployments = await getDeployments(message.where);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return deployments;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
 
 

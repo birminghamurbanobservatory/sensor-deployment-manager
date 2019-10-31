@@ -18,6 +18,14 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
 
   const deploymentToCreate: DeploymentApp = deploymentService.deploymentClientToApp(deployment);
 
+  // Add the user creating the deployment to the users array
+  deploymentToCreate.users = [
+    {
+      id: deploymentToCreate.createdBy,
+      level: 'admin'
+    }
+  ];
+
   let createdDeployment: DeploymentApp;
   try {
     createdDeployment = await deploymentService.createDeployment(deploymentToCreate);
@@ -33,9 +41,17 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
   
   logger.debug('New deployment created', createdDeployment);
 
-  // TODO: We need to give the user admin rights to this deployment too. Use the deployment.createdBy field.
-  // Need to decide whether to embed the users in the deployment documents, or vice versa, or have a rights collection. 
-
   return deploymentService.deploymentAppToClient(createdDeployment);
+
+}
+
+
+
+export async function getDeployments(where: {user?: string; public?: boolean}): Promise<DeploymentClient[]> {
+
+  const deployments: DeploymentApp[] = await deploymentService.getDeployments(where);
+  
+  logger.debug('Deployments found', deployments);
+  return deployments.map(deploymentService.deploymentAppToClient);
 
 }

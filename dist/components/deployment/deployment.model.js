@@ -15,11 +15,19 @@ const regular_expressions_1 = require("../../utils/regular-expressions");
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
+const userSchema = new mongoose.Schema({
+    // They'll be an _id too.
+    level: {
+        type: String,
+        required: true,
+        enum: ['admin', 'engineer', 'social', 'basic']
+    }
+});
 const schema = new mongoose.Schema({
     _id: {
         type: String,
         required: true,
-        maxLength: 44,
+        maxlength: [44, 'Deployment id is too long'],
         validate: {
             validator: (value) => {
                 return regular_expressions_1.kebabCaseRegex.test(value);
@@ -32,18 +40,26 @@ const schema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        maxlength: [40, 'name is too long']
+        maxlength: [40, 'Deployment name is too long']
     },
     description: {
         type: String,
-        maxlength: [1000, 'description is too long'],
+        maxlength: [1000, 'Deployment description is too long'],
         default: ''
     },
     public: {
         type: Boolean,
         default: false
     },
+    users: {
+        type: [userSchema],
+        default: []
+    },
     createdBy: {
+        type: String
+    },
+    // for soft deletes
+    deletedAt: {
         type: String
     }
 }, {

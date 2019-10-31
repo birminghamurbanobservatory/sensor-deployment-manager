@@ -15,6 +15,7 @@ async function createDeployment(deployment) {
         createdDeployment = await deployment_model_1.default.create(deploymentDb);
     }
     catch (err) {
+        console.log(err);
         if (err.name === 'MongoError' && err.code === 11000) {
             throw new DeploymentAlreadyExists_1.DeploymentAlreadyExists(`A deployment with an id of ${deployment.id} already exists.`);
             // TODO: Check this works
@@ -33,12 +34,23 @@ function deploymentAppToDb(deploymentApp) {
     const deploymentDb = lodash_1.cloneDeep(deploymentApp);
     deploymentDb._id = deploymentApp.id;
     delete deploymentDb.id;
+    deploymentDb.users = deploymentDb.user.map((user) => {
+        user._id = user.id;
+        delete user.id;
+        return user;
+    });
     return deploymentDb;
 }
 function deploymentDbToApp(deploymentDb) {
-    const deploymentApp = lodash_1.cloneDeep(deploymentDb);
+    const deploymentApp = deploymentDb.toObject();
     deploymentApp.id = deploymentApp._id;
     delete deploymentApp._id;
+    delete deploymentApp.__v;
+    deploymentApp.users = deploymentApp.user.map((user) => {
+        user.id = user._id;
+        delete user._id;
+        return user;
+    });
     return deploymentApp;
 }
 function deploymentAppToClient(deploymentApp) {

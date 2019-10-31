@@ -4,4 +4,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class DeploymentApp {
 }
 exports.DeploymentApp = DeploymentApp;
+class Users {
+}
 //# sourceMappingURL=deployment-app.class.js.map

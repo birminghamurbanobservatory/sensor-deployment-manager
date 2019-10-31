@@ -20,6 +20,13 @@ async function createDeployment(deployment) {
         logger.debug(`The deployment name: '${deployment.name}' has been converted to an id of '${deployment.id}'`);
     }
     const deploymentToCreate = deploymentService.deploymentClientToApp(deployment);
+    // Add the user creating the deployment to the users array
+    deploymentToCreate.users = [
+        {
+            id: deploymentToCreate.createdBy,
+            level: 'admin'
+        }
+    ];
     let createdDeployment;
     try {
         createdDeployment = await deploymentService.createDeployment(deploymentToCreate);
@@ -35,7 +42,6 @@ async function createDeployment(deployment) {
         }
     }
     logger.debug('New deployment created', createdDeployment);
-    // TODO: We need to give the user admin rights to this deployment too. Use the deployment.createdBy field.
     return deploymentService.deploymentAppToClient(createdDeployment);
 }
 exports.createDeployment = createDeployment;
