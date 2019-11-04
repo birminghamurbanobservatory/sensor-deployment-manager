@@ -7,6 +7,9 @@ import {cloneDeep} from 'lodash';
 import {DeploymentApp} from './deployment-app.class';
 import {GetDeploymentsFail} from './errors/GetDeploymentsFail';
 import * as check from 'check-types';
+import {DeploymentNotFound} from './errors/DeploymentNotFound';
+import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
+import {DeleteDeploymentFail} from './errors/DeleteDeploymentFail';
 
 
 
@@ -34,9 +37,31 @@ export async function createDeployment(deployment: DeploymentApp): Promise<Deplo
 }
 
 
+export async function getDeployment(id: string): Promise<DeploymentApp> {
+
+  let deployment;
+  try {
+    deployment = await Deployment.findById(id).exec();
+  } catch (err) {
+    throw new GetDeploymentsFail(undefined, err.message);
+  }
+
+  if (!deployment) {
+    throw new DeploymentNotFound(`A deployment with id '${id}' could not be found`);
+  }
+
+  return deploymentDbToApp(deployment);
+
+}
+
+
+
 export async function getDeployments(where: {user?: string; public?: boolean}): Promise<DeploymentApp[]> {
 
-  const findWhere = Object.assign({});
+  // Exclude deleted deployments.
+  const findWhere: any = {
+    deletedAt: {$exists: false}
+  };
   if (check.assigned(where.public)) {
     findWhere.public = where.public;
   }
@@ -57,6 +82,66 @@ export async function getDeployments(where: {user?: string; public?: boolean}): 
   return deployments.map(deploymentDbToApp);
 
 }
+
+
+
+
+export async function updateDeployment(id: string, updates: any): Promise<DeploymentApp> {
+
+  let updatedDeployment;
+  try {
+    updatedDeployment = await Deployment.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new UpdateDeploymentFail(undefined, err.message);
+  }
+
+  if (!updatedDeployment) {
+    throw new DeploymentNotFound(`A deployment with id '${id}' could not be found`);
+  }
+
+  return deploymentDbToApp(updatedDeployment);
+
+}
+
+
+
+// A soft delete
+export async function deleteDeployment(id: string): Promise<void> {
+
+  const updates = {
+    users: [],
+    deletedAt: new Date()
+  };
+
+  let deletedDeployment;
+  try {
+    deletedDeployment = await Deployment.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+      }
+    ).exec();
+  } catch (err) {
+    throw new DeleteDeploymentFail(`Failed to delete deployment '${id}'`, err.message);
+  }
+
+  if (!deletedDeployment) {
+    throw new DeploymentNotFound(`A deployment with id '${id}' could not be found`);
+  }
+
+  return;
+
+}
+
+
 
 
 

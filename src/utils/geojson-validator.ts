@@ -6,15 +6,15 @@ import {InvalidGeometry} from './InvalidGeometry';
 export function validateGeometry (geometry: any): void {
 
   if (check.not.nonEmptyObject(geometry)) {
-    throw new InvalidGeometry('Geometry must be a non-empty object');
+    throw new InvalidGeometry('Must be a non-empty object');
   }
 
   if (check.assigned(geometry.geometry)) {
-    throw new InvalidGeometry(`The geometry object must not contain a key called 'geometry'`);
+    throw new InvalidGeometry(`Object must not contain a key called 'geometry'`);
   }
 
   if (check.assigned(geometry.properties)) {
-    throw new InvalidGeometry(`The geometry object must not contain a key called 'properties'`);
+    throw new InvalidGeometry(`Object must not contain a key called 'properties'`);
   }  
 
   const result = geojsonhint.hint(geometry);

@@ -8,54 +8,47 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
-const userSchema = new mongoose.Schema({
-  _id: {
-    type: String,
-    require: true
-  },
-  level: {
-    type: String,
-    required: true,
-    enum: ['admin', 'engineer', 'social', 'basic']
-  }
-});
-
 const schema = new mongoose.Schema({
   _id: {
     type: String,
     required: true,
     immutable: true, // prevents this from being updated
-    maxlength: [44, 'Deployment id is too long'],
+    maxlength: [44, 'Platform id is too long'],
     validate: {
       validator: (value): boolean => {
         return kebabCaseRegex.test(value);
       },
       message: (props): string => {
-        return `Deployment id must be camel case. ${props.value} is not.`;
+        return `Platform id must be camel case. ${props.value} is not.`;
       }
     }
   },
   name: {
     type: String, 
     required: true,
-    maxlength: [40, 'Deployment name is too long']
+    maxlength: [40, 'Platform name is too long']
   },
   description: {
     type: String,
-    maxlength: [1000, 'Deployment description is too long'],
+    maxlength: [1000, 'Platform description is too long'],
     default: ''
   },
-  public: {
-    type: Boolean,
-    default: false
-  },
-  users: {
-    type: [userSchema],
-    default: []
-  },
-  createdBy: {
+  ownerDeployment: {
     type: String,
-    immutable: true,
+    required: true
+  },
+  inDeployments: {
+    type: [String]
+  },
+  isHostedBy: {
+    type: String
+  },
+  hostedByPath: {
+    type: String
+  },
+  static: {
+    type: Boolean,
+    required: true
   },
   // for soft deletes
   deletedAt: { 
@@ -69,11 +62,11 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 // Indexes
 //-------------------------------------------------
-schema.index({'users.id': 1});
-schema.index({public: 1});
+schema.index({inDeployments: 1});
+schema.index({hostedByPath: 1});
 
 
 //-------------------------------------------------
 // Create Model (and expose it to our app)
 //-------------------------------------------------
-export default mongoose.model('Deployment', schema);
+export default mongoose.model('Platform', schema);

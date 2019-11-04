@@ -46,6 +46,14 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
 }
 
 
+export async function getDeployment(id: string): Promise<DeploymentClient> {
+
+  const deployment: DeploymentApp = await deploymentService.getDeployment(id);
+  logger.debug('Deployment found', deployment);
+  return deploymentService.deploymentAppToClient(deployment);
+
+}
+
 
 export async function getDeployments(where: {user?: string; public?: boolean}): Promise<DeploymentClient[]> {
 
@@ -54,4 +62,26 @@ export async function getDeployments(where: {user?: string; public?: boolean}): 
   logger.debug('Deployments found', deployments);
   return deployments.map(deploymentService.deploymentAppToClient);
 
+}
+
+
+
+export async function updateDeployment(id: string, updates: any): Promise<DeploymentClient> {
+
+  const updatedDeployment = await deploymentService.updateDeployment(id, updates);
+  logger.debug(`Deployment '${id}' updated.`);
+  return deploymentService.deploymentAppToClient(updatedDeployment);
+
+}
+
+
+
+export async function deleteDeployment(id: string): Promise<void> {
+  await deploymentService.deleteDeployment(id);
+  logger.debug(`Deployment '${id}' deleted.`);
+  // TODO: Is there anything that belongs to the deployment that needs updating? 
+  // E.g. 
+  // Delete all platforms owned by this deployment?
+  // Unlink any sensors bound to this deployment
+  return;
 }

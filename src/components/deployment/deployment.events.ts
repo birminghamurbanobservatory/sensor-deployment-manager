@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createDeployment, getDeployments} from './deployment.controller';
+import {createDeployment, getDeployments, getDeployment, updateDeployment, deleteDeployment} from './deployment.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
@@ -11,7 +11,10 @@ export async function subscribeToDeploymentEvents(): Promise<void> {
 
   const subscriptionFunctions = [
     subscribeToDeploymentCreateRequests,
-    subscribeToDeploymentsGetRequests
+    subscribeToDeploymentsGetRequests,
+    subscribeToDeploymentGetRequests,
+    subscribeToDeploymentUpdateRequests,
+    subscribeToDeploymentDeleteRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -106,4 +109,110 @@ async function subscribeToDeploymentsGetRequests(): Promise<any> {
 
 }
 
+
+//-------------------------------------------------
+// Get Deployment
+//-------------------------------------------------
+async function subscribeToDeploymentGetRequests(): Promise<any> {
+
+  const eventName = 'deployment.get.request';
+
+  const deploymentsGetRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let deployment: DeploymentClient;
+    try {
+      const {error: err} = deploymentsGetRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      deployment = await getDeployment(message.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return deployment;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
+
+
+
+//-------------------------------------------------
+// Update Deployment
+//-------------------------------------------------
+async function subscribeToDeploymentUpdateRequests(): Promise<any> {
+  
+  const eventName = 'deployment.update.request';
+  const deploymentUpdateRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+      .required(),
+    updates: joi.object({}) // let the service check this
+      .unknown()
+      .required()
+  }).required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let updatedDeployment: DeploymentClient;
+    try {
+      const {error: err} = deploymentUpdateRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
+      updatedDeployment = await updateDeployment(message.where.id, message.updates);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return updatedDeployment;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;
+}
+
+
+//-------------------------------------------------
+// Delete Deployment
+//-------------------------------------------------
+async function subscribeToDeploymentDeleteRequests(): Promise<any> {
+  
+  const eventName = 'deployment.delete.request';
+  const deploymentDeleteRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+    .required()
+  }).required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    try {
+      const {error: err} = deploymentDeleteRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
+      await deleteDeployment(message.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;
+}
 
