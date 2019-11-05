@@ -12,6 +12,10 @@ import * as logger from 'node-logger';
 // Log the error using our custom logger before allowing the app to crash.
 process.on('uncaughtException', (err): void => {
   logger.error('Uncaught exception occurred. Crashing app now.', err);
+  if (err.message.includes('Unable to compile TypeScript')) {
+    // This prints the typescript error out a bit nicer
+    throw err;
+  }
   process.exit(1);
 });
 

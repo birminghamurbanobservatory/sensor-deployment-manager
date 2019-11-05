@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createPlatform, getPlatform, getPlatforms} from './platform.controller';
+import {createPlatform, getPlatform, getPlatforms, deletePlatform} from './platform.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {PlatformClient} from './platform-client.class';
@@ -13,7 +13,8 @@ export async function subscribeToPlatformEvents(): Promise<void> {
   const subscriptionFunctions = [
     subscribeToPlatformCreateRequests,
     subscribeToPlatformsGetRequests,
-    subscribeToPlatformGetRequests
+    subscribeToPlatformGetRequests,
+    subscribeToPlatformDeleteRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -157,3 +158,39 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
 
 }
 
+
+
+//-------------------------------------------------
+// Delete Platform
+//-------------------------------------------------
+async function subscribeToPlatformDeleteRequests(): Promise<any> {
+
+  const eventName = 'platform.delete.request';
+
+  const platformsDeleteRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string()
+        .required()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    try {
+      const {error: err, value: validatedMsg} = platformsDeleteRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      await deletePlatform(validatedMsg.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}

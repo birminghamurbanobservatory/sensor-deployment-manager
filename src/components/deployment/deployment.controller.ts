@@ -31,7 +31,7 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
     createdDeployment = await deploymentService.createDeployment(deploymentToCreate);
   } catch (err) {
     if (!idSpecified && err.name === 'DeploymentAlreadyExists') {
-      // If the clientId we allocated has already been taken, then lets add a random string onto the end and try again.
+      // If the id we allocated is already taken then add a random string on the end and try again.
       deploymentToCreate.id = `${deploymentToCreate.id}-${generateClientIdSuffix()}`;
       createdDeployment = await deploymentService.createDeployment(deploymentToCreate);
     } else {

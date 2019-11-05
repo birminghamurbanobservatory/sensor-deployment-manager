@@ -13,7 +13,7 @@ const schema = new mongoose.Schema({
     type: String,
     required: true,
     immutable: true, // prevents this from being updated
-    maxlength: [44, 'Platform id is too long'],
+    maxlength: [44, 'Sensor id is too long'],
     validate: {
       validator: (value): boolean => {
         return kebabCaseRegex.test(value);
@@ -24,38 +24,23 @@ const schema = new mongoose.Schema({
     }
   },
   name: {
-    type: String, 
-    required: true,
-    maxlength: [40, 'Platform name is too long']
+    type: String,
+    maxlength: [40, 'Sensor name is too long']
   },
   description: {
     type: String,
-    maxlength: [1000, 'Platform description is too long'],
+    maxlength: [1000, 'Sensor description is too long'],
     default: ''
   },
-  ownerDeployment: {
-    type: String,
-    required: true
+  // A sensor can only ever belong to a single deployment at a time.
+  inDeployment: {
+    type: String
   },
-  inDeployments: {
-    type: [String]
-  },
+  // A sensor can only ever be hosted on a single platform, however this platform can be hosted on further platforms, and platforms can be shared between deployments.
   isHostedBy: {
     type: String
   },
-  hostedByPath: {
-    type: String
-  },
-  static: {
-    type: Boolean,
-    required: true
-  },
-  // if created from a permanentHost then make a note of the permanentHost id.
-  initialisedFrom: {
-    type: String
-  },
-  // for soft deletes
-  deletedAt: { 
+  permanentHost: {
     type: String
   }
 }, {
@@ -66,11 +51,11 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 // Indexes
 //-------------------------------------------------
-schema.index({inDeployments: 1});
-schema.index({hostedByPath: 1});
+schema.index({permanentHost: 1});
+schema.index({inDeployment: 1, isHostedBy: 1});
 
 
 //-------------------------------------------------
 // Create Model (and expose it to our app)
 //-------------------------------------------------
-export default mongoose.model('Platform', schema);
+export default mongoose.model('Sensor', schema);

@@ -141,3 +141,22 @@ export async function getPlatforms(where: {inDeployment?: string}, options?: {in
   return platforms.map(platformService.platformAppToClient);
 
 }
+
+
+export async function deletePlatform(id: string): Promise<void> {
+
+  // Delete the platform
+  // await platformService.deletePlatform(id);
+
+  // Update any timeseries corresponding to this platform
+
+  // Update any platforms that are hosted on this platform
+
+  // a) If the platform was generated from a permanentHost, i.e. there are sensors physically attached to it, then you'll also need to unlink all the sensors from this deployment. 
+  // b) If the platform was wasn't generated from a permanentHost, i.e. the user created it from scratch, then any sensors bound to it should still remain within the deployment.
+
+  // An an endDate to its platform location?
+
+  return;
+
+}

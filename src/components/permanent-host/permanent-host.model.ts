@@ -1,3 +1,4 @@
+
 //-------------------------------------------------
 // Dependencies
 //-------------------------------------------------
@@ -13,50 +14,37 @@ const schema = new mongoose.Schema({
     type: String,
     required: true,
     immutable: true, // prevents this from being updated
-    maxlength: [44, 'Platform id is too long'],
+    maxlength: [44, 'Permanent host id is too long'],
     validate: {
       validator: (value): boolean => {
         return kebabCaseRegex.test(value);
       },
       message: (props): string => {
-        return `Platform id must be camel case. ${props.value} is not.`;
+        return `Permanent host id must be camel case. ${props.value} is not.`;
       }
     }
   },
   name: {
     type: String, 
     required: true,
-    maxlength: [40, 'Platform name is too long']
+    maxlength: [40, 'Permanent host name is too long']
   },
   description: {
     type: String,
-    maxlength: [1000, 'Platform description is too long'],
+    maxlength: [1000, 'Permanent host description is too long'],
     default: ''
   },
-  ownerDeployment: {
+  registrationKey: {
     type: String,
-    required: true
-  },
-  inDeployments: {
-    type: [String]
-  },
-  isHostedBy: {
-    type: String
-  },
-  hostedByPath: {
-    type: String
-  },
-  static: {
-    type: Boolean,
-    required: true
-  },
-  // if created from a permanentHost then make a note of the permanentHost id.
-  initialisedFrom: {
-    type: String
-  },
-  // for soft deletes
-  deletedAt: { 
-    type: String
+    required: true,
+    validate: {
+      validator: (value): boolean => {
+        return value.length === 10;
+      },
+      message: (props): string => {
+        return `Permanent host registration key must be 10 characters long.`;
+      }
+    }
   }
 }, {
   timestamps: true // automatically adds createdAt and updatedAt fields
@@ -66,11 +54,10 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 // Indexes
 //-------------------------------------------------
-schema.index({inDeployments: 1});
-schema.index({hostedByPath: 1});
+schema.index({registrationKey: 1}, {unique: true});
 
 
 //-------------------------------------------------
 // Create Model (and expose it to our app)
 //-------------------------------------------------
-export default mongoose.model('Platform', schema);
+export default mongoose.model('PermanentHost', schema);
