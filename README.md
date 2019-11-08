@@ -1,3 +1,3 @@
-# sensor-data-manager
+# sensor-deployment-manager
 
-Manages sensor data, i.e. not just the sensor observations, but also information about the sensors, which platforms they are hosted on, which deployment are they in, and who has rights to which deployments.
+Manages sensor deployments. I.e. keeps an up-to-date record of which sensors belong to which deployments, which users have access to these deployments and what platforms are the sensors hosted on.

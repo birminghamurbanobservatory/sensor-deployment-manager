@@ -1,7 +1,7 @@
 {
-  "name": "sensor-data-manager",
+  "name": "sensor-deployment-manager",
   "version": "1.0.0",
-  "description": "Manages sensor data.",
+  "description": "Manages sensor deployments.",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
