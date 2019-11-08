@@ -15,7 +15,6 @@ export async function createPermanentHost(permanentHost: PermanentHostApp): Prom
   try {
     createdPermanentHost = await PermanentHost.create(permanentHostDb);
   } catch (err) {
-    console.log(err);
     if (err.name === 'MongoError' && err.code === 11000) {
       throw new PermanentHostAlreadyExists(`A permanent host with an id of ${permanentHost.id} already exists.`);
     } else if (err.name === 'ValidationError') {

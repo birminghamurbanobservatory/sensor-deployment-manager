@@ -44,7 +44,7 @@ const schema = new mongoose.Schema({
     type: String
   },
   hostedByPath: {
-    type: String
+    type: [String]
   },
   static: {
     type: Boolean,

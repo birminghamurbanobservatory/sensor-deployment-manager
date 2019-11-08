@@ -21,7 +21,6 @@ export async function createDeployment(deployment: DeploymentApp): Promise<Deplo
   try {
     createdDeployment = await Deployment.create(deploymentDb);
   } catch (err) {
-    console.log(err);
     if (err.name === 'MongoError' && err.code === 11000) {
       throw new DeploymentAlreadyExists(`A deployment with an id of ${deployment.id} already exists.`);
     // TODO: Check this works
@@ -68,9 +67,6 @@ export async function getDeployments(where: {user?: string; public?: boolean}): 
   if (check.assigned(where.user)) {
     findWhere['users._id'] = where.user;
   }
-
-  console.log('findWhere');
-  console.log(findWhere);
 
   let deployments;
   try {

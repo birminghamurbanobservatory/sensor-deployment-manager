@@ -6,7 +6,7 @@ export class PlatformClient {
   public ownerDeployment?: string;
   public inDeployments?: string[];
   public isHostedBy?: string;
-  public hostedByPath?: string;
+  public hostedByPath?: string[];
   public static?: boolean;
   public createdAt?: string;
   public updatedAt?: string;

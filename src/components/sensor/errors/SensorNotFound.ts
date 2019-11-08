@@ -1,8 +1,8 @@
 import {NotFound} from '../../../errors/NotFound';
 
-export class DeploymentNotFound extends NotFound {
+export class SensorNotFound extends NotFound {
 
-  public constructor(message = 'Deployment could not be found') {
+  public constructor(message = 'Sensor could not be found') {
     super(message); // 'Error' breaks prototype chain here
     Object.setPrototypeOf(this, new.target.prototype); // restore prototype chain   
   }

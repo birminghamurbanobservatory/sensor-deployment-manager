@@ -41,7 +41,7 @@ const schema = new mongoose.Schema({
       type: [String]
     },
     hostedByPath: {
-      type: String
+      type: [String]
     },
     observedProperty: { 
       type: String
@@ -61,8 +61,9 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 // Indexes
 //-------------------------------------------------
-// TODO: This might not be the best index, depends on the type of query you'll make most.
-schema.index({sensor: 1, endDate: 1, startDate: 1});
+// There should only ever be 1 "live" (i.e. endDate is unset) context per sensor at any given time.
+schema.index({sensor: 1, endDate: 1}, {unique: true});
+// TODO: Might need another index for performance, depending on the queries you'll make most. E.g. if you ever need to get a list of every live context then add another index with the endDate listed first.
 
 
 //-------------------------------------------------

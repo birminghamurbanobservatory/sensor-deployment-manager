@@ -8,9 +8,14 @@ import {PlatformApp} from './platform-app.class';
 import {PlatformNotFound} from './errors/PlatformNotFound';
 import * as logger from 'node-logger';
 import {nameToClientId} from '../../utils/name-to-client-id';
-import {cloneDeep} from 'lodash';
+import {cloneDeep, concat} from 'lodash';
 import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
 import {PlatformLocationApp} from '../platform-location/platform-location-app.class';
+import * as sensorService from '../sensor/sensor.service';
+import * as Promise from 'bluebird';
+import {SensorApp} from '../sensor/sensor-app.class';
+import * as contextController from '../context/context.controller';
+import * as contextService from '../context/context.service';
 
 
 
@@ -60,6 +65,15 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
   if (!idSpecified) {
     platformToCreate.id = nameToClientId(platformToCreate.name);
     logger.debug(`The platform name: '${platform.name}' has been converted to an id of '${platformToCreate.id}'`);
+  }
+
+  // Add a hostedByPath if required
+  if (hostPlatform) {
+    if (hostPlatform.hostedByPath) {
+      platformToCreate.hostedByPath = concat(hostPlatform.hostedByPath, hostPlatform.id);
+    } else {
+      platformToCreate.hostedByPath = [hostPlatform.id];
+    }
   }
 
   let createdPlatform: PlatformApp;
@@ -145,17 +159,38 @@ export async function getPlatforms(where: {inDeployment?: string}, options?: {in
 
 export async function deletePlatform(id: string): Promise<void> {
 
-  // Delete the platform
-  // await platformService.deletePlatform(id);
-
-  // Update any timeseries corresponding to this platform
+  // Need some extra info about the platform before we can delete it.
+  const platform = await platformService.getPlatform(id); 
 
   // Update any platforms that are hosted on this platform
+  await platformService.cutDescendantsOfPlatform(id);
 
-  // a) If the platform was generated from a permanentHost, i.e. there are sensors physically attached to it, then you'll also need to unlink all the sensors from this deployment. 
-  // b) If the platform was wasn't generated from a permanentHost, i.e. the user created it from scratch, then any sensors bound to it should still remain within the deployment.
+  // Delete the platform
+  await platformService.deletePlatform(id);
+  
+  // Get all the sensors hosted on this platform 
+  const sensors: SensorApp[] = await sensorService.getSensors({isHostedBy: id});
 
-  // An an endDate to its platform location?
+  // Loop through each sensor
+  await Promise.map(sensors, async (sensor) => {
+
+    await sensorService.removeSensorFromPlatform(sensor.id);
+
+    // If the sensor is physically attached to this platform then we need to remove it from the deployment to
+    if (sensor.permanentHost) {
+      await sensorService.removeSensorFromDeployment(sensor.id);
+    }
+
+    // Update the contexts
+    if (sensor.permanentHost) {
+      await contextController.processSensorRemovedFromDeployment(sensor.id);
+    } else {
+      await contextService.processSensorRemovedFromPlatform(sensor.id);
+    }
+
+  });
+
+  // Add an endDate to its platform location?
 
   return;
 

@@ -8,8 +8,12 @@ import {CreatePlatformFail} from './errors/CreatePlatformFail';
 import {GetPlatformFail} from './errors/GetPlatformFail';
 import {PlatformNotFound} from './errors/PlatformNotFound';
 import {GetPlatformsFail} from './errors/GetPlatformsFail';
+import {DeletePlatformFail} from './errors/DeletePlatformFail';
 import * as check from 'check-types';
 import {PlatformLocationApp} from '../platform-location/platform-location-app.class';
+import {GetDescendantsOfPlatformFail} from './errors/GetDecendantsOfPlatformFail';
+import * as Promise from 'bluebird';
+import {CutDescendantsOfPlatformFail} from './errors/CutDescendantsOfPlatformFail';
 
 
 
@@ -21,7 +25,6 @@ export async function createPlatform(platform: PlatformApp): Promise<PlatformApp
   try {
     createdPlatform = await Platform.create(platformDb);
   } catch (err) {
-    console.log(err);
     if (err.name === 'MongoError' && err.code === 11000) {
       throw new PlatformAlreadyExists(`A platform with an id of ${platform.id} already exists.`);
     // TODO: Check this works
@@ -58,7 +61,9 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 
 export async function getPlatforms(where: {inDeployment?: string}): Promise<PlatformApp[]> {
 
-  const findWhere: any = {};
+  const findWhere: any = {
+    deletedAt: {$exists: false}
+  };
   if (check.assigned(where.inDeployment)) {
     findWhere.inDeployments = where.inDeployment; 
   }
@@ -74,6 +79,101 @@ export async function getPlatforms(where: {inDeployment?: string}): Promise<Plat
   return (foundPlatforms.map(platformDbToApp));
 
 }
+
+
+
+// A soft delete
+export async function deletePlatform(id: string): Promise<void> {
+
+  const updates = {
+    inDeployments: [],
+    deletedAt: new Date(),
+    $unset: {
+      isHostedBy: '',
+      hostedByPath: ''
+    }
+  };
+
+  let deletedPlatform;
+  try {
+    deletedPlatform = await Platform.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+      }
+    ).exec();
+  } catch (err) {
+    throw new DeletePlatformFail(`Failed to delete Platform '${id}'`, err.message);
+  }
+
+  if (!deletedPlatform) {
+    throw new PlatformNotFound(`A platform with id '${id}' could not be found`);
+  }
+
+  return;
+
+}
+
+
+
+export async function getdescendantsOfPlatform(id): Promise<PlatformApp[]> {
+
+  const findWhere: any = {
+    hostedByPath: id,
+    deletedAt: {$exists: false}
+  };
+
+  let foundPlatforms;
+  try {
+    foundPlatforms = await Platform.find(findWhere).exec();
+  } catch (err) {
+    throw new GetDescendantsOfPlatformFail(undefined, err.message);
+  }
+
+  return (foundPlatforms.map(platformDbToApp));
+
+}
+
+
+
+export async function cutDescendantsOfPlatform(id: string): Promise<void> {
+
+  const descendants = await getdescendantsOfPlatform(id);
+
+  await Promise.each(descendants, async (descendant) => {
+
+    const updates: any = {};
+
+    // For descendants hosted directly on the platform they'll no longer be hosted on anything
+    if (descendant.isHostedBy === id) {
+      updates.$unset = {isHostedBy: '', hostedByPath: ''};
+    // For distant descendants (grandchildren, etc)
+    } else {
+      const idx = descendant.hostedByPath.indexOf(id);
+      updates.hostedByPath = descendant.hostedByPath.slice(idx + 1, descendant.hostedByPath.length);
+    }
+
+    // Update this decendant
+    try {
+      await Platform.findByIdAndUpdate(
+        descendant.id,
+        updates,
+        {
+          new: true,
+          runValidators: true
+        }
+      ).exec();
+    } catch (err) {
+      throw new CutDescendantsOfPlatformFail(undefined, err.message);
+    }
+
+    return;
+
+  });
+
+}
+
 
 
 export function mergePlatformsWithPlatformLocations(platforms: PlatformApp[], platformLocations: PlatformLocationApp[]): PlatformApp[] {
