@@ -8,6 +8,20 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
+const ifSchema = new mongoose.Schema({
+  if: {
+    observedProperty: String,
+    hasFeatureOfInterest: String,
+    usedProcedures: [String]
+  },
+  then: {
+    observedProperty: String,
+    hasFeatureOfInterest: String,
+    usedProcedures: [String]
+  }
+});
+
+
 const schema = new mongoose.Schema({
   _id: {
     type: String,
@@ -42,7 +56,15 @@ const schema = new mongoose.Schema({
   },
   permanentHost: {
     type: String
-  }
+  },
+  defaults: {
+    toAdd: {
+      observedProperty: String,
+      hasFeatureOfInterest: String,
+      usedProcedures: [String],
+    },
+    ifs: [ifSchema]
+  },
 }, {
   timestamps: true // automatically adds createdAt and updatedAt fields
 });
