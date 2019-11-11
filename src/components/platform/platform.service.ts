@@ -199,7 +199,7 @@ function platformAppToDb(platformApp: PlatformApp): object {
 
 function platformDbToApp(platformDb: any): PlatformApp {
   const platformApp = platformDb.toObject();
-  platformApp.id = platformApp._id;
+  platformApp.id = platformApp._id.toString();
   delete platformApp._id;
   delete platformApp.__v;
   return platformApp;

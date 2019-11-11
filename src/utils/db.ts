@@ -21,7 +21,7 @@ db.on('error', (err) => {
 // Connect
 //-------------------------------------------------
 // Docs: https://mongoosejs.com/docs/connections.html
-export function connectDb(uri): void {
+export function connectDb(uri): Promise<void> {
   // Resolves when the database is ready to use. However, because mongoose is clever enough to buffer model function calls internally you can start using you models immediately without having to wait for this to resolve. N.B. mongoose.connect() resolves to undefined.
   // This promise will reject if there was an initial connection error.
   // The options here help surpress some deprecation warnings on startup.
@@ -37,7 +37,7 @@ export function connectDb(uri): void {
 //-------------------------------------------------
 // Disconnect
 //-------------------------------------------------
-export function disconnectDb(): void {
+export function disconnectDb(): Promise<void> {
   return mongoose.disconnect()
   .then(() => {
     return;

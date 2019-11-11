@@ -13,12 +13,10 @@ const ifSchema = new mongoose.Schema({
     observedProperty: String,
     hasFeatureOfInterest: String,
     usedProcedures: [String]
+    // If you ever need more advanced if conditions then you could could try using the format:
+    // usedProcedures: {$contains: 'mean-average'}
   },
-  then: {
-    observedProperty: String,
-    hasFeatureOfInterest: String,
-    usedProcedures: [String]
-  }
+  value: {}  // i.e. mongodb's way of implying 'any'
 });
 
 
@@ -33,7 +31,7 @@ const schema = new mongoose.Schema({
         return kebabCaseRegex.test(value);
       },
       message: (props): string => {
-        return `Platform id must be camel case. ${props.value} is not.`;
+        return `Sensor id must be camel case. ${props.value} is not.`;
       }
     }
   },
@@ -58,12 +56,16 @@ const schema = new mongoose.Schema({
     type: String
   },
   defaults: {
-    toAdd: {
-      observedProperty: String,
-      hasFeatureOfInterest: String,
-      usedProcedures: [String],
+    observedProperty: { 
+      value: String,
     },
-    ifs: [ifSchema]
+    hasFeatureOfInterest: { 
+      value: String,
+      ifs: [ifSchema]
+    },
+    usedProcedures: {
+      value: [String]
+    }
   },
 }, {
   timestamps: true // automatically adds createdAt and updatedAt fields

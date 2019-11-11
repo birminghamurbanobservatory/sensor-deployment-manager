@@ -84,7 +84,7 @@ function platformLocationAppToDb(platformLocationApp: PlatformLocationApp): obje
 
 function platformLocationDbToApp(platformLocationDb: any): PlatformLocationApp {
   const platformLocationApp = platformLocationDb.toObject();
-  platformLocationApp.id = platformLocationApp._id;
+  platformLocationApp.id = platformLocationApp._id.toString();
   delete platformLocationApp._id;
   delete platformLocationApp.__v;  
   return platformLocationApp;

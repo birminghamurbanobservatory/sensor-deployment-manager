@@ -6,6 +6,7 @@ import Deployment from './deployment.model';
 import {cloneDeep} from 'lodash';
 import {DeploymentApp} from './deployment-app.class';
 import {GetDeploymentsFail} from './errors/GetDeploymentsFail';
+import {GetDeploymentFail} from './errors/GetDeploymentFail';
 import * as check from 'check-types';
 import {DeploymentNotFound} from './errors/DeploymentNotFound';
 import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
@@ -42,7 +43,7 @@ export async function getDeployment(id: string): Promise<DeploymentApp> {
   try {
     deployment = await Deployment.findById(id).exec();
   } catch (err) {
-    throw new GetDeploymentsFail(undefined, err.message);
+    throw new GetDeploymentFail(undefined, err.message);
   }
 
   if (!deployment) {
@@ -156,7 +157,7 @@ function deploymentAppToDb(deploymentApp: DeploymentApp): object {
 
 function deploymentDbToApp(deploymentDb: any): DeploymentApp {
   const deploymentApp = deploymentDb.toObject();
-  deploymentApp.id = deploymentApp._id;
+  deploymentApp.id = deploymentApp._id.toString();
   delete deploymentApp._id;
   delete deploymentApp.__v;
   deploymentApp.users = deploymentApp.users.map((user) => {

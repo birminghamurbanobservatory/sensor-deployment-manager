@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "test": "jest",
+    "test": "LOGGER_ENABLED=false jest --runInBand --env=node",
     "build": "rm -rf dist && tsc",
     "build:start": "npm run build && npm start",
     "build:live": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
@@ -33,6 +33,7 @@
     "@typescript-eslint/parser": "^2.5.0",
     "eslint": "^6.5.1",
     "jest": "^24.9.0",
+    "mongodb-memory-server": "^6.0.1",
     "nodemon": "^1.19.4",
     "ts-jest": "^24.1.0",
     "ts-node": "^8.4.1",

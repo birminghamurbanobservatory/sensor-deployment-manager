@@ -1,7 +1,6 @@
 import * as Promise from 'bluebird';
 import Sensor from './sensor.model';
 import {SensorApp} from './sensor-app.class';
-import * as check from 'check-types';
 import {GetSensorsFail} from './errors/GetSensorsFail';
 import {GetSensorFail} from './errors/GetSensorFail';
 import {SensorNotFound} from './errors/SensorNotFound';
@@ -9,6 +8,34 @@ import {SensorClient} from './sensor-client.class';
 import {cloneDeep} from 'lodash';
 import {RemoveSensorFromPlatformFail} from './errors/RemoveSensorFromPlatformFail';
 import {RemoveSensorFromDeploymentFail} from './errors/RemoveSensorFromDeploymentFail';
+import {SensorAlreadyExists} from './errors/SensorAlreadyExists';
+import {CreateSensorFail} from './errors/CreateSensorFail';
+import {InvalidSensor} from './errors/InvalidSensor';
+
+
+
+export async function createSensor(sensor: SensorApp): Promise<SensorApp> {
+
+  const sensorDb = sensorAppToDb(sensor);
+
+  let createdSensor;
+  try {
+    createdSensor = await Sensor.create(sensorDb);
+  } catch (err) {
+    if (err.name === 'MongoError' && err.code === 11000) {
+      throw new SensorAlreadyExists(`A sensor with an id of ${sensor.id} already exists.`);
+    // TODO: Check this works
+    } else if (err.name === 'ValidationError') {
+      throw new InvalidSensor(err.message);
+    } else {
+      throw new CreateSensorFail(undefined, err.message);
+    }
+  }
+
+  return sensorDbToApp(createdSensor);
+
+}
+
 
 
 export async function getSensor(id): Promise<SensorApp> {
@@ -97,7 +124,7 @@ function sensorAppToDb(sensorApp: SensorApp): object {
 
 function sensorDbToApp(sensorDb: any): SensorApp {
   const sensorApp = sensorDb.toObject();
-  sensorApp.id = sensorApp._id;
+  sensorApp.id = sensorApp._id.toString();
   delete sensorApp._id;
   delete sensorApp.__v;
   return sensorApp;

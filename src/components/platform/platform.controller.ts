@@ -183,7 +183,7 @@ export async function deletePlatform(id: string): Promise<void> {
 
     // Update the contexts
     if (sensor.permanentHost) {
-      await contextController.processSensorRemovedFromDeployment(sensor.id);
+      await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.defaults);
     } else {
       await contextService.processSensorRemovedFromPlatform(sensor.id);
     }

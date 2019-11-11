@@ -5,6 +5,8 @@ import {PermanentHostAlreadyExists} from './errors/PermanentHostAlreadyExists';
 import {InvalidPermanentHost} from './errors/InvalidPermanentHost';
 import {CreatePermanentHostFail} from './errors/CreatePermanentHostFail';
 import {PermanentHostClient} from './permanent-host-client.class';
+import {GetPermanentHostFail} from './errors/GetPermanentHostFail';
+import {PermanentHostNotFound} from './errors/PermanentHostNotFound';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -29,6 +31,24 @@ export async function createPermanentHost(permanentHost: PermanentHostApp): Prom
 }
 
 
+export async function getPermanentHost(id: string): Promise<PermanentHostApp> {
+
+  let permanentHost;
+  try {
+    permanentHost = await PermanentHost.findById(id).exec();
+  } catch (err) {
+    throw new GetPermanentHostFail(undefined, err.message);
+  }
+
+  if (!permanentHost) {
+    throw new PermanentHostNotFound(`A permanent host with id '${id}' could not be found`);
+  }
+
+  return permanentHostDbToApp(permanentHost);
+
+}
+
+
 
 function permanentHostAppToDb(permanentHostApp: PermanentHostApp): object {
   const permanentHostDb: any = cloneDeep(permanentHostApp);
@@ -40,7 +60,7 @@ function permanentHostAppToDb(permanentHostApp: PermanentHostApp): object {
 
 function permanentHostDbToApp(permanentHostDb: any): PermanentHostApp {
   const permanentHostApp = permanentHostDb.toObject();
-  permanentHostApp.id = permanentHostApp._id;
+  permanentHostApp.id = permanentHostApp._id.toString();
   delete permanentHostApp._id;
   delete permanentHostApp.__v;
   return permanentHostApp;

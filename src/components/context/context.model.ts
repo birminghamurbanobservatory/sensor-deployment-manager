@@ -12,12 +12,10 @@ const ifSchema = new mongoose.Schema({
     observedProperty: String,
     hasFeatureOfInterest: String,
     usedProcedures: [String]
+    // If you ever need more advanced if conditions then you could could try using the format:
+    // usedProcedures: {$contains: 'mean-average'}
   },
-  then: {
-    observedProperty: String,
-    hasFeatureOfInterest: String,
-    usedProcedures: [String]
-  }
+  value: {} // i.e. mongodb's way of implying 'any'
 });
 
 
@@ -31,30 +29,28 @@ const schema = new mongoose.Schema({
     required: true
   },
   endDate: {
-    type: Date,
-    required: true
+    type: Date
   },
-  // The following is added unless they are already defined in the observation.
   toAdd: {
-    // Although a sensor can only ever be bound to a single deployment, the platform its on might be shared between other deployments and thus the following needs to be an array.
+    // The following properties are added unless they are already defined in the observation.
+    // Although a sensor can only ever be bound to a single deployment, the platform its on might be shared between other deployments and thus inDeployments needs to be an array.
     inDeployments: {
-      type: [String]
+      value: [String],
     },
     hostedByPath: {
-      type: [String]
+      value: [String] // came to the conclusion that an Array of Ancestors is easier than a materialized path.
     },
     observedProperty: { 
-      type: String
+      value: String,
     },
     hasFeatureOfInterest: { 
-      type: String
+      value: String,
+      ifs: [ifSchema]
     },
     usedProcedures: {
-      type: [String]
+      value: [String]
     }
-  },
-  // The ifs can overwrite what's in the toAdd if they are a match with the incoming observation.
-  ifs: [ifSchema]
+  }
 });
 
 

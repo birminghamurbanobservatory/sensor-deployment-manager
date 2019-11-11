@@ -3,11 +3,12 @@ import {ContextApp} from './context-app.class';
 import {ContextClient} from './context-client.class';
 import {GetLiveContextForSensorFail} from './errors/GetLiveContextForSensorFail';
 import {ContextNotFound} from './errors/ContextNotFound';
-import {cloneDeep} from 'lodash';
+import {cloneDeep, merge} from 'lodash';
 import {ContextAlreadyExists} from './errors/ContextAlreadyExists';
 import {CreateContextFail} from './errors/CreateContextFail';
 import {InvalidContext} from './errors/InvalidContext';
 import {EndLiveContextForSensorFail} from './errors/EndLiveContextForSensorFail';
+
 
 
 
@@ -85,6 +86,30 @@ export async function endLiveContextForSensor(sensorId: string, endDate?: object
 }
 
 
+
+// When a sensor leaves a deployment the context is created from scratch again using any sensor defaults.
+export async function processSensorRemovedFromDeployment(sensorId: string, sensorDefaults?: any): Promise<void> {
+
+  const transitionDate = new Date();
+
+  // End the current context
+  await endLiveContextForSensor(sensorId, transitionDate);
+
+  const newContext: ContextApp = {
+    sensor: sensorId,
+    startDate: transitionDate
+  };
+
+  if (sensorDefaults) {
+    newContext.toAdd = sensorDefaults;
+  }
+
+  // Create the new context
+  await createContext(newContext);
+
+}
+
+
 // I.e. stays within the same deployment.
 export async function processSensorRemovedFromPlatform(sensorId: string): Promise<void> {
 
@@ -108,11 +133,21 @@ export async function processSensorRemovedFromPlatform(sensorId: string): Promis
 }
 
 
-// Don't use this to change the deployment as in this case we need to revert back to the sensor defaults.
-export async function updateLiveContext(sensorId: string, updates: {hostedByPath: string; observedProperty: string; hasFeatureOfInterest: string}): Promise<ContextApp> {
-  // TODO
-  // Make sure what you're actually doing ending the current live context and copying over most of it's properties whilst updating the few properties passed in as updates to this function.
-  // Do I use this function to update the ifs too?
+
+// It takes the existing live context, copies it, ends it, and applies some updates in order to create a new context document from it. 
+export async function tweakLiveContext(sensorId: string, updates: {hostedByPath: string; observedProperty: string; hasFeatureOfInterest: string}): Promise<ContextApp> {
+
+  const transitionDate = new Date();
+
+  // End the current context
+  const endedContext = await endLiveContextForSensor(sensorId, transitionDate);
+
+  const newContext = merge({}, endedContext, {toAdd: updates});
+  delete newContext.id;
+  delete newContext.endDate;
+
+  return newContext;
+
 }
 
 
@@ -125,7 +160,7 @@ function contextAppToDb(contextApp: ContextApp): object {
 
 function contextDbToApp(contextDb: any): ContextApp {
   const contextApp = contextDb.toObject();
-  contextApp.id = contextApp._id;
+  contextApp.id = contextApp._id.toString();
   delete contextApp._id;
   delete contextApp.__v;
   return contextApp;
