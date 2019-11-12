@@ -66,7 +66,9 @@ describe('Context documents are created and updated correctly', () => {
       startDate: context1StartDate,
       toAdd: sensor.defaults
     });
-    // TODO: Why aren't my defaults being added to the context, and why is the full toAdd structure defined in the Context schema being saved to the database?
+    
+    // Add the sensor to a deployment.
+    
 
     
   });

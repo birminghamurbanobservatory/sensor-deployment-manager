@@ -11,6 +11,8 @@ import {RemoveSensorFromDeploymentFail} from './errors/RemoveSensorFromDeploymen
 import {SensorAlreadyExists} from './errors/SensorAlreadyExists';
 import {CreateSensorFail} from './errors/CreateSensorFail';
 import {InvalidSensor} from './errors/InvalidSensor';
+import {UpdateSensorFail} from './errors/UpdateSensorFail';
+import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 
 
 
@@ -112,6 +114,35 @@ export async function removeSensorFromDeployment(id: string): Promise<void> {
   return;
 }
 
+
+export async function updateSensor(id: string, updates: any): Promise<SensorApp> {
+
+  // N.B. for simplicity we won't let users update individual properties of the defaults object, if they want to update the defaults they have to provide all the defaults they want everytime.
+
+  // If there's any properties such as inDeployment or isHostedBy that you want to remove completely, e.g. because a sensor has been removed from a deployment then pass in a value of null to have the property unset, e.g. {inDeployment: null}.
+  const modifiedUpdates = replaceNullUpdatesWithUnset(updates);
+
+  let updatedSensor;
+  try {
+    updatedSensor = await Sensor.findByIdAndUpdate(
+      id,
+      modifiedUpdates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new UpdateSensorFail(undefined, err.message);
+  }
+
+  if (!updatedSensor) {
+    throw new SensorNotFound(`A sensor with id '${id}' could not be found`);
+  }
+
+  return sensorDbToApp(updatedSensor);
+
+}
 
 
 function sensorAppToDb(sensorApp: SensorApp): object {

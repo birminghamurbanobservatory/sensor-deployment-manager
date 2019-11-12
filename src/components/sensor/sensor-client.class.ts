@@ -5,6 +5,18 @@ export class SensorClient {
   public inDeployment?: string;
   public isHostedBy?: string;
   public permanentHost?: string;
+  public defaults?: Defaults;
   public createdAt?: string;
   public deletedAt?: string;
+}
+
+class Defaults {
+  observedProperty?: {value: string};
+  hasFeatureOfInterest?: {value: string; ifs?: IF[]};
+  usedProcedures?: {value: string[]};  
+}
+
+class IF {
+  if: any;
+  value: any;
 }

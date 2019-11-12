@@ -35,20 +35,37 @@ const schema = new mongoose.Schema({
     // The following properties are added unless they are already defined in the observation.
     // Although a sensor can only ever be bound to a single deployment, the platform its on might be shared between other deployments and thus inDeployments needs to be an array.
     inDeployments: {
-      value: [String],
+      value: {
+        type: [String],
+        default: undefined // this stop the default from being an empty array
+      }
     },
     hostedByPath: {
-      value: [String] // came to the conclusion that an Array of Ancestors is easier than a materialized path.
+      // came to the conclusion that an Array of Ancestors is easier than a materialized path.
+      value: {
+        type: [String],
+        default: undefined
+      }
     },
     observedProperty: { 
-      value: String,
+      value: {
+        type: String
+      }
     },
     hasFeatureOfInterest: { 
-      value: String,
-      ifs: [ifSchema]
+      value: {
+        type: String
+      },
+      ifs: {
+        type: [ifSchema],
+        default: undefined
+      } 
     },
     usedProcedures: {
-      value: [String]
+      value: {
+        type: [String],
+        default: undefined
+      }
     }
   }
 });

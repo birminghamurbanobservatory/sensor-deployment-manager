@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createSensor} from './sensor.controller';
+import {createSensor, updateSensor} from './sensor.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
@@ -11,6 +11,7 @@ export async function subscribeToSensorEvents(): Promise<void> {
 
   const subscriptionFunctions = [
     subscribeToSensorCreateRequests,
+    subscribeToSensorUpdateRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -67,4 +68,52 @@ async function subscribeToSensorCreateRequests(): Promise<any> {
   return;
 }
 
+
+
+//-------------------------------------------------
+// Update Sensor
+//-------------------------------------------------
+async function subscribeToSensorUpdateRequests(): Promise<any> {
+  
+  const eventName = 'sensor.update.request';
+
+  const sensorUpdateRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+      .required(),
+    updates: joi.object({
+      // There's only certain fields the client should be able to update
+      name: joi.string(),
+      description: joi.string(),
+      inDeployment: joi.string().allow(null), // .allow(null) lets you unset this property in the database
+      isHostedBy: joi.string().allow(null),
+      permanentHost: joi.string().allow(null),
+      defaults: joi.object({})
+        .allow(null)
+        .unknown()
+    })
+      .min(1)
+      .required()
+  }).required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let createdSensor: SensorClient;
+    try {
+      const {error: err} = sensorUpdateRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
+      createdSensor = await updateSensor(message.where.id, message.updates);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return createdSensor;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;
+}
 

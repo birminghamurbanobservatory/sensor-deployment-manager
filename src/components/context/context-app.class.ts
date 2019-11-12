@@ -8,11 +8,11 @@ export class ContextApp {
 
 
 class ToAdd {
-  inDeployments: {value: string[]};
-  hostedByPath: {value: string[]};
-  observedProperty: {value: string};
-  hasFeatureOfInterest: {value: string; ifs: IF[]};
-  usedProcedures: {value: string[]};
+  inDeployments?: {value: string[]};
+  hostedByPath?: {value: string[]};
+  observedProperty?: {value: string};
+  hasFeatureOfInterest?: {value: string; ifs?: IF[]};
+  usedProcedures?: {value: string[]};
 }
 
 
