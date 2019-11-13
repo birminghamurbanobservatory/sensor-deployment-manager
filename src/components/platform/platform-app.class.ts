@@ -2,7 +2,7 @@ import {LocationApp} from '../platform-location/location-app.class';
 
 // This is the format that this application uses (specifically the services and controllers)
 export class PlatformApp {
-  public id: string;
+  public id?: string;
   public name: string;
   public description?: string;
   public ownerDeployment?: string;

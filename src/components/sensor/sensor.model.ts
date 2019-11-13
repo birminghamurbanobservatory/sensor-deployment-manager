@@ -61,10 +61,16 @@ const schema = new mongoose.Schema({
     },
     hasFeatureOfInterest: { 
       value: String,
-      ifs: [ifSchema]
+      ifs: {
+        type: [ifSchema],
+        default: undefined
+      } 
     },
     usedProcedures: {
-      value: [String]
+      value: {
+        type: [String],
+        default: undefined
+      } 
     }
   },
 }, {

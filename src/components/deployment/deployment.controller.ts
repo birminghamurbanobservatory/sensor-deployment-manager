@@ -18,14 +18,6 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
 
   const deploymentToCreate: DeploymentApp = deploymentService.deploymentClientToApp(deployment);
 
-  // Add the user creating the deployment to the users array
-  deploymentToCreate.users = [
-    {
-      id: deploymentToCreate.createdBy,
-      level: 'admin'
-    }
-  ];
-
   let createdDeployment: DeploymentApp;
   try {
     createdDeployment = await deploymentService.createDeployment(deploymentToCreate);

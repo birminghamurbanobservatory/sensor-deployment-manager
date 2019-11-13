@@ -34,6 +34,10 @@ const schema = new mongoose.Schema({
     maxlength: [1000, 'Permanent host description is too long'],
     default: ''
   },
+  static: {
+    type: Boolean,
+    default: false // as I imagine most are able to be moved around.
+  },
   registrationKey: {
     type: String,
     required: true,

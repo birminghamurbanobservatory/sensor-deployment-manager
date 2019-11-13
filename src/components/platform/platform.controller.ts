@@ -14,7 +14,6 @@ import {PlatformLocationApp} from '../platform-location/platform-location-app.cl
 import * as sensorService from '../sensor/sensor.service';
 import * as Promise from 'bluebird';
 import {SensorApp} from '../sensor/sensor-app.class';
-import * as contextController from '../context/context.controller';
 import * as contextService from '../context/context.service';
 
 
@@ -127,11 +126,15 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
 
 
 
-export async function getPlatform(id: string, options?: {includeCurrentLocation}): Promise<any> {
+export async function getPlatform(id: string, options?: {includeCurrentLocation: boolean}): Promise<PlatformClient> {
   
   const platform: PlatformApp = await platformService.getPlatform(id);
-  const platformLocation: PlatformLocationApp = await platformLocationService.getCurrentPlatformLocation(id);
-  platform.location = platformLocation.location;
+
+  if (options && options.includeCurrentLocation) {
+    const platformLocation: PlatformLocationApp = await platformLocationService.getCurrentPlatformLocation(id);
+    platform.location = platformLocation.location;
+  }
+
   return platformService.platformAppToClient(platform);
 
 }
@@ -154,6 +157,15 @@ export async function getPlatforms(where: {inDeployment?: string}, options?: {in
 
   return platforms.map(platformService.platformAppToClient);
 
+}
+
+
+// TODO: add a schema in here for the updates.
+// TODO: Don't allow the client to edit the hostedByPath, this is automatically updated in response to a change of isHostedBy
+export async function updatePlatform(id: string, updates: any): Promise<PlatformClient> {
+  // TODO: There's a hell of a lot to consider in here. In particular:
+  // - Make sure all the hostedByPaths update if the isHostedBy field is included as an update. Do this for any descendents too. 
+  // - Update the context of any sensors on these platforms.
 }
 
 

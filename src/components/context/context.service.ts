@@ -60,7 +60,7 @@ export async function endLiveContextForSensor(sensorId: string, endDate?: object
 
   let updatedContext;
   try {
-    await Context.findOneAndUpdate(
+    updatedContext = await Context.findOneAndUpdate(
       {
         sensor: sensorId,
         endDate: {$exists: false}

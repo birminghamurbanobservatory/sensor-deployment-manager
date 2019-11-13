@@ -82,18 +82,9 @@ async function subscribeToSensorUpdateRequests(): Promise<any> {
       id: joi.string().required()
     })
       .required(),
-    updates: joi.object({
-      // There's only certain fields the client should be able to update
-      name: joi.string(),
-      description: joi.string(),
-      inDeployment: joi.string().allow(null), // .allow(null) lets you unset this property in the database
-      isHostedBy: joi.string().allow(null),
-      permanentHost: joi.string().allow(null),
-      defaults: joi.object({})
-        .allow(null)
-        .unknown()
-    })
+    updates: joi.object({}) // let the controller and model schemas handle the detailed validation.
       .min(1)
+      .unknown()
       .required()
   }).required();
 

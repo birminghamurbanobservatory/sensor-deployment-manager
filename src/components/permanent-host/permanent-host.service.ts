@@ -7,6 +7,7 @@ import {CreatePermanentHostFail} from './errors/CreatePermanentHostFail';
 import {PermanentHostClient} from './permanent-host-client.class';
 import {GetPermanentHostFail} from './errors/GetPermanentHostFail';
 import {PermanentHostNotFound} from './errors/PermanentHostNotFound';
+import {GetPermanentHostByRegistrationKeyFail} from './errors/GetPermanentHostByRegistrationKeyFail';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -42,6 +43,26 @@ export async function getPermanentHost(id: string): Promise<PermanentHostApp> {
 
   if (!permanentHost) {
     throw new PermanentHostNotFound(`A permanent host with id '${id}' could not be found`);
+  }
+
+  return permanentHostDbToApp(permanentHost);
+
+}
+
+
+export async function getPermanentHostByRegistrationKey(registrationKey: string): Promise<PermanentHostApp> {
+
+  let permanentHost;
+  try {
+    permanentHost = await PermanentHost.findOne({
+      registrationKey
+    }).exec();
+  } catch (err) {
+    throw new GetPermanentHostByRegistrationKeyFail(undefined, err.message);
+  }
+
+  if (!permanentHost) {
+    throw new PermanentHostNotFound(`A permanent host with a registration key of '${registrationKey}' could not be found`);
   }
 
   return permanentHostDbToApp(permanentHost);

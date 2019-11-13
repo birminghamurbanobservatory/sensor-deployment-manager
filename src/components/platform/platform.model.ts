@@ -13,7 +13,7 @@ const schema = new mongoose.Schema({
     type: String,
     required: true,
     immutable: true, // prevents this from being updated
-    maxlength: [44, 'Platform id is too long'],
+    maxlength: [48, 'Platform id is too long'], // length accounts for suffix added to permanentHost id.
     validate: {
       validator: (value): boolean => {
         return kebabCaseRegex.test(value);
@@ -44,7 +44,8 @@ const schema = new mongoose.Schema({
     type: String
   },
   hostedByPath: {
-    type: [String]
+    type: [String],
+    default: undefined
   },
   static: {
     type: Boolean,

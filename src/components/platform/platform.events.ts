@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createPlatform, getPlatform, getPlatforms, deletePlatform} from './platform.controller';
+import {createPlatform, getPlatform, getPlatforms, updatePlatform, deletePlatform} from './platform.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {PlatformClient} from './platform-client.class';
@@ -14,6 +14,7 @@ export async function subscribeToPlatformEvents(): Promise<void> {
     subscribeToPlatformCreateRequests,
     subscribeToPlatformsGetRequests,
     subscribeToPlatformGetRequests,
+    subscribeToPlatformUpdateRequests,
     subscribeToPlatformDeleteRequests
   ];
 
@@ -158,6 +159,44 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
 
 }
 
+
+//-------------------------------------------------
+// Update Platform
+//-------------------------------------------------
+async function subscribeToPlatformUpdateRequests(): Promise<void> {
+
+  const eventName = 'platform.update.request';
+
+  const platformUpdateRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string()
+        .required()
+    })
+    .required(),
+    updates: joi.object({}).required()
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let platforms: PlatformClient[];
+    try {
+      const {error: err} = platformUpdateRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      platforms = await updatePlatform(message.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return platforms;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
 
 
 //-------------------------------------------------

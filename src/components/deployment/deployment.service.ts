@@ -141,16 +141,17 @@ export async function deleteDeployment(id: string): Promise<void> {
 
 
 
-
 function deploymentAppToDb(deploymentApp: DeploymentApp): object {
   const deploymentDb: any = cloneDeep(deploymentApp);
   deploymentDb._id = deploymentApp.id;
   delete deploymentDb.id;
-  deploymentDb.users = deploymentDb.users.map((user) => {
-    user._id = user.id;
-    delete user.id;
-    return user;
-  });
+  if (deploymentDb.users) {
+    deploymentDb.users = deploymentDb.users.map((user) => {
+      user._id = user.id;
+      delete user.id;
+      return user;
+    });
+  }
   return deploymentDb;
 }
 

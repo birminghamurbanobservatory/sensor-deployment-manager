@@ -11,7 +11,7 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 const userSchema = new mongoose.Schema({
   _id: {
     type: String,
-    require: true
+    required: true
   },
   level: {
     type: String,

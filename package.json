@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "test": "LOGGER_ENABLED=false jest --runInBand --env=node",
+    "test-debug": "LOGGER_ENABLED=true LOGGER_FORMAT=terminal LOGGER_LEVEL=debug jest --runInBand --env=node",
     "build": "rm -rf dist && tsc",
     "build:start": "npm run build && npm start",
     "build:live": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"

@@ -2,16 +2,13 @@ import {SensorClient} from './sensor-client.class';
 import {SensorApp} from './sensor-app.class';
 import * as logger from 'node-logger';
 import * as sensorService from './sensor.service';
-import * as deploymentService from '../deployment/deployment.service';
-import * as platformService from '../platform/platform.service';
 import * as permanentHostService from '../permanent-host/permanent-host.service';
 import * as contextService from '../context/context.service';
 import {ContextApp} from '../context/context-app.class';
 import * as joi from '@hapi/joi';
 import {InvalidSensor} from './errors/InvalidSensor';
-import {PlatformApp} from '../platform/platform-app.class';
 import * as check from 'check-types';
-import {uniq, concat, merge} from 'lodash';
+import {BadRequest} from '../../errors/BadRequest';
 
 
 const newSensorSchema = joi.object({
@@ -19,9 +16,7 @@ const newSensorSchema = joi.object({
     .required(),
   name: joi.string(),
   description: joi.string(),
-  inDeployment: joi.string(),
   permanentHost: joi.string(),
-  isHostedBy: joi.string(),
   defaults: joi.object({
     observedProperty: joi.object({
       value: joi.string()
@@ -39,6 +34,8 @@ const newSensorSchema = joi.object({
 
 
 export async function createSensor(sensor: SensorClient): Promise<SensorClient> {
+
+  logger.debug('Creating new sensor');
 
   // Well worth having some validation here to ensure the code below works ok.
   const {error: err} = newSensorSchema.validate(sensor);
@@ -58,40 +55,17 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
     context.toAdd = sensor.defaults;
   }
 
-  // If the user is trying to add the sensor straight to a deployment on creation then check this deployment exists.
-  if (sensor.inDeployment) {
-    await deploymentService.getDeployment(sensor.inDeployment);
-    context.toAdd.inDeployments = {value: [sensor.inDeployment]};
-  }
-
-  // Check the platform exists if provided
-  if (sensor.isHostedBy) {
-    const platform: PlatformApp = await platformService.getPlatform(sensor.isHostedBy);
-    // Check this platform is in the deployment provided for the sensor
-    if (!platform.inDeployments || !platform.inDeployments.includes(sensor.inDeployment)) {
-      throw new InvalidSensor(`The platform '${sensor.isHostedBy}' provided via the isHostedBy property does not belong to the deployment '${sensor.inDeployment}' provided via the inDeployment field.`);
-    }
-    // If the platform belongs to extra deployments then add these to the context too.
-    if (check.nonEmptyArray(platform.inDeployments)) {
-      context.toAdd.inDeployments = {value: uniq(concat(sensor.inDeployment, platform.inDeployments))};
-    } 
-    // Set the hostedByPath for the context
-    let hostedByPath = [platform.id];
-    if (check.nonEmptyArray(platform.hostedByPath)) {
-      hostedByPath = concat(platform.hostedByPath, hostedByPath);
-    }
-    context.toAdd.hostedByPath = {value: hostedByPath};
-  }  
-
   // Check the permanent host exists if provided
   if (sensor.permanentHost) {
     await permanentHostService.getPermanentHost(sensor.permanentHost);
   }  
 
-  await contextService.createContext(context);
+  const createdContext = await contextService.createContext(context);
+  logger.debug('Context created for new sensor', createdContext);
+
 
   const sensorToCreate: SensorApp = sensorService.sensorClientToApp(sensor);
-  const createdSensor: SensorApp = await sensorService.createSensor(sensorToCreate);  
+  const createdSensor: SensorApp = await sensorService.createSensor(sensorToCreate);
   logger.debug('New sensor created', createdSensor);
 
   return sensorService.sensorAppToClient(createdSensor);
@@ -100,18 +74,51 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
 
 
+export async function getSensor(id: string): Promise<SensorClient> {
+
+  const sensor: SensorApp = await sensorService.getSensor(id);
+  logger.debug('Sensor found', sensor);
+  return sensorService.sensorAppToClient(sensor);
+
+}
+
+
+
+const sensorUpdatesSchema = joi.object({
+  // There's only certain fields the client should be able to update.
+  name: joi.string(),
+  description: joi.string(),
+  permanentHost: joi.string().allow(null),
+  defaults: joi.object({})
+    .allow(null)
+    .unknown()  
+})
+.min(1)
+.required(); 
+
+// When it comes to adding/removing sensors to platforms and deployments, this is handled elsewhere, e.g. via registration keys.
 export async function updateSensor(id: string, updates: any): Promise<SensorClient> {
 
-  const deploymentChange = check.containsKey(updates, 'inDeployment');
-  const platformChange = check.containsKey(updates, 'isHostedBy');
-  const permanentHostChange = check.containsKey(updates, 'permanentHost');
+  logger.debug(`Updating sensor '${id}'`);
+
+  // First let's get the current sensor details
+  const oldSensor = await sensorService.getSensor(id);
+
+  const {error: validationErr} = sensorUpdatesSchema.validate(updates);
+  if (validationErr) throw new BadRequest(validationErr.message);
+
+  const permanentHostChange = check.containsKey(updates, 'permanentHost') && 
+    oldSensor.permanentHost !== updates.permanentHost &&
+    !(!oldSensor.permanentHost && updates.permanentHost === null);
+
   const defaultsChange = check.containsKey(updates, 'defaultsChange');
 
-  const transitionDate = new Date();
-
-  if (updates.inDeployment) {
-    // Check this deployment exists
-    await deploymentService.getDeployment(updates.inDeployment);
+  // Only allow the user to update the permanentHost when the sensor is currently unassigned to a deployment or platform.
+  if (permanentHostChange && (oldSensor.inDeployment)) {
+    throw new BadRequest(`The sensor is still in the '${oldSensor.inDeployment}' deployment. Please remove it from this deployment before changing the permanent host`);
+  }
+  if (permanentHostChange && (oldSensor.isHostedBy)) {
+    throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. Please remove it from this platform before changing the permanent host`);
   }
 
   if (updates.permanentHost) {
@@ -119,66 +126,28 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
     await permanentHostService.getPermanentHost(updates.permanentHost);
   }
 
-  let platform;
-  if (updates.isHostedBy) {
-    // Check this platform exists
-    platform = await platformService.getPlatform(updates.isHostedBy);
-  }
-
-  // TODO: Need to check that if they have assigned the sensor to a new platform, that this platform belongs to the deployment that the sensor is in.
-
   const updatedSensor = await sensorService.updateSensor(id, updates);
   logger.debug(`Sensor '${id}' updated.`);
 
-  // Many of the updates will end the current context and create a new context
-  if (deploymentChange || platformChange || permanentHostChange || defaultsChange) {
+  // If the sensor isn't in a deployment then changes to its defaults should also update its context
+  if (!oldSensor.inDeployment && defaultsChange) {
+
+    logger.debug(`Context for sensor ${id} needs updating.`);
+    
     // End current context
-    const endedContext = await contextService.endLiveContextForSensor(id, transitionDate);
+    const transitionDate = new Date();
+    await contextService.endLiveContextForSensor(id, transitionDate);
     
     // Create new context
     const newContext: ContextApp = {
       sensor: id,
       startDate: transitionDate,
-      toAdd: {}
+      toAdd: updatedSensor.defaults || {}
     };
 
-    // TODO: Changing a sensor's permanent host should also knock the sensor off its platform. And probably out of its deployment too.
-
-    if (defaultsChange) {
-      newContext.toAdd = updatedSensor.defaults;
-    }
-
-    if (!defaultsChange && deploymentChange && updatedSensor.defaults) {
-      newContext.toAdd = updatedSensor.defaults;
-    }
-
-    if (!deploymentChange) {
-      if (endedContext.toAdd.inDeployments) {
-        newContext.toAdd.inDeployments = endedContext.toAdd.inDeployments;
-      }
-      if (endedContext.toAdd.hostedByPath) {
-        newContext.toAdd.hostedByPath = endedContext.toAdd.hostedByPath;
-      }
-      if (!defaultsChange) {
-        newContext.toAdd = endedContext.toAdd;
-      }
-    }
-
-    if (platformChange) {
-      if (updates.isHostedBy === null) {
-        delete newContext.toAdd.hostedByPath;
-      }
-      if (platform) {
-        let hostedByPath = [platform.id];
-        if (check.nonEmptyArray(platform.hostedByPath)) {
-          hostedByPath = concat(platform.hostedByPath, hostedByPath);
-        }
-        newContext.toAdd.hostedByPath = {value: hostedByPath};  
-      }
-    }
-
     // Create the new context
-    await contextService.createContext(newContext);
+    const createdContext = await contextService.createContext(newContext);
+    logger.debug(`New context for sensor ${id}.`, createdContext);
 
   }
 
