@@ -60,6 +60,9 @@ export async function getDeployments(where: {user?: string; public?: boolean}): 
 
 export async function updateDeployment(id: string, updates: any): Promise<DeploymentClient> {
 
+  // TODO: we need a quick check to make sure only certain fields are being updated.
+  // TODO: If a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them (unless they were shared with the deployment, in which case the deployment would be listed in the hostee platform's inDeployments array).
+
   const updatedDeployment = await deploymentService.updateDeployment(id, updates);
   logger.debug(`Deployment '${id}' updated.`);
   return deploymentService.deploymentAppToClient(updatedDeployment);
@@ -74,6 +77,7 @@ export async function deleteDeployment(id: string): Promise<void> {
   // TODO: Is there anything that belongs to the deployment that needs updating? 
   // E.g. 
   // Delete all platforms owned by this deployment?
-  // Unlink any sensors bound to this deployment
+  // Unlink any sensors bound to this deployment, and update their context.
+  // Unhost any platforms in other deployments that were hosted on platforms from this deployment.
   return;
 }

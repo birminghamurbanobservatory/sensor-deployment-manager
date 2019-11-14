@@ -15,6 +15,9 @@ import * as sensorService from '../sensor/sensor.service';
 import * as Promise from 'bluebird';
 import {SensorApp} from '../sensor/sensor-app.class';
 import * as contextService from '../context/context.service';
+import * as joi from '@hapi/joi';
+import {BadRequest} from '../../errors/BadRequest';
+import {HostPlatformInPrivateDeployment} from './errors/HostPlatformInPrivateDeployment';
 
 
 
@@ -160,12 +163,70 @@ export async function getPlatforms(where: {inDeployment?: string}, options?: {in
 }
 
 
-// TODO: add a schema in here for the updates.
-// TODO: Don't allow the client to edit the hostedByPath, this is automatically updated in response to a change of isHostedBy
+const platformUpdatesSchema = joi.object({
+  name: joi.string(),
+  description: joi.string(),
+  isHostedBy: joi.string(),
+  static: joi.boolean()
+});
+// N.B. We don't allow the client to edit the hostedByPath, this is automatically updated in response to a change of isHostedBy.
+// Adding and removing platforms from deployments is handled by other controllers.
 export async function updatePlatform(id: string, updates: any): Promise<PlatformClient> {
+
+  const {error: validationErr} = platformUpdatesSchema.validate(updates);
+  if (validationErr) throw new BadRequest(validationErr.message);
+
+  // Get the current platform document
+  const oldPlatform = await platformService.getPlatform(id);
+
+  const isHostedByChange = check.containsKey(updates, 'isHostedBy') && 
+    oldPlatform.isHostedBy !== updates.isHostedBy &&
+    !(!oldPlatform.isHostedBy && updates.isHostedBy === null);
+
+  let hostPlatform: PlatformApp;
+
+  if (updates.isHostedBy) {
+    // Does the host platform exist (errors if not)?
+    hostPlatform = platformService.getPlatform(updates.isHostedBy);
+    // This host platform must either be owned by a public deployment or have the same ownerDeployment as this platform.
+    // TODO: Should we allow a user to host a platfrom on a platform in a private deployment that the particular user also has rights too? This would involve passing in the user id as an option to this controller, or having the client microservice check the user's rights itself first.
+    if (hostPlatform.ownerDeployment !== oldPlatform.ownerDeployment) {
+      logger.debug('The new host platform has a different owner deployment to the hostee platform, thus a check will be performed to see if the host platform is owned by a public deployment.');
+    }
+    const hostPlatformOwnerDeployment = await deploymentService.getDeployment(hostPlatform.ownerDeployment);
+    if (hostPlatformOwnerDeployment.public === false) {
+      throw new HostPlatformInPrivateDeployment(`The host platform '${updates.isHostedBy}' is in a private deployment, therefore you do not have the rights to host platform '${id}' on it.`);
+    }
+  }
+
+  // Am I best having all this rehosting logic in a separate controller(s), and perhaps only using this controller for basic updates?
+  // TODO: I'd say lets allow isHostedBy as a property of this function's updates argument, but lets have a controller called unhostPlatform and another called rehostPlatform that are called from here. They will each call the corresponding service function, but they will also handle sorting out all the context too. 
+  if (isHostedByChange) {
+    if (updates.isHostedBy === null) {
+      await platformService.unhostPlatform(id);
+    } else {
+      await platformService.rehostPlatform(id, updates.isHostedBy); 
+    }
+  }
+
+  // TODO TODO TODO
+
   // TODO: There's a hell of a lot to consider in here. In particular:
-  // - Make sure all the hostedByPaths update if the isHostedBy field is included as an update. Do this for any descendents too. 
+  // - Make sure all the hostedByPath platforms update if the isHostedBy field is included as an update. Do this for any descendents too. 
   // - Update the context of any sensors on these platforms.
+  // - You've also got to check that this platform is in the same deployment. Or might we allow it to hosted on a public deployment?
+
+}
+
+
+// E.g. for sharing a platform with a deployment other than the one that created it.
+export async function addPlatformToDeployment(platformId, deploymentId): Promise<PlatformClient> {
+
+}
+
+
+export async function removePlatformFromDeployment(platformId, deploymentId): Promise<PlatformClient> {
+  
 }
 
 
@@ -176,6 +237,7 @@ export async function deletePlatform(id: string): Promise<void> {
 
   // Update any platforms that are hosted on this platform
   await platformService.cutDescendantsOfPlatform(id);
+  // TODO: We need to update the context of sensors hosted on these descendant platforms.
 
   // Delete the platform
   await platformService.deletePlatform(id);

@@ -1,7 +1,7 @@
 import Platform from './platform.model';
 import {PlatformApp} from './platform-app.class';
 import {PlatformClient} from './platform-client.class';
-import {cloneDeep} from 'lodash';
+import {cloneDeep, merge} from 'lodash';
 import {PlatformAlreadyExists} from './errors/PlatformAlreadyExists';
 import {InvalidPlatform} from './errors/InvalidPlatform';
 import {CreatePlatformFail} from './errors/CreatePlatformFail';
@@ -9,11 +9,16 @@ import {GetPlatformFail} from './errors/GetPlatformFail';
 import {PlatformNotFound} from './errors/PlatformNotFound';
 import {GetPlatformsFail} from './errors/GetPlatformsFail';
 import {DeletePlatformFail} from './errors/DeletePlatformFail';
+import {UpdatePlatformFail} from './errors/UpdatePlatformFail';
+import {UnhostPlatformFail} from './errors/UnhostPlatformFail';
+import {RehostPlatformFail} from './errors/RehostPlatformFail';
 import * as check from 'check-types';
 import {PlatformLocationApp} from '../platform-location/platform-location-app.class';
 import {GetDescendantsOfPlatformFail} from './errors/GetDecendantsOfPlatformFail';
 import * as Promise from 'bluebird';
 import {CutDescendantsOfPlatformFail} from './errors/CutDescendantsOfPlatformFail';
+import * as joi from '@hapi/joi';
+import {PlatformAlreadyUnhosted} from './errors/PlatformAlreadyUnhosted';
 
 
 
@@ -77,6 +82,178 @@ export async function getPlatforms(where: {inDeployment?: string}): Promise<Plat
 
 
   return (foundPlatforms.map(platformDbToApp));
+
+}
+
+// I only want this function updating certain fields, i.e. not the isHostedBy property.
+const updatesSchema = joi.object({
+  name: joi.string(),
+  description: joi.string(),
+  static: joi.boolean()  
+});
+
+export async function updatePlatform(id, updates: {name: string; description: string; static: boolean}): Promise<PlatformApp> {
+
+  joi.attempt(updates, updatesSchema); // throws error if invalid
+
+  let updatedPlatform;
+  try {
+    updatedPlatform = await Platform.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new UpdatePlatformFail(undefined, err.message);
+  }
+
+  if (!updatedPlatform) {
+    throw new PlatformNotFound(`A platform with id '${id}' could not be found`);
+  }
+
+  return platformDbToApp(updatedPlatform);  
+
+}
+
+
+// Not only does this update this platform, but if this platform has any descendents then their hostedByPath will be updated too.
+// Also works if the platform isn't yet hosted.
+export async function rehostPlatform(id: string, hostId?: string | null): Promise<PlatformApp> {
+
+  // First get the platform so we can see what ancestors it has
+  const existingPlatform = getPlatform(id);
+
+  // Get the host platforms (errors if it doesn't exist)
+  const hostPlatform = getPlatform(hostId);
+  let newAncestors = [hostPlatform.id];
+  if (hostPlatform.hostedByPath) {
+    newAncestors = merge(newAncestors, hostPlatform.hostedByPath);
+  }
+
+  // If the platform was already hosted then we need to update its decendents first as we can't do a $pull and a $push in the same request.
+  if (existingPlatform.isHostedBy) {
+    const oldAncestors = existingPlatform.hostedByPath;
+    try {
+      // Basically we're looking for any platforms whose hostedByPath includes the unhosted platform and pulling out the oldAncestors from it.
+      await Platform.updateMany(
+        {
+          hostedByPath: id
+        },
+        {
+          $pull: {hostedByPath: {$in: oldAncestors}}
+        }
+      );    
+    } catch (err) {
+      throw new UnhostPlatformFail(undefined, err.message);
+    }
+  }
+
+  // Now to add the new ancestors to all of the platform's descendent's hostedByPath arrays.
+  try {
+    // Basically we're looking for any platforms whose hostedByPath includes the unhosted platform and pulling out the ancestors from it.
+    await Platform.updateMany(
+      {
+        hostedByPath: id
+      },
+      {
+        $push: {
+          hostedByPath: {
+            $each: newAncestors,
+            $position: 0 // adds them to the beginning of the array
+          }
+        }
+      }
+    );    
+  } catch (err) {
+    throw new RehostPlatformFail(undefined, err.message);
+  }  
+
+  // Now to update the platform itself
+  const updates = {
+    isHostedBy: hostId,
+    hostedByPath: newAncestors      
+  };
+
+  let updatedPlatform;
+  try {
+    updatedPlatform = await Platform.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new RehostPlatformFail(undefined, err.message);
+  }
+
+  if (!updatedPlatform) {
+    throw new PlatformNotFound(`A platform with id '${id}' could not be found`);
+  }
+
+  return platformDbToApp(updatedPlatform);  
+
+}
+
+
+// Not only does this update this platform, but if this platform has any descendents then their hostedByPath is updated too.
+export async function unhostPlatform(id): Promise<PlatformApp> {
+
+  // First get the platform so we can see what ancestors it has
+  const existingPlatform = getPlatform(id);
+
+  if (!existingPlatform.isHostedBy) {
+    throw new PlatformAlreadyUnhosted(`Platform '${id}' is already unhosted.`);
+  }
+
+  const ancestors = existingPlatform.hostedByPath;
+
+  // Now to update the platform document
+  const updates = {
+    $unset: {
+      isHostedBy: '',
+      hostedByPath: ''      
+    }
+  };
+
+  let updatedPlatform;
+  try {
+    updatedPlatform = await Platform.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new UnhostPlatformFail(undefined, err.message);
+  }
+
+  if (!updatedPlatform) {
+    throw new PlatformNotFound(`A platform with id '${id}' could not be found`);
+  }
+
+  // Now to update the hostedByPath of all descendents
+  try {
+    // Basically we're looking for any platforms whose hostedByPath includes the unhosted platform and pulling out the ancestors from it.
+    await Platform.updateMany(
+      {
+        hostedByPath: id
+      },
+      {
+        $pull: {hostedByPath: {$in: ancestors}}
+      }
+    );    
+  } catch (err) {
+    throw new UnhostPlatformFail(undefined, err.message);
+  }
+
+  return platformDbToApp(updatedPlatform);  
 
 }
 
