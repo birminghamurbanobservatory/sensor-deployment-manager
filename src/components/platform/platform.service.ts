@@ -1,7 +1,7 @@
 import Platform from './platform.model';
 import {PlatformApp} from './platform-app.class';
 import {PlatformClient} from './platform-client.class';
-import {cloneDeep, merge} from 'lodash';
+import {cloneDeep, concat} from 'lodash';
 import {PlatformAlreadyExists} from './errors/PlatformAlreadyExists';
 import {InvalidPlatform} from './errors/InvalidPlatform';
 import {CreatePlatformFail} from './errors/CreatePlatformFail';
@@ -19,7 +19,7 @@ import * as Promise from 'bluebird';
 import {CutDescendantsOfPlatformFail} from './errors/CutDescendantsOfPlatformFail';
 import * as joi from '@hapi/joi';
 import {PlatformAlreadyUnhosted} from './errors/PlatformAlreadyUnhosted';
-
+import * as logger from 'node-logger';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -121,21 +121,24 @@ export async function updatePlatform(id, updates: {name: string; description: st
 
 // Not only does this update this platform, but if this platform has any descendents then their hostedByPath will be updated too.
 // Also works if the platform isn't yet hosted.
-export async function rehostPlatform(id: string, hostId?: string | null): Promise<PlatformApp> {
+export async function rehostPlatform(id: string, hostId?: string | null): Promise<{platform: PlatformApp; oldAncestors: string[]; newAnestors: string[]}> {
 
   // First get the platform so we can see what ancestors it has
-  const existingPlatform = getPlatform(id);
+  const existingPlatform = await getPlatform(id);
 
   // Get the host platforms (errors if it doesn't exist)
-  const hostPlatform = getPlatform(hostId);
+  const hostPlatform = await getPlatform(hostId);
   let newAncestors = [hostPlatform.id];
   if (hostPlatform.hostedByPath) {
-    newAncestors = merge(newAncestors, hostPlatform.hostedByPath);
+    newAncestors = concat(newAncestors, hostPlatform.hostedByPath);
   }
 
+  logger.debug(`New ancestors for platform ${id}`, newAncestors);
+
   // If the platform was already hosted then we need to update its decendents first as we can't do a $pull and a $push in the same request.
+  let oldAncestors = [];
   if (existingPlatform.isHostedBy) {
-    const oldAncestors = existingPlatform.hostedByPath;
+    oldAncestors = existingPlatform.hostedByPath;
     try {
       // Basically we're looking for any platforms whose hostedByPath includes the unhosted platform and pulling out the oldAncestors from it.
       await Platform.updateMany(
@@ -153,7 +156,6 @@ export async function rehostPlatform(id: string, hostId?: string | null): Promis
 
   // Now to add the new ancestors to all of the platform's descendent's hostedByPath arrays.
   try {
-    // Basically we're looking for any platforms whose hostedByPath includes the unhosted platform and pulling out the ancestors from it.
     await Platform.updateMany(
       {
         hostedByPath: id
@@ -195,22 +197,26 @@ export async function rehostPlatform(id: string, hostId?: string | null): Promis
     throw new PlatformNotFound(`A platform with id '${id}' could not be found`);
   }
 
-  return platformDbToApp(updatedPlatform);  
+  return {
+    platform: platformDbToApp(updatedPlatform),
+    oldAncestors,
+    newAncestors
+  };
 
 }
 
 
 // Not only does this update this platform, but if this platform has any descendents then their hostedByPath is updated too.
-export async function unhostPlatform(id): Promise<PlatformApp> {
+export async function unhostPlatform(id): Promise<{platform: PlatformApp; oldAncestors: string[]}> {
 
   // First get the platform so we can see what ancestors it has
-  const existingPlatform = getPlatform(id);
+  const existingPlatform = await getPlatform(id);
 
   if (!existingPlatform.isHostedBy) {
     throw new PlatformAlreadyUnhosted(`Platform '${id}' is already unhosted.`);
   }
 
-  const ancestors = existingPlatform.hostedByPath;
+  const oldAncestors = existingPlatform.hostedByPath;
 
   // Now to update the platform document
   const updates = {
@@ -246,14 +252,17 @@ export async function unhostPlatform(id): Promise<PlatformApp> {
         hostedByPath: id
       },
       {
-        $pull: {hostedByPath: {$in: ancestors}}
+        $pull: {hostedByPath: {$in: oldAncestors}}
       }
     );    
   } catch (err) {
     throw new UnhostPlatformFail(undefined, err.message);
   }
 
-  return platformDbToApp(updatedPlatform);  
+  return {
+    platform: platformDbToApp(updatedPlatform),
+    oldAncestors
+  };   
 
 }
 

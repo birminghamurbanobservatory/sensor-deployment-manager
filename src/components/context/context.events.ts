@@ -36,6 +36,7 @@ export async function subscribeToContextEvents(): Promise<void> {
 //-------------------------------------------------
 // Update Context
 //-------------------------------------------------
+// TODO: Do I event need this?
 async function subscribeToContextUpdateRequests(): Promise<any> {
 
   const eventName = 'context.update.request';

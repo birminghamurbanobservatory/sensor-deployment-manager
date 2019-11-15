@@ -154,3 +154,5 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   return sensorService.sensorAppToClient(updatedSensor);
 
 }
+
+

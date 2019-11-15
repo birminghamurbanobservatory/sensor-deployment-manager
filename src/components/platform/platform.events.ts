@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createPlatform, getPlatform, getPlatforms, updatePlatform, deletePlatform} from './platform.controller';
+import {createPlatform, getPlatform, getPlatforms, updatePlatform, unhostPlatform, rehostPlatform, deletePlatform} from './platform.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {PlatformClient} from './platform-client.class';
@@ -15,6 +15,8 @@ export async function subscribeToPlatformEvents(): Promise<void> {
     subscribeToPlatformsGetRequests,
     subscribeToPlatformGetRequests,
     subscribeToPlatformUpdateRequests,
+    subscribeToPlatformUnhostRequests,
+    subscribeToPlatformRehostRequests,
     subscribeToPlatformDeleteRequests
   ];
 
@@ -185,7 +187,85 @@ async function subscribeToPlatformUpdateRequests(): Promise<void> {
     try {
       const {error: err} = platformUpdateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      platforms = await updatePlatform(message.where.id);
+      platforms = await updatePlatform(message.where.id, message.updates);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return platforms;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
+
+
+//-------------------------------------------------
+// Unhost Platform
+//-------------------------------------------------
+async function subscribeToPlatformUnhostRequests(): Promise<void> {
+
+  const eventName = 'platform.unhost.request';
+
+  const platformUnhostRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string()
+        .required()
+    })
+    .required()
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let platforms: PlatformClient[];
+    try {
+      const {error: err} = platformUnhostRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      platforms = await unhostPlatform(message.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return platforms;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
+
+
+//-------------------------------------------------
+// Rehost Platform
+//-------------------------------------------------
+async function subscribeToPlatformRehostRequests(): Promise<void> {
+
+  const eventName = 'platform.rehost.request';
+
+  const platformRehostRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string()
+        .required(),
+      hostId: joi.string()
+        .required()
+    })
+    .required()
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let platforms: PlatformClient[];
+    try {
+      const {error: err} = platformRehostRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      platforms = await rehostPlatform(message.where.id, message.where.hostId);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }

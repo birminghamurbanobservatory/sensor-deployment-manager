@@ -3,11 +3,17 @@ import {ContextApp} from './context-app.class';
 import {ContextClient} from './context-client.class';
 import {GetLiveContextForSensorFail} from './errors/GetLiveContextForSensorFail';
 import {ContextNotFound} from './errors/ContextNotFound';
-import {cloneDeep, merge} from 'lodash';
+import {cloneDeep, merge, concat, pullAll} from 'lodash';
 import {ContextAlreadyExists} from './errors/ContextAlreadyExists';
 import {CreateContextFail} from './errors/CreateContextFail';
 import {InvalidContext} from './errors/InvalidContext';
 import {EndLiveContextForSensorFail} from './errors/EndLiveContextForSensorFail';
+import {GetLiveContextsForPlatformFail} from './errors/GetLiveContextsForPlatformFail';
+import {ProcessPlatformHostChangeFail} from './errors/ProcessPlatformHostChangeFail';
+import * as check from 'check-types';
+import {EndLiveContextsForPlatformsFail} from './errors/EndLiveContextsForPlatformsFail';
+import * as Promise from 'bluebird';
+import {GetContextFail} from './errors/GetContextFail';
 
 
 
@@ -35,6 +41,24 @@ export async function createContext(context: ContextApp): Promise<ContextApp> {
 }
 
 
+export async function getContext(id: string): Promise<ContextApp> {
+
+  let context;
+  try {
+    context = await Context.findById(id).exec();
+  } catch (err) {
+    throw new GetContextFail(undefined, err.message);
+  }
+
+  if (!context) {
+    throw new ContextNotFound(`A context with id '${id}' could not be found`);
+  }
+
+  return contextDbToApp(context);  
+
+}
+
+
 export async function getLiveContextForSensor(sensorId: string): Promise<ContextApp> {
 
   let context;
@@ -54,6 +78,24 @@ export async function getLiveContextForSensor(sensorId: string): Promise<Context
   return contextDbToApp(context);  
 
 }
+
+
+export async function getLiveContextsForPlatform(platformId: string): Promise<ContextApp> {
+
+  let contexts;
+  try {
+    contexts = await Context.find({
+      'toAdd.hostedByPath': platformId,
+      endDate: {$exists: false}
+    }).exec();
+  } catch (err) {
+    throw new GetLiveContextsForPlatformFail(undefined, err.message);
+  }
+
+  return contexts.map(contextDbToApp);  
+
+}
+
 
 
 export async function endLiveContextForSensor(sensorId: string, endDate?: object): Promise<ContextApp> {
@@ -85,6 +127,27 @@ export async function endLiveContextForSensor(sensorId: string, endDate?: object
 
 }
 
+
+
+export async function endLiveContextsForPlatform(platformId: string, endDate?: object): Promise<void> {
+
+  try {
+    await Context.updateMany(
+      {
+        'toAdd.hostedByPath': platformId,
+        endDate: {$exists: false}
+      },
+      {
+        endDate: endDate || new Date()
+      }
+    ).exec();
+  } catch (err) {
+    throw new EndLiveContextsForPlatformsFail(undefined, err.message);
+  }
+
+  return;
+
+}
 
 
 // When a sensor leaves a deployment the context is created from scratch again using any sensor defaults.
@@ -131,6 +194,42 @@ export async function processSensorRemovedFromPlatform(sensorId: string): Promis
   return;
 
 }
+
+
+// Works for both unhosting and rehosting.
+export async function processPlatformHostChange(platformId: string, oldAncestors: string[], newAncestors: string[]): Promise<void> {
+
+  const oldContexts = await getLiveContextsForPlatform(platformId);
+
+  const transitionDate = new Date();
+
+  const newContexts = oldContexts.map((oldContext) => {
+    const newContext = cloneDeep(oldContext);
+    delete newContext.id;
+    delete newContext.endDate; // should already be missing
+    newContext.startDate = transitionDate;
+
+    if (check.nonEmptyArray(oldAncestors)) {
+      pullAll(newContext.toAdd.hostedByPath, oldAncestors); // mutates
+    }
+
+    if (check.nonEmptyArray(newAncestors)) {
+      newContext.toAdd.hostedByPath = concat(newAncestors, newContext.toAdd.hostedByPath)
+    }
+
+    return newContext;
+  });
+
+  // End the old contexts
+  await endLiveContextsForPlatform(platformId);
+
+  // Save the new contexts
+  await Context.create(newContexts);
+
+  return;
+
+}
+
 
 
 

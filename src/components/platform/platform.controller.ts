@@ -166,55 +166,52 @@ export async function getPlatforms(where: {inDeployment?: string}, options?: {in
 const platformUpdatesSchema = joi.object({
   name: joi.string(),
   description: joi.string(),
-  isHostedBy: joi.string(),
   static: joi.boolean()
 });
-// N.B. We don't allow the client to edit the hostedByPath, this is automatically updated in response to a change of isHostedBy.
-// Adding and removing platforms from deployments is handled by other controllers.
+// N.B. this particular function only allows certain properties of a platform to be updated, i.e. direct features of a platform rather than its relationships with other things, e.g. other platforms and deployments. other controller functions handle this.
 export async function updatePlatform(id: string, updates: any): Promise<PlatformClient> {
 
   const {error: validationErr} = platformUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
   // Get the current platform document
-  const oldPlatform = await platformService.getPlatform(id);
+  const updatedPlatform = await platformService.updatePlatform(id, updates);
 
-  const isHostedByChange = check.containsKey(updates, 'isHostedBy') && 
-    oldPlatform.isHostedBy !== updates.isHostedBy &&
-    !(!oldPlatform.isHostedBy && updates.isHostedBy === null);
+  return platformService.platformAppToClient(updatedPlatform);
 
-  let hostPlatform: PlatformApp;
+}
 
-  if (updates.isHostedBy) {
-    // Does the host platform exist (errors if not)?
-    hostPlatform = platformService.getPlatform(updates.isHostedBy);
-    // This host platform must either be owned by a public deployment or have the same ownerDeployment as this platform.
-    // TODO: Should we allow a user to host a platfrom on a platform in a private deployment that the particular user also has rights too? This would involve passing in the user id as an option to this controller, or having the client microservice check the user's rights itself first.
-    if (hostPlatform.ownerDeployment !== oldPlatform.ownerDeployment) {
-      logger.debug('The new host platform has a different owner deployment to the hostee platform, thus a check will be performed to see if the host platform is owned by a public deployment.');
-    }
+
+export async function unhostPlatform(id): Promise<PlatformApp> {
+
+  const {platform: updatedPlatform, oldAncestors} = await platformService.unhostPlatform(id);
+  await contextService.processPlatformHostChange(id, oldAncestors, []);
+  return updatedPlatform;
+
+}
+
+
+export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
+
+  logger.debug(`About to rehost platform ${id} on ${hostId}`);
+
+  // For now I'll only allow a platform to be hosted on a platform from a public deployment, or that's in the same deployment. However we might want to allow Should a user to host a platform on a platform in a private deployment that the particular user also has rights too. This would involve passing in the user id as an option to this controller, or having the api-gateway check the user's rights itself first and removing this block of code from here completely.
+  const platform = await platformService.getPlatform(id);
+  const hostPlatform = await platformService.getPlatform(hostId);
+  if (hostPlatform.ownerDeployment !== platform.ownerDeployment) {
+    logger.debug('The new host platform has a different owner deployment to the hostee platform, thus a check will be performed to see if the host platform is owned by a public deployment.');
     const hostPlatformOwnerDeployment = await deploymentService.getDeployment(hostPlatform.ownerDeployment);
     if (hostPlatformOwnerDeployment.public === false) {
-      throw new HostPlatformInPrivateDeployment(`The host platform '${updates.isHostedBy}' is in a private deployment, therefore you do not have the rights to host platform '${id}' on it.`);
+      throw new HostPlatformInPrivateDeployment(`The host platform '${hostId}' is in a private deployment, therefore you do not have the rights to host platform '${id}' on it.`);
     }
   }
 
-  // Am I best having all this rehosting logic in a separate controller(s), and perhaps only using this controller for basic updates?
-  // TODO: I'd say lets allow isHostedBy as a property of this function's updates argument, but lets have a controller called unhostPlatform and another called rehostPlatform that are called from here. They will each call the corresponding service function, but they will also handle sorting out all the context too. 
-  if (isHostedByChange) {
-    if (updates.isHostedBy === null) {
-      await platformService.unhostPlatform(id);
-    } else {
-      await platformService.rehostPlatform(id, updates.isHostedBy); 
-    }
-  }
-
-  // TODO TODO TODO
-
-  // TODO: There's a hell of a lot to consider in here. In particular:
-  // - Make sure all the hostedByPath platforms update if the isHostedBy field is included as an update. Do this for any descendents too. 
-  // - Update the context of any sensors on these platforms.
-  // - You've also got to check that this platform is in the same deployment. Or might we allow it to hosted on a public deployment?
+  const {platform: updatedPlatform, oldAncestors, newAncestors} = await platformService.rehostPlatform(id, hostId);
+  logger.debug(`About to process the contexts following a platform host change.`, {id, oldAncestors, newAncestors});
+  await contextService.processPlatformHostChange(id, oldAncestors, newAncestors);
+  logger.debug('Rehosted platform', updatedPlatform);
+  logger.debug(`Platform ${id} has been successfully rehosted on ${hostId}, and the corresponding contexts have been updated too.`);
+  return updatedPlatform;
 
 }
 
@@ -225,6 +222,7 @@ export async function addPlatformToDeployment(platformId, deploymentId): Promise
 }
 
 
+// E.g. when you no longer want a platform to be shared with another deployment.
 export async function removePlatformFromDeployment(platformId, deploymentId): Promise<PlatformClient> {
   
 }

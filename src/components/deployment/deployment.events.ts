@@ -72,6 +72,41 @@ async function subscribeToDeploymentCreateRequests(): Promise<any> {
 }
 
 
+//-------------------------------------------------
+// Get Deployment
+//-------------------------------------------------
+async function subscribeToDeploymentGetRequests(): Promise<any> {
+
+  const eventName = 'deployment.get.request';
+
+  const deploymentsGetRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let deployment: DeploymentClient;
+    try {
+      const {error: err} = deploymentsGetRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      deployment = await getDeployment(message.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return deployment;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
+
 
 //-------------------------------------------------
 // Get Deployments
@@ -108,43 +143,6 @@ async function subscribeToDeploymentsGetRequests(): Promise<any> {
   return;  
 
 }
-
-
-//-------------------------------------------------
-// Get Deployment
-//-------------------------------------------------
-async function subscribeToDeploymentGetRequests(): Promise<any> {
-
-  const eventName = 'deployment.get.request';
-
-  const deploymentsGetRequestSchema = joi.object({
-    where: joi.object({
-      id: joi.string().required()
-    })
-  })
-  .required();
-
-  await event.subscribe(eventName, async (message): Promise<void> => {
-
-    logger.debug(`New ${eventName} message.`, message);
-
-    let deployment: DeploymentClient;
-    try {
-      const {error: err} = deploymentsGetRequestSchema.validate(message);
-      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      deployment = await getDeployment(message.where.id);
-    } catch (err) {
-      logCensorAndRethrow(eventName, err);
-    }
-
-    return deployment;
-  });
-
-  logger.debug(`Subscribed to ${eventName} requests`);
-  return;  
-
-}
-
 
 
 //-------------------------------------------------

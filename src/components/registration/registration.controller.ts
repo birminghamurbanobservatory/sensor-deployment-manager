@@ -62,8 +62,8 @@ export async function register(registrationKey, deploymentId): Promise<void> {
       sensor: sensor.id,
       startDate: transitionDate,
       toAdd: {
-        inDeployments: {value: [sensor.inDeployment]}, 
-        hostedByPath: {value: [sensor.isHostedBy]}
+        inDeployments: [sensor.inDeployment], 
+        hostedByPath: [sensor.isHostedBy]
       }
     };
     if (sensor.defaults) {
