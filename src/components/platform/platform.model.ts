@@ -57,7 +57,7 @@ const schema = new mongoose.Schema({
   },
   // for soft deletes
   deletedAt: { 
-    type: String
+    type: Date
   }
 }, {
   timestamps: true // automatically adds createdAt and updatedAt fields

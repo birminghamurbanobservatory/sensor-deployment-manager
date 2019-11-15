@@ -7,6 +7,8 @@ import * as logger from 'node-logger';
 import * as deploymentService from './deployment.service';
 
 
+
+
 export async function createDeployment(deployment: DeploymentClient): Promise<DeploymentClient> {
 
   // If the new deployment doesn't have an id yet, then we can autogenerate one.
@@ -17,6 +19,10 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
   }
 
   const deploymentToCreate: DeploymentApp = deploymentService.deploymentClientToApp(deployment);
+
+  if (deploymentToCreate.createdBy && !deploymentToCreate.users) {
+    deploymentToCreate.users = [{id: deploymentToCreate.createdBy, level: 'admin'}];
+  }
 
   let createdDeployment: DeploymentApp;
   try {
