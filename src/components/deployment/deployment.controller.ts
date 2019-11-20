@@ -5,7 +5,11 @@ import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
 import {DeploymentApp} from './deployment-app.class';
 import * as logger from 'node-logger';
 import * as deploymentService from './deployment.service';
-
+import * as joi from '@hapi/joi';
+import {BadRequest} from '../../errors/BadRequest';
+import * as platformService from '../platform/platform.service';
+import * as contextService from '../context/context.service';
+import * as sensorService from '../sensor/sensor.service';
 
 
 
@@ -63,14 +67,38 @@ export async function getDeployments(where: {user?: string; public?: boolean}): 
 }
 
 
+const updateDeploymentSchema = joi.object({
+  name: joi.string(),
+  description: joi.string(),
+  public: joi.boolean()
+})
+.required();
 
 export async function updateDeployment(id: string, updates: any): Promise<DeploymentClient> {
 
-  // TODO: we need a quick check to make sure only certain fields are being updated.
-  // TODO: If a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them (unless they were shared with the deployment, in which case the deployment would be listed in the hostee platform's inDeployments array).
+  const {error: validationError} = updateDeploymentSchema.validate(updates);
+  if (validationError) {
+    throw new BadRequest(validationError.message);
+  }
 
   const updatedDeployment = await deploymentService.updateDeployment(id, updates);
   logger.debug(`Deployment '${id}' updated.`);
+
+  // If a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them (unless they were shared with the deployment).
+  if (updates.public === false) {
+
+    const deploymentPlatforms = await platformService.getPlatforms({ownerDeployment: id});
+    const deploymentPlatformIds = deploymentPlatforms.map((platform) => platform.id);
+
+    // Unhost the decendent platforms from non-shared deployments
+    await platformService.unhostDescendentPlatformsFromNonSharedDeployments(id, deploymentPlatformIds);
+    // Update the corresponding contexts
+    await contextService.processDeploymentMadePrivate(id, deploymentPlatformIds);
+
+    // TODO: If I ever allow a sensor to be hosted directly on a platform from another deployment (i.e. without a platform in the sensors deployment in between) then I would need to look for sensors with an isHostedBy property equal to any of platforms being turning private and remove the isHostedBy field so the sensor is left unhosted.
+  
+  }
+
   return deploymentService.deploymentAppToClient(updatedDeployment);
 
 }
@@ -78,12 +106,31 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
 
 
 export async function deleteDeployment(id: string): Promise<void> {
+
+  // Delete the deployment
   await deploymentService.deleteDeployment(id);
   logger.debug(`Deployment '${id}' deleted.`);
-  // TODO: Is there anything that belongs to the deployment that needs updating? 
-  // E.g. 
-  // Delete all platforms owned by this deployment?
-  // Unlink any sensors bound to this deployment, and update their context.
+
+  // Get a list of the platforms owned by this platform before deleting them
+  const deploymentPlatforms = await platformService.getPlatforms({ownerDeployment: id});
+  const deploymentPlatformIds = deploymentPlatforms.map((platform) => platform.id);
+
+  // Delete its platforms
+  // If a sharee deployment wants to still see this platfrom then the original deployment would need to have transferred ownership to the sharee deployment before deleting the deployment.
+  await platformService.deleteDeploymentPlatforms(id);
+
+  // If any platforms from other deployments have be shared with this deployment then we'll want to unshare them.
+  await platformService.unsharePlatformsSharedWithDeployment(id);
+
   // Unhost any platforms in other deployments that were hosted on platforms from this deployment.
+  await platformService.unhostPlatformsFromOtherDeployments(id, deploymentPlatformIds);
+
+  // Unlink any sensors bound to this deployment.
+  await sensorService.removeSensorsFromDeployment(id);
+
+  // Update the context
+  await contextService.processDeploymentDeleted(id, deploymentPlatformIds);
+
   return;
+
 }

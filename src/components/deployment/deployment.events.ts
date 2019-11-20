@@ -158,6 +158,7 @@ async function subscribeToDeploymentUpdateRequests(): Promise<any> {
       .required(),
     updates: joi.object({}) // let the service check this
       .unknown()
+      .min(1)
       .required()
   }).required();
 

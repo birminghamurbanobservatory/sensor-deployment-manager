@@ -8,6 +8,7 @@ import {SensorClient} from './sensor-client.class';
 import {cloneDeep} from 'lodash';
 import {RemoveSensorFromPlatformFail} from './errors/RemoveSensorFromPlatformFail';
 import {RemoveSensorFromDeploymentFail} from './errors/RemoveSensorFromDeploymentFail';
+import {RemoveSensorsFromDeploymentFail} from './errors/RemoveSensorsFromDeploymentFail';
 import {SensorAlreadyExists} from './errors/SensorAlreadyExists';
 import {CreateSensorFail} from './errors/CreateSensorFail';
 import {InvalidSensor} from './errors/InvalidSensor';
@@ -113,6 +114,26 @@ export async function removeSensorFromDeployment(id: string): Promise<void> {
 
   return;
 }
+
+
+export async function removeSensorsFromDeployment(deploymentId: string): Promise<void> {
+
+  try {
+    // Because the platform belongs to the deployment we'll need to remove it from the platform too.
+    const updates = {$unset: {isHostedBy: '', inDeployment: ''}};
+    await Sensor.updateMany(
+      {
+        inDeployment: deploymentId
+      },
+      updates
+    ).exec();
+  } catch (err) {
+    throw new RemoveSensorsFromDeploymentFail(undefined, err.message);
+  }
+
+  return;
+}
+
 
 
 export async function updateSensor(id: string, updates: any): Promise<SensorApp> {

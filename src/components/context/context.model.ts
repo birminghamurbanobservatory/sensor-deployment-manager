@@ -36,7 +36,7 @@ const schema = new mongoose.Schema({
     // Although a sensor can only ever be bound to a single deployment, the platform its on might be shared between other deployments and thus inDeployments needs to be an array.
     inDeployments: {
       type: [String],
-      default: undefined // this stop the default from being an empty array
+      default: undefined // this stops the default from being an empty array
     },
     // inDeployments and hostedByPath won't need a ifs array and thus we don't need the value property, this also makes it far easy to find contexts that need updating when a platform path or deployment changes for a sensor.
     hostedByPath: {

@@ -20,6 +20,10 @@ import {CutDescendantsOfPlatformFail} from './errors/CutDescendantsOfPlatformFai
 import * as joi from '@hapi/joi';
 import {PlatformAlreadyUnhosted} from './errors/PlatformAlreadyUnhosted';
 import * as logger from 'node-logger';
+import {UnhostDescendentPlatformsFromNonSharedDeploymentsFail} from './errors/UnhostDescendentPlatformsFromNonSharedDeploymentsFail';
+import {DeleteDeploymentPlatformsFail} from './errors/DeleteDeploymentPlatformsFail';
+import {UnhostPlatformsFromOtherDeploymentsFail} from './errors/UnhostPlatformsFromOtherDeploymentsFail';
+import {UnsharePlatformsSharedWithDeploymentFail} from './errors/UnsharePlatformsSharedWithDeploymentFail';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -64,7 +68,7 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 }
 
 
-export async function getPlatforms(where: {inDeployment?: string}): Promise<PlatformApp[]> {
+export async function getPlatforms(where: {inDeployment?: string; ownerDeployment?: string; isHostedBy?: string}): Promise<PlatformApp[]> {
 
   const findWhere: any = {
     deletedAt: {$exists: false}
@@ -79,7 +83,6 @@ export async function getPlatforms(where: {inDeployment?: string}): Promise<Plat
   } catch (err) {
     throw new GetPlatformsFail(undefined, err.message);
   }
-
 
   return (foundPlatforms.map(platformDbToApp));
 
@@ -267,6 +270,79 @@ export async function unhostPlatform(id): Promise<{platform: PlatformApp; oldAnc
 }
 
 
+// For example if a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them (unless they were shared with the deployment, in which case the deployment would be listed in the hostee platform's inDeployments array).
+export async function unhostDescendentPlatformsFromNonSharedDeployments(deploymentId: string, deploymentPlatformIds: string[]): Promise<void> {
+
+  await Promise.each(deploymentPlatformIds, async (deploymentPlatformId) => {
+
+    // Find all the direct decendents of this platform that are NOT owned by, or shared with, the deployment.
+    let directDecendents;
+    try {
+      directDecendents = await Platform.find({
+        isHostedBy: deploymentPlatformId,
+        inDeployments: {$nin: [deploymentId]}
+      })
+      .exec();
+    } catch (err) {
+      throw new UnhostDescendentPlatformsFromNonSharedDeploymentsFail(undefined, err.message);
+    }
+
+    // Now to unhost each of these direct descendents (also updates the hostedByPath of distant descendents)
+    await Promise.each(directDecendents, async (directDescendent) => {
+      await unhostPlatform(directDescendent.id);
+    });
+
+  });
+  
+}
+
+// Typically used when a deployment is deleted and thus any platforms from other deployments that were hosted on its platforms will need to be unhosted.
+export async function unhostPlatformsFromOtherDeployments(deploymentId: string, deploymentPlatformIds: string[]): Promise<void> {
+
+  await Promise.each(deploymentPlatformIds, async (deploymentPlatformId) => {
+
+    // Find all the direct decendents of this platform that are NOT owned by the deployment.
+    let directDecendents;
+    try {
+      directDecendents = await Platform.find({
+        isHostedBy: deploymentPlatformId,
+        ownerDeployment: {$ne: deploymentId}
+      })
+      .exec();
+    } catch (err) {
+      throw new UnhostPlatformsFromOtherDeploymentsFail(undefined, err.message);
+    }
+
+    // Now to unhost each of these direct descendents (also updates the hostedByPath of distance descendents)
+    await Promise.each(directDecendents, async (directDescendent) => {
+      await unhostPlatform(directDescendent.id);
+    });
+
+  });
+  
+}
+
+
+// This comes in handy when a deployment is deleted and thus any platforms shared with it should no longer be shared with it because theres no deployment left to be shared with
+export async function unsharePlatformsSharedWithDeployment(deploymentId: string): Promise<void> {
+
+  // So basically all we're doing is finding all the platforms which have this deployment in their inDeployments array, but don't have this deployment as their ownerDeployment, and pulling this deployment from the inDeployments array.
+  try {
+    await Platform.updateMany(
+      {
+        ownerDeployment: {$ne: deploymentId},
+        inDeployments: deploymentId
+      },
+      {
+        $pull: {inDeployments: deploymentId}
+      }
+    );    
+  } catch (err) {
+    throw new UnsharePlatformsSharedWithDeploymentFail(`Failed to unshare platforms shared with the deployment '${deploymentId}'.`, err.message);
+  }  
+
+}
+
 
 // A soft delete
 export async function deletePlatform(id: string): Promise<void> {
@@ -290,11 +366,39 @@ export async function deletePlatform(id: string): Promise<void> {
       }
     ).exec();
   } catch (err) {
-    throw new DeletePlatformFail(`Failed to delete Platform '${id}'`, err.message);
+    throw new DeletePlatformFail(`Failed to delete Platform '${id}'.`, err.message);
   }
 
   if (!deletedPlatform) {
     throw new PlatformNotFound(`A platform with id '${id}' could not be found`);
+  }
+
+  return;
+
+}
+
+
+// soft delete
+export async function deleteDeploymentPlatforms(deploymentId: string): Promise<void> {
+
+  const updates = {
+    inDeployments: [],
+    deletedAt: new Date(),
+    $unset: {
+      isHostedBy: '',
+      hostedByPath: ''
+    }
+  };
+
+  try {
+    await Platform.updateMany(
+      {
+        ownerDeployment: deploymentId
+      },
+      updates
+    ).exec();
+  } catch (err) {
+    throw new DeleteDeploymentPlatformsFail(`Failed to delete platforms owned by deployment '${deploymentId}'.`, err.message);
   }
 
   return;
