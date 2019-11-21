@@ -348,16 +348,33 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
 
 
 // It takes the existing live context, copies it, ends it, and applies some updates in order to create a new context document from it. 
-export async function tweakLiveContext(sensorId: string, updates: {hostedByPath: string; observedProperty: string; hasFeatureOfInterest: string}): Promise<ContextApp> {
+export async function changeSensorsHostedByPath(sensorId: string, hostedByPath: string[]): Promise<ContextApp> {
 
   const transitionDate = new Date();
 
   // End the current context
   const endedContext = await endLiveContextForSensor(sensorId, transitionDate);
 
-  const newContext = merge({}, endedContext, {toAdd: updates});
+  const newContext = merge({}, endedContext, {toAdd: {hostedByPath}});
   delete newContext.id;
   delete newContext.endDate;
+
+  return newContext;
+
+}
+
+
+export async function removeSensorsHostedByPath(sensorId: string, hostedByPath: string[]): Promise<ContextApp> {
+
+  const transitionDate = new Date();
+
+  // End the current context
+  const endedContext = await endLiveContextForSensor(sensorId, transitionDate);
+
+  const newContext = cloneDeep(endedContext);
+  delete newContext.id;
+  delete newContext.endDate;
+  delete newContext.hostedByPath;
 
   return newContext;
 

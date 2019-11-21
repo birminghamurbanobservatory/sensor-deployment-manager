@@ -95,7 +95,8 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
     // Update the corresponding contexts
     await contextService.processDeploymentMadePrivate(id, deploymentPlatformIds);
 
-    // TODO: If I ever allow a sensor to be hosted directly on a platform from another deployment (i.e. without a platform in the sensors deployment in between) then I would need to look for sensors with an isHostedBy property equal to any of platforms being turning private and remove the isHostedBy field so the sensor is left unhosted.
+    // If standalone sensors from other deployments have been hosted on platforms in this deployment then they will need to be unhosted.
+    await sensorService.unhostExternalSensorsFromDisappearingDeployment(id, deploymentPlatformIds);
   
   }
 
@@ -116,17 +117,25 @@ export async function deleteDeployment(id: string): Promise<void> {
   const deploymentPlatformIds = deploymentPlatforms.map((platform) => platform.id);
 
   // Delete its platforms
-  // If a sharee deployment wants to still see this platfrom then the original deployment would need to have transferred ownership to the sharee deployment before deleting the deployment.
+  // If a sharee deployment wants to still see this platform then the original deployment would need to have transferred ownership to the sharee deployment before deleting the deployment.
   await platformService.deleteDeploymentPlatforms(id);
 
   // If any platforms from other deployments have be shared with this deployment then we'll want to unshare them.
   await platformService.unsharePlatformsSharedWithDeployment(id);
 
-  // Unhost any platforms in other deployments that were hosted on platforms from this deployment.
-  await platformService.unhostPlatformsFromOtherDeployments(id, deploymentPlatformIds);
+  if (deploymentPlatformIds.length > 0) {
+
+    // Unhost any platforms in other deployments that were hosted on platforms from this deployment.
+    await platformService.unhostPlatformsFromOtherDeployments(id, deploymentPlatformIds);
+
+    // Unhost any sensors from other deployments hosted on this deployments platforms.
+    await sensorService.unhostExternalSensorsFromDisappearingDeployment(id, deploymentPlatformIds);
+
+  }
 
   // Unlink any sensors bound to this deployment.
   await sensorService.removeSensorsFromDeployment(id);
+  // TODO: What about the sensors created in this deployment that don't have to permanent hosts, and essentially belong to the deployment. Do these need to be soft deleted? Could do this inside the removeSensorsFromDeploymentFunction, i.e. if any of the sensors being removed don't have a permanentHost then add a deletedAt property.
 
   // Update the context
   await contextService.processDeploymentDeleted(id, deploymentPlatformIds);

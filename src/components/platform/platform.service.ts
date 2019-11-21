@@ -24,6 +24,11 @@ import {UnhostDescendentPlatformsFromNonSharedDeploymentsFail} from './errors/Un
 import {DeleteDeploymentPlatformsFail} from './errors/DeleteDeploymentPlatformsFail';
 import {UnhostPlatformsFromOtherDeploymentsFail} from './errors/UnhostPlatformsFromOtherDeploymentsFail';
 import {UnsharePlatformsSharedWithDeploymentFail} from './errors/UnsharePlatformsSharedWithDeploymentFail';
+import {PlatformAlreadyInDeployment} from './errors/PlatformAlreadyInDeployment';
+import {SharePlatformWithDeploymentFail} from './errors/SharePlatformWithDeploymentFail';
+import {UnsharePlatformWithDeploymentFail} from './errors/UnsharePlatformWithDeploymentFail';
+import {CannotUnshareFromOwnerDeployment} from './errors/CannotUnshareFromOwnerDeployment';
+import {PlatformNotSharedWithDeployment} from './errors/PlatformNotSharedWithDeployment';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -340,6 +345,78 @@ export async function unsharePlatformsSharedWithDeployment(deploymentId: string)
   } catch (err) {
     throw new UnsharePlatformsSharedWithDeploymentFail(`Failed to unshare platforms shared with the deployment '${deploymentId}'.`, err.message);
   }  
+
+}
+
+
+export async function sharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformApp> {
+
+  // Let's first get this platform so we can check a few things (and check it exists)
+  const platform = getPlatform(platformId);
+
+  if (platform.inDeployments.includes(deploymentId)) {
+    throw new PlatformAlreadyInDeployment(`The platform '${platformId}' is already in the deployment '${deploymentId}' and therefore cannot be shared with it.`);
+  }
+
+  let updatedPlatform;
+  try {
+    updatedPlatform = await Platform.findByIdAndUpdate(
+      platformId,
+      {
+        $push: {inDeployments: deploymentId}
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new SharePlatformWithDeploymentFail(`Failed to share platform '${platformId}' with deployment '${deploymentId}'.`, err.message);
+  }
+
+  if (!updatedPlatform) {
+    throw new PlatformNotFound(`A platform with id '${platformId}' could not be found`);
+  }
+
+  return platformDbToApp(updatedPlatform);
+
+}
+
+
+export async function unsharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformApp> {
+  
+  // Let's first get this platform so we can check a few things (and check it exists)
+  const platform = getPlatform(platformId);
+
+  if (platform.ownerDeployment === deploymentId) {
+    throw new CannotUnshareFromOwnerDeployment(`The deployment ${deploymentId} owns the platform ${platformId}, thus the platform cannot be removed from it.`);
+  }
+
+  if (!platform.inDeployments.includes(deploymentId)) {
+    throw new PlatformNotSharedWithDeployment(`The platform '${platformId}' is not shared with the deployment '${deploymentId}' and therefore cannot be unshared from it.`);
+  }
+
+  let updatedPlatform;
+  try {
+    updatedPlatform = await Platform.findByIdAndUpdate(
+      platformId,
+      {
+        $pull: {inDeployments: deploymentId}
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new UnsharePlatformWithDeploymentFail(`Failed to share platform '${platformId}' with deployment '${deploymentId}'.`, err.message);
+  }
+
+  if (!updatedPlatform) {
+    throw new PlatformNotFound(`A platform with id '${platformId}' could not be found`);
+  }
+
+  return platformDbToApp(updatedPlatform);
 
 }
 

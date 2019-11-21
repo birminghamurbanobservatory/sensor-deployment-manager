@@ -4,6 +4,13 @@ export class DeploymentClient {
   public name: string;
   public description?: string;
   public public?: boolean;
+  public users?: Users[];
   public createdAt?: string;
   public updatedAt?: string;
+}
+
+
+class Users {
+  public id: string;
+  public level: string;
 }

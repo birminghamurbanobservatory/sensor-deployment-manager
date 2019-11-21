@@ -195,7 +195,7 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
 
   logger.debug(`About to rehost platform ${id} on ${hostId}`);
 
-  // For now I'll only allow a platform to be hosted on a platform from a public deployment, or that's in the same deployment. However we might want to allow Should a user to host a platform on a platform in a private deployment that the particular user also has rights too. This would involve passing in the user id as an option to this controller, or having the api-gateway check the user's rights itself first and removing this block of code from here completely.
+  // For now I'll only allow a platform to be hosted on a platform from a public deployment, or that's in the same deployment. However we might want to allow a user to host a platform on a platform in a private deployment that the particular user also has rights too. This would involve passing in the user id as an option to this controller, or having the api-gateway check the user's rights itself first and removing this block of code from here completely.
   const platform = await platformService.getPlatform(id);
   const hostPlatform = await platformService.getPlatform(hostId);
   if (hostPlatform.ownerDeployment !== platform.ownerDeployment) {
@@ -216,15 +216,31 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
 }
 
 
-// E.g. for sharing a platform with a deployment other than the one that created it.
-export async function addPlatformToDeployment(platformId, deploymentId): Promise<PlatformClient> {
+// They'll probably be a few steps carried out before this function is run, e.g. a user of the platform's original deployment will need to send an invite to users of the new deployment, which they will need to accept, at which point this can function can be run.
+export async function sharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformClient> {
+
+  // Get the deployment to check it exists
+  const deployment = await deploymentService.getDeployment(deploymentId);
+
+  const updatedPlatform = await platformService.sharePlatformWithDeployment(platformId, deploymentId);
+
+  // Now to update the context of sensors on this platform
+  // TODO - i.e. update their inDeployments array
+
+  return platformService.platformAppToClient(updatedPlatform);
 
 }
 
 
-// E.g. when you no longer want a platform to be shared with another deployment.
-export async function removePlatformFromDeployment(platformId, deploymentId): Promise<PlatformClient> {
+export async function unsharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformClient> {
   
+  const updatedPlatform = platformService.unsharePlatformWithDeployment(platformId, deploymentId);
+
+  // Now to update the context of sensors on this platform
+  // TODO - i.e. update their inDeployments array
+
+  return platformService.platformAppToClient(updatedPlatform);
+
 }
 
 

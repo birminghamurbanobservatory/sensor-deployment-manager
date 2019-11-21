@@ -14,6 +14,7 @@ import {CreateSensorFail} from './errors/CreateSensorFail';
 import {InvalidSensor} from './errors/InvalidSensor';
 import {UpdateSensorFail} from './errors/UpdateSensorFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
+import {UnhostExternalSensorsFromDisappearingDeploymentFail} from './errors/UnhostExternalSensorsFromDisappearingDeploymentFail';
 
 
 
@@ -162,6 +163,28 @@ export async function updateSensor(id: string, updates: any): Promise<SensorApp>
   }
 
   return sensorDbToApp(updatedSensor);
+
+}
+
+
+// Handy when a deployment is made private or deleted.
+export async function unhostExternalSensorsFromDisappearingDeployment(deploymentId, deploymentPlatformIds): Promise<void> {
+
+  try {
+    await Sensor.updateMany(
+      {
+        inDeployment: {$ne: deploymentId},
+        isHostedBy: {$in: deploymentPlatformIds}
+      },
+      {
+        $unset: {isHostedBy: ''}
+      }
+    ).exec();
+  } catch (err) {
+    throw new UnhostExternalSensorsFromDisappearingDeploymentFail(undefined, err.message);
+  }
+
+  return;
 
 }
 

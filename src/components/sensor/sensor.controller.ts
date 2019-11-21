@@ -2,6 +2,8 @@ import {SensorClient} from './sensor-client.class';
 import {SensorApp} from './sensor-app.class';
 import * as logger from 'node-logger';
 import * as sensorService from './sensor.service';
+import * as platformService from '../platform/platform.service';
+import * as deploymentService from '../deployment/deployment.service';
 import * as permanentHostService from '../permanent-host/permanent-host.service';
 import * as contextService from '../context/context.service';
 import {ContextApp} from '../context/context-app.class';
@@ -9,6 +11,10 @@ import * as joi from '@hapi/joi';
 import {InvalidSensor} from './errors/InvalidSensor';
 import * as check from 'check-types';
 import {BadRequest} from '../../errors/BadRequest';
+import {CannotHostSensorWithPermanentHost} from './errors/CannotHostSensorWithPermanentHost';
+import {PlatformApp} from '../platform/platform-app.class';
+import {DeploymentApp} from '../deployment/deployment-app.class';
+import {concat} from 'lodash';
 
 
 const newSensorSchema = joi.object({
@@ -17,6 +23,8 @@ const newSensorSchema = joi.object({
   name: joi.string(),
   description: joi.string(),
   permanentHost: joi.string(),
+  inDeployment: joi.string(),
+  // N.B. isHostedBy is not allow here. Hosting a sensor on a platform is a separate step and depends on whether the sensor has a permanentHost or not. 
   defaults: joi.object({
     observedProperty: joi.object({
       value: joi.string()
@@ -29,7 +37,8 @@ const newSensorSchema = joi.object({
     })
   }) 
 })
-.with('permanentHost', 'inDeployment')
+.xor('permanentHost', 'inDeployment') 
+// Either a sensor has a permanentHost and is therefore added to a deployment via a registration key OR a standalone sensor must be created already in a deployment.
 .required();
 
 
@@ -49,6 +58,11 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
     startDate: new Date(),
     toAdd: {}
   };
+
+  // Is the sensor being created already in a deployment
+  if (sensor.inDeployment) {
+    context.toAdd.inDeployments = [sensor.inDeployment];
+  }
 
   // Have any defaults been set for the sensor that should be used in the context.
   if (sensor.defaults) {
@@ -152,6 +166,78 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   }
 
   return sensorService.sensorAppToClient(updatedSensor);
+
+}
+
+
+
+// IMPORTANT: This is not the procedure by which sensors on permanentHosts are hosted on a platfrom. This is done via a registration key.
+export async function hostSensorOnPlatform(sensorId: string, platformId: string): Promise<SensorClient> {
+
+  // First let's get the sensor
+  const sensor: SensorApp = await sensorService.getSensor(sensorId);
+
+  // Check this sensor doesn't have a permanentHost
+  if (sensor.permanentHost) {
+    throw new CannotHostSensorWithPermanentHost(`Sensor '${sensorId}' has a permanent host (i.e. is physically attached to this host) and thus it cannot be directly hosted on another platform using this method.`);
+  }
+
+  // Throws error if the platform does not exist
+  const platform: PlatformApp = await platformService.getPlatform(platformId);
+
+  // Check it's ok to add the sensor to this platform
+  let hasAccessToPlatform;
+  if (platform.inDeployments.includes(sensor.inDeployment)) {
+    hasAccessToPlatform = true;
+  } else {
+    // Is the platform's owner deployment public?
+    const platformDeployment: DeploymentApp = await deploymentService.getDeployment(platform.ownerDeployment);
+    if (platformDeployment.public) {
+      hasAccessToPlatform = true;
+    }
+  }
+  if (!hasAccessToPlatform) {
+    throw new InvalidSensor(`Platform '${platformId} is either not associated with the '${sensor.inDeployment}' deployment, or it is in a private deployment. Therefore sensor '${sensorId}' cannot be hosted on it.`);
+  }
+
+  // Update the sensor
+  const updatedSensor = await sensorService.updateSensor(sensorId, {
+    isHostedBy: platformId
+  });
+
+  // Now to update its context
+  let newHostedByPath = [platformId];
+  if (platform.hostedByPath) {
+    newHostedByPath = concat(platform.hostedByPath, newHostedByPath);
+  }
+  await contextService.changeSensorsHostedByPath(sensorId, newHostedByPath);
+
+  return sensorService.sensorAppToClient(updatedSensor);
+
+}
+
+
+
+export async function unhostSensorFromPlatform(sensorId: string): Promise<SensorClient> {
+  
+
+  // First let's get the sensor
+  const sensor: SensorApp = await sensorService.getSensor(sensorId);
+
+  // Check this sensor doesn't have a permanentHost
+  if (sensor.permanentHost) {
+    throw new CannotUnhostSensorWithPermanentHost(`Sensor '${sensorId}' has a permanent host (i.e. is physically attached to this host) and thus it cannot be unhosted.`);
+  }
+
+  // Update the sensor
+  const updatedSensor = await sensorService.updateSensor(sensorId, {
+    isHostedBy: null
+  });
+
+  // Now to update its context
+  await contextService.removeSensorsHostedByPath(sensorId);
+
+  return sensorService.sensorAppToClient(updatedSensor);  
 
 }
 
