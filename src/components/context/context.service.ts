@@ -3,7 +3,7 @@ import {ContextApp} from './context-app.class';
 import {ContextClient} from './context-client.class';
 import {GetLiveContextForSensorFail} from './errors/GetLiveContextForSensorFail';
 import {ContextNotFound} from './errors/ContextNotFound';
-import {cloneDeep, merge, concat, pull, pullAll} from 'lodash';
+import {cloneDeep, merge, concat, pull, pullAll, uniq} from 'lodash';
 import {ContextAlreadyExists} from './errors/ContextAlreadyExists';
 import {CreateContextFail} from './errors/CreateContextFail';
 import {InvalidContext} from './errors/InvalidContext';
@@ -16,7 +16,8 @@ import {GetContextFail} from './errors/GetContextFail';
 import {PlatformApp} from '../platform/platform-app.class';
 import {ProcessDeploymentMadePrivateFail} from './errors/ProcessDeploymentMadePrivateFail';
 import {ProcessDeploymentDeletedFail} from './errors/ProcessDeploymentDeletedFail';
-
+import {ProcessPlatformSharedWithDeploymentFail} from './errors/ProcessPlatformSharedWithDeploymentFail';
+import {ProcessPlatformUnsharedWithDeploymentFail} from './errors/ProcessPlatformUnsharedWithDeploymentFail';
 
 
 export async function createContext(context: ContextApp): Promise<ContextApp> {
@@ -212,6 +213,9 @@ export async function processPlatformHostChange(platformId: string, oldAncestors
 
     if (check.nonEmptyArray(oldAncestors)) {
       pullAll(newContext.toAdd.hostedByPath, oldAncestors); // mutates
+      if (newContext.toAdd.hostedByPath.length === 0) {
+        delete newContext.toAdd.hostedByPath;
+      }
     }
 
     if (check.nonEmptyArray(newAncestors)) {
@@ -257,13 +261,14 @@ export async function processDeploymentMadePrivate(deploymentId: string, deploym
     try {
       await Context.updateMany(
         {
-          _id: {$in: [oldContexts.map((context) => context.id)]}
+          _id: {$in: oldContexts.map((context) => context.id)}
         },
         {
           endDate: transitionDate
         }
       ).exec();    
     } catch (err) {
+      console.log(err);
       throw new ProcessDeploymentMadePrivateFail(undefined, err.message);
     }
 
@@ -272,6 +277,9 @@ export async function processDeploymentMadePrivate(deploymentId: string, deploym
       delete newContext.endDate;
       delete newContext.id;
       pullAll(newContext.toAdd.hostedByPath, deploymentPlatformIds);
+      if (newContext.toAdd.hostedByPath.length === 0) {
+        delete newContext.toAdd.hostedByPath;
+      }
     });
 
     const newContextsDb = newContexts.map(contextAppToDb);
@@ -295,7 +303,7 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
   // - Find any live contexts with this deploymentId
   try {
     const oldContextsDb = await Context.find({
-      'toAdd.inDeployments': {$in: [deploymentId]},
+      'toAdd.inDeployments': deploymentId,
       endDate: {$exists: false}
     })
     .exec();
@@ -310,7 +318,7 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
     try {
       await Context.updateMany(
         {
-          _id: {$in: [oldContexts.map((context) => context.id)]}
+          _id: {$in: oldContexts.map((context) => context.id)}
         },
         {
           endDate: transitionDate
@@ -326,6 +334,9 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
       delete newContext.id;
       if (newContext.toAdd.hostedByPath) {
         pullAll(newContext.toAdd.hostedByPath, deploymentPlatformIds);
+        if (newContext.toAdd.hostedByPath.length === 0) {
+          delete newContext.toAdd.hostedByPath;
+        }
       }
       pull(newContext.toAdd.inDeployments, deploymentId);
       if (newContext.toAdd.inDeployments.length === 0) {
@@ -358,13 +369,13 @@ export async function changeSensorsHostedByPath(sensorId: string, hostedByPath: 
   const newContext = merge({}, endedContext, {toAdd: {hostedByPath}});
   delete newContext.id;
   delete newContext.endDate;
-
-  return newContext;
+  const createdContext = await createContext(newContext);
+  return createdContext;
 
 }
 
 
-export async function removeSensorsHostedByPath(sensorId: string, hostedByPath: string[]): Promise<ContextApp> {
+export async function removeSensorsHostedByPath(sensorId: string): Promise<ContextApp> {
 
   const transitionDate = new Date();
 
@@ -375,9 +386,115 @@ export async function removeSensorsHostedByPath(sensorId: string, hostedByPath: 
   delete newContext.id;
   delete newContext.endDate;
   delete newContext.hostedByPath;
+  const createdContext = await createContext(newContext);
+  return createdContext;
 
-  return newContext;
+}
 
+
+export async function processPlatformSharedWithDeployment(platformId: string, deploymentId: string): Promise<void> {
+
+  const transitionDate = new Date();
+  let oldContexts;
+
+  // Get all the existing contexts for this platform so we can copy them
+  try {
+    const oldContextsDb = await Context.find({
+      'toAdd.hostedByPath': platformId,
+      endDate: {$exists: false}
+    })
+    .exec();
+    oldContexts = oldContextsDb.map(contextDbToApp);
+  } catch (err) {
+    throw new ProcessPlatformSharedWithDeploymentFail(undefined, err.message);
+  }
+
+  if (oldContexts.length) {
+
+    // We need to end these contexts
+    try {
+      await Context.updateMany(
+        {
+          _id: {$in: oldContexts.map((context) => context.id)}
+        },
+        {
+          endDate: transitionDate
+        }
+      ).exec();    
+    } catch (err) {
+      throw new ProcessPlatformSharedWithDeploymentFail(undefined, err.message);
+    }
+
+    const newContexts: ContextApp[] = cloneDeep(oldContexts);
+    newContexts.forEach((newContext) => {
+      delete newContext.endDate;
+      delete newContext.id;
+      newContext.toAdd.inDeployments = uniq(concat(newContext.toAdd.inDeployments, deploymentId));
+    });
+
+    const newContextsDb = newContexts.map(contextAppToDb);
+
+    try {
+      await Context.create(newContextsDb);
+    } catch (err) {
+      throw new ProcessPlatformSharedWithDeploymentFail(undefined, err.message);
+    }
+
+  }
+
+}
+
+
+export async function processPlatformUnsharedWithDeployment(platformId: string, deploymentId: string): Promise<void> {
+
+  const transitionDate = new Date();
+  let oldContexts;
+
+  // Get all the existing contexts for this platform so we can copy them
+  try {
+    const oldContextsDb = await Context.find({
+      'toAdd.inDeployments': platformId,
+      endDate: {$exists: false}
+    })
+    .exec();
+    oldContexts = oldContextsDb.map(contextDbToApp);
+  } catch (err) {
+    throw new ProcessPlatformUnsharedWithDeploymentFail(undefined, err.message);
+  }
+
+  if (oldContexts.length) {
+
+    // We need to end these contexts
+    try {
+      await Context.updateMany(
+        {
+          _id: {$in: oldContexts.map((context) => context.id)}
+        },
+        {
+          endDate: transitionDate
+        }
+      ).exec();    
+    } catch (err) {
+      throw new ProcessPlatformUnsharedWithDeploymentFail(undefined, err.message);
+    }
+
+    const newContexts: ContextApp[] = cloneDeep(oldContexts);
+    newContexts.forEach((newContext) => {
+      delete newContext.endDate;
+      delete newContext.id;
+      pull(newContext.toAdd.inDeployments, deploymentId);
+    });
+
+    const newContextsDb = newContexts.map(contextAppToDb);
+
+    try {
+      await Context.create(newContextsDb);
+    } catch (err) {
+      throw new ProcessPlatformUnsharedWithDeploymentFail(undefined, err.message);
+    }
+
+  }
+  
 }
 
 
