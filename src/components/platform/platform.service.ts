@@ -81,6 +81,13 @@ export async function getPlatforms(where: {inDeployment?: string; ownerDeploymen
   if (check.assigned(where.inDeployment)) {
     findWhere.inDeployments = where.inDeployment; 
   }
+  if (check.assigned(where.ownerDeployment)) {
+    findWhere.ownerDeployment = where.ownerDeployment;
+  }
+  if (check.assigned(where.isHostedBy)) {
+    findWhere.isHostedBy = where.isHostedBy;
+  }
+  // TODO what if we want to find all descendants of a platform, not just direct children, i.e. query hostedByPath. Use something like where.hasAncestor?
 
   let foundPlatforms;
   try {
@@ -351,8 +358,10 @@ export async function unsharePlatformsSharedWithDeployment(deploymentId: string)
 
 export async function sharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformApp> {
 
+  logger.debug(`Sharing platform '${platformId}' with deployment '${deploymentId}'.`);
+
   // Let's first get this platform so we can check a few things (and check it exists)
-  const platform = getPlatform(platformId);
+  const platform = await getPlatform(platformId);
 
   if (platform.inDeployments.includes(deploymentId)) {
     throw new PlatformAlreadyInDeployment(`The platform '${platformId}' is already in the deployment '${deploymentId}' and therefore cannot be shared with it.`);
@@ -386,10 +395,10 @@ export async function sharePlatformWithDeployment(platformId, deploymentId): Pro
 export async function unsharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformApp> {
   
   // Let's first get this platform so we can check a few things (and check it exists)
-  const platform = getPlatform(platformId);
+  const platform = await getPlatform(platformId);
 
   if (platform.ownerDeployment === deploymentId) {
-    throw new CannotUnshareFromOwnerDeployment(`The deployment ${deploymentId} owns the platform ${platformId}, thus the platform cannot be removed from it.`);
+    throw new CannotUnshareFromOwnerDeployment(`The deployment ${deploymentId} owns the platform ${platformId}, thus the platform cannot be unshared with it.`);
   }
 
   if (!platform.inDeployments.includes(deploymentId)) {

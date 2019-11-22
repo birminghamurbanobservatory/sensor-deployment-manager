@@ -92,12 +92,13 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
 
     // Unhost the decendent platforms from non-shared deployments
     await platformService.unhostDescendentPlatformsFromNonSharedDeployments(id, deploymentPlatformIds);
-    // Update the corresponding contexts
-    await contextService.processDeploymentMadePrivate(id, deploymentPlatformIds);
 
     // If standalone sensors from other deployments have been hosted on platforms in this deployment then they will need to be unhosted.
     await sensorService.unhostExternalSensorsFromDisappearingDeployment(id, deploymentPlatformIds);
-  
+
+    // Update the corresponding contexts
+    await contextService.processDeploymentMadePrivate(id, deploymentPlatformIds);
+
   }
 
   return deploymentService.deploymentAppToClient(updatedDeployment);

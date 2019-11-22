@@ -27,6 +27,8 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
   const locationSpecified = check.assigned(platform.location);
   const idSpecified = check.assigned(platform.id);
 
+  // TODO: Should we enforce a rule that if the platform is static then a location must be provided?
+
   // Check the deployment exists
   if (check.nonEmptyString(platform.ownerDeployment)) {
     // These get functions will throw an error if the resource doesn't exists, which is what we want.
@@ -48,7 +50,7 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
       }
     }
 
-    // TODO: For now we'll just enforce that the new platorm needs to be in the same deployment as the host platform. But in the future we might want to allow it to be hosted on a platform in a public network, or in a deployment that the user also has sufficient rights to.
+    // TODO: For now we'll just enforce that the new platform needs to be in the same deployment as the host platform. But in the future we might want to allow it to be hosted on a platform in a public network, or in a deployment that the user also has sufficient rights to.
     if (!(hostPlatform.inDeployments.includes(platform.ownerDeployment))) {
       throw new InvalidPlatform(`The platform you wish to create has the deployment ${platform.ownerDeployment}, however the platform you wish to host it on is not associated with this deployment.`);
     }
@@ -220,12 +222,12 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
 export async function sharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformClient> {
 
   // Get the deployment to check it exists
-  const deployment = await deploymentService.getDeployment(deploymentId);
+  await deploymentService.getDeployment(deploymentId);
 
   const updatedPlatform = await platformService.sharePlatformWithDeployment(platformId, deploymentId);
 
   // Now to update the context of sensors on this platform
-  // TODO - i.e. update their inDeployments array
+  await contextService.processPlatformSharedWithDeployment(platformId, deploymentId);
 
   return platformService.platformAppToClient(updatedPlatform);
 
@@ -234,10 +236,10 @@ export async function sharePlatformWithDeployment(platformId, deploymentId): Pro
 
 export async function unsharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformClient> {
   
-  const updatedPlatform = platformService.unsharePlatformWithDeployment(platformId, deploymentId);
+  const updatedPlatform = await platformService.unsharePlatformWithDeployment(platformId, deploymentId);
 
   // Now to update the context of sensors on this platform
-  // TODO - i.e. update their inDeployments array
+  await contextService.processPlatformUnsharedWithDeployment(platformId, deploymentId);
 
   return platformService.platformAppToClient(updatedPlatform);
 

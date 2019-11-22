@@ -15,6 +15,7 @@ import {CannotHostSensorWithPermanentHost} from './errors/CannotHostSensorWithPe
 import {PlatformApp} from '../platform/platform-app.class';
 import {DeploymentApp} from '../deployment/deployment-app.class';
 import {concat} from 'lodash';
+import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWithPermanentHost';
 
 
 const newSensorSchema = joi.object({

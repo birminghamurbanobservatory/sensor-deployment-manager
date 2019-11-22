@@ -55,6 +55,7 @@ describe('Context documents are created and updated correctly', () => {
     const sensor = {
       id: 'sensor-123',
       name: 'Sensor 123',
+      permanentHost: createdPermanentHost.id,
       defaults: {
         observedProperty: {
           value: 'temperature'
@@ -79,11 +80,6 @@ describe('Context documents are created and updated correctly', () => {
       toAdd: sensor.defaults
     });
     
-    // Add the sensor to the permanentHost.
-    await sensorController.updateSensor(createdSensor.id, {
-      permanentHost: createdPermanentHost.id
-    });
-
     // Create a deployment
     const deployment = {
       id: 'my-deployment',

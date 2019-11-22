@@ -1,6 +1,6 @@
 export class SensorClient {
   public id: string;
-  public name: string;
+  public name?: string;
   public description?: string;
   public inDeployment?: string;
   public isHostedBy?: string;
