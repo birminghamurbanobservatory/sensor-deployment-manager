@@ -12,3 +12,6 @@ Thumbs.db
 
 # dotenv config file (as it should only be used in local development)
 .env
+
+#
+dist/
