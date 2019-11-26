@@ -14,8 +14,8 @@ const schema = joi.object({
     .default('info') // set a default value if one isn't available
     .valid('error', 'warn', 'info', 'verbose', 'debug', 'silly'), // allow only these values
   LOGGER_FORMAT: joi.string()
-    .default('default') // set a default value if one isn't available
-    .valid('default', 'terminal', 'json'), // allow only these values
+    .default('basic') // set a default value if one isn't available
+    .valid('basic', 'terminal', 'json'), // allow only these values
 }).unknown() // allows for extra fields (i.e that we don't check for) in the object being checked.
   .required();
 
