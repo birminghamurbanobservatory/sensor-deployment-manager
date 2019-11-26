@@ -46,7 +46,8 @@ export async function getDeployment(id: string): Promise<DeploymentApp> {
     throw new GetDeploymentFail(undefined, err.message);
   }
 
-  if (!deployment) {
+  // Will need to think if we ever need to get a deleted deployment, and if so how to handle this, e.g. at which level: service, controller or api gateway?
+  if (!deployment || deployment.deletedAt) {
     throw new DeploymentNotFound(`A deployment with id '${id}' could not be found`);
   }
 

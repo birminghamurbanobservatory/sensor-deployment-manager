@@ -13,9 +13,8 @@ RUN npm install
 # Bundle app source code inside the docker image
 COPY . .
 
-# Expose the port the app runs on. 
-# TODO - do I need to expose anything if communcation will be solely via the event stream?
-EXPOSE 80
+# Don't need to expose it as communcation will be solely via the event stream. Well unless I need to expose the amqp port? 
+# EXPOSE 80
 
 # Define the command to run
 CMD [ "npm", "start" ]
