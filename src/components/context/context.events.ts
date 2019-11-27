@@ -1,5 +1,4 @@
 import * as event from 'event-stream';
-import {updateContext} from './context.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
@@ -67,7 +66,7 @@ async function subscribeToContextUpdateRequests(): Promise<any> {
     try {
       const {error: err} = contextUpdateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
-      updatedContext = await updateContext(message.where.id, message.updates);
+      // updatedContext = await updateContext(message.where.id, message.updates);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }

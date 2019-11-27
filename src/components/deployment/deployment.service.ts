@@ -13,7 +13,6 @@ import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
 import {DeleteDeploymentFail} from './errors/DeleteDeploymentFail';
 
 
-
 export async function createDeployment(deployment: DeploymentApp): Promise<DeploymentApp> {
 
   const deploymentDb = deploymentAppToDb(deployment);
