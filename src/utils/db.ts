@@ -29,7 +29,7 @@ export function connectDb(uri): Promise<void> {
     useNewUrlParser: true, 
     useCreateIndex: true, 
     useFindAndModify: false,
-    // useUnifiedTopology: true
+    useUnifiedTopology: true
   });
 }
 
