@@ -19,7 +19,7 @@ const schema = new mongoose.Schema({
         return kebabCaseRegex.test(value);
       },
       message: (props): string => {
-        return `Platform id must be camel case. ${props.value} is not.`;
+        return `Platform id must be kebab case. ${props.value} is not.`;
       }
     }
   },

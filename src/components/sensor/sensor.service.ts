@@ -27,7 +27,7 @@ export async function createSensor(sensor: SensorApp): Promise<SensorApp> {
     createdSensor = await Sensor.create(sensorDb);
   } catch (err) {
     if (err.name === 'MongoError' && err.code === 11000) {
-      throw new SensorAlreadyExists(`A sensor with an id of ${sensor.id} already exists.`);
+      throw new SensorAlreadyExists(`A sensor with an id of '${sensor.id}' already exists.`);
     // TODO: Check this works
     } else if (err.name === 'ValidationError') {
       throw new InvalidSensor(err.message);
@@ -61,6 +61,9 @@ export async function getSensor(id): Promise<SensorApp> {
 
 
 export async function getSensors(where: {isHostedBy?: string; permanentHost?: string; inDeployment?: string}): Promise<SensorApp[]> {
+
+  // TODO: Might we worth having some validation on the where object here?
+  // TODO: Allow queries such as: find all sensors not in a deployment. e.g. where = {inDeployment: {exists: false}}. Use the whereToMongoFind function for this.
 
   const findWhere: any = Object.assign({}, where);
 

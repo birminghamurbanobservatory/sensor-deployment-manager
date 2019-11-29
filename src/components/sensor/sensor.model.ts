@@ -31,7 +31,7 @@ const schema = new mongoose.Schema({
         return kebabCaseRegex.test(value);
       },
       message: (props): string => {
-        return `Sensor id must be camel case. ${props.value} is not.`;
+        return `Sensor id must be kebab case. ${props.value} is not.`;
       }
     }
   },

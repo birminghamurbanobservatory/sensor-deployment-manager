@@ -16,11 +16,11 @@ import {PlatformApp} from '../platform/platform-app.class';
 import {DeploymentApp} from '../deployment/deployment-app.class';
 import {concat} from 'lodash';
 import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWithPermanentHost';
+import {generateSensorId, prefixForGeneratedIds} from '../../utils/generate-sensor-id';
 
 
 const newSensorSchema = joi.object({
-  id: joi.string() // we'll leave the model schema to check the length
-    .required(),
+  id: joi.string(), // we'll leave the model schema to check the length
   name: joi.string(),
   description: joi.string(),
   permanentHost: joi.string(),
@@ -40,6 +40,8 @@ const newSensorSchema = joi.object({
 })
 .xor('permanentHost', 'inDeployment') 
 // Either a sensor has a permanentHost and is therefore added to a deployment via a registration key OR a standalone sensor must be created already in a deployment.
+.without('inDeployment', 'id')
+// When a sensor is being added directly to a deployment, then don't allow the user to set the id themselves, this is to avoid clashes with more readable IDs that superusers assign to sensors on permanentHosts.
 .required();
 
 
@@ -52,6 +54,19 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
   if (err) {
     throw new InvalidSensor(err.message);
   }
+
+  // If the sensor has an id, then check it doesn't start with the prefix we'll use for sensors assigned straight to a deployment.
+  if (sensor.id) {
+    const firstPart = sensor.id.split('-')[0];
+    if (firstPart === prefixForGeneratedIds) {
+      throw new InvalidSensor(`Sensor ID cannot start with '${firstPart}-'`);
+    }
+  }
+
+  // If the sensor doesn't have an id then assign one
+  if (!sensor.id) {
+    sensor.id = generateSensorId(sensor.name);
+  } 
 
   // Begin to create the context for this sensor.
   const context: ContextApp = {
@@ -73,15 +88,14 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
   // Check the permanent host exists if provided
   if (sensor.permanentHost) {
     await permanentHostService.getPermanentHost(sensor.permanentHost);
-  }  
-
-  const createdContext = await contextService.createContext(context);
-  logger.debug('Context created for new sensor', createdContext);
-
+  }
 
   const sensorToCreate: SensorApp = sensorService.sensorClientToApp(sensor);
   const createdSensor: SensorApp = await sensorService.createSensor(sensorToCreate);
   logger.debug('New sensor created', createdSensor);
+
+  const createdContext = await contextService.createContext(context);
+  logger.debug('Context created for new sensor', createdContext);
 
   return sensorService.sensorAppToClient(createdSensor);
 
@@ -94,6 +108,15 @@ export async function getSensor(id: string): Promise<SensorClient> {
   const sensor: SensorApp = await sensorService.getSensor(id);
   logger.debug('Sensor found', sensor);
   return sensorService.sensorAppToClient(sensor);
+
+}
+
+
+export async function getSensors(where: any): Promise<SensorClient[]> {
+
+  const sensors: SensorApp[] = await sensorService.getSensors(where);
+  logger.debug('Sensors found', sensors);
+  return sensors.map(sensorService.sensorAppToClient);
 
 }
 

@@ -38,3 +38,13 @@ export async function createPermanentHost(permanentHost: PermanentHostClient): P
   return createdPermanentHost;
 
 }
+
+
+
+export async function getPermanentHost(id: string): Promise<PermanentHostClient> {
+
+  const permanentHost: PermanentHostApp = await permanentHostService.getPermanentHost(id);
+  logger.debug('PermanentHost found', permanentHost);
+  return permanentHostService.permanentHostAppToClient(permanentHost);
+
+}

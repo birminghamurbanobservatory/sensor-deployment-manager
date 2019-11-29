@@ -93,7 +93,6 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Add a sensor to this platform
     const nonsharedPlatformSensorClient = {
-      id: 'leaf-counter-1',
       inDeployment: originalDeployment.id
     };
     let nonsharedPlatformSensor = await sensorController.createSensor(nonsharedPlatformSensorClient);
@@ -109,7 +108,6 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Add a sensor to this platform
     const sharedPlatformSensorClient = {
-      id: 'footfall-counter-1',
       inDeployment: originalDeployment.id
     };
     let sharedPlatformSensor = await sensorController.createSensor(sharedPlatformSensorClient);
@@ -145,7 +143,6 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Create a sensor hosted on this platform
     const externalPlatformSensorClient = {
-      id: 'mercury-thermometer-1',
       name: 'Mercury Thermometer',
       inDeployment: nonShareeDeployment.id
     };
@@ -164,7 +161,6 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Create a standalone sensor
     const standaloneSensorClient = {
-      id: 'rain-guage-1',
       inDeployment: nonShareeDeployment.id
     };
     const standaloneSensor = await sensorController.createSensor(standaloneSensorClient);

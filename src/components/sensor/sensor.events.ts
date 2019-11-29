@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createSensor, updateSensor, hostSensorOnPlatform, unhostSensorFromPlatform} from './sensor.controller';
+import {createSensor, updateSensor, hostSensorOnPlatform, unhostSensorFromPlatform, getSensor, getSensors} from './sensor.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
@@ -13,7 +13,9 @@ export async function subscribeToSensorEvents(): Promise<void> {
     subscribeToSensorCreateRequests,
     subscribeToSensorUpdateRequests,
     subscribeToPlatformSensorHostRequests,
-    subscribeToPlatformSensorUnhostRequests
+    subscribeToPlatformSensorUnhostRequests,
+    subscribeToSensorGetRequests,
+    subscribeToSensorsGetRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -68,6 +70,81 @@ async function subscribeToSensorCreateRequests(): Promise<any> {
 
   logger.debug(`Subscribed to ${eventName} requests`);
   return;
+}
+
+
+
+//-------------------------------------------------
+// Get Sensor
+//-------------------------------------------------
+async function subscribeToSensorGetRequests(): Promise<any> {
+
+  const eventName = 'sensor.get.request';
+
+  const sensorsGetRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let sensor: SensorClient;
+    try {
+      const {error: err} = sensorsGetRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      sensor = await getSensor(message.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return sensor;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
+
+
+
+//-------------------------------------------------
+// Get Sensors
+//-------------------------------------------------
+async function subscribeToSensorsGetRequests(): Promise<any> {
+
+  const eventName = 'sensors.get.request';
+
+  const sensorsGetRequestSchema = joi.object({
+    where: joi.object({
+      inDeployment: joi.string(),
+      permanentHost: joi.string()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let sensors: SensorClient[];
+    try {
+      const {error: err} = sensorsGetRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      sensors = await getSensors(message.where);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return sensors;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
 }
 
 
