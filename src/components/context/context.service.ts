@@ -81,6 +81,12 @@ export async function getLiveContextForSensor(sensorId: string): Promise<Context
 
 }
 
+export async function getContextForSensorAtTime(sensorId: string, time: Date): Promise<ContextApp> {
+
+  // TODO
+
+}
+
 
 export async function getLiveContextsForPlatform(platformId: string): Promise<ContextApp> {
 

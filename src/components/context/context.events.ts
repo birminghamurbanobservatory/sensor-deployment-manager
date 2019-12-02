@@ -5,11 +5,13 @@ import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {ContextClient} from './context-client.class';
+import {addContextToObservation} from './context.controller';
 
 export async function subscribeToContextEvents(): Promise<void> {
 
   const subscriptionFunctions = [
-    subscribeToContextUpdateRequests
+    subscribeToContextUpdateRequests,
+    subscribeToObservationAddContextRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -33,10 +35,44 @@ export async function subscribeToContextEvents(): Promise<void> {
 
 
 //-------------------------------------------------
+// Add context to an observation
+//-------------------------------------------------
+async function subscribeToObservationAddContextRequests(): Promise<void> {
+
+  const eventName = 'observation.add-context.request';
+  const observationAddContextRequestSchema = joi.object({
+    // Worth having this structure in case I ever need to provide any options too.
+    observation: joi.object({})
+  }).required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let updatedObservation: ContextClient;
+    try {
+      const {error: err} = observationAddContextRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
+      updatedObservation = await addContextToObservation(message.observation);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return updatedObservation;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;
+
+}
+
+
+
+//-------------------------------------------------
 // Update Context
 //-------------------------------------------------
 // TODO: Do I event need this?
-async function subscribeToContextUpdateRequests(): Promise<any> {
+async function subscribeToContextUpdateRequests(): Promise<void> {
 
   const eventName = 'context.update.request';
   const contextUpdateRequestSchema = joi.object({
