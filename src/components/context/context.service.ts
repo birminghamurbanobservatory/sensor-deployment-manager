@@ -13,11 +13,11 @@ import * as check from 'check-types';
 import {EndLiveContextsForPlatformsFail} from './errors/EndLiveContextsForPlatformsFail';
 import * as Promise from 'bluebird';
 import {GetContextFail} from './errors/GetContextFail';
-import {PlatformApp} from '../platform/platform-app.class';
 import {ProcessDeploymentMadePrivateFail} from './errors/ProcessDeploymentMadePrivateFail';
 import {ProcessDeploymentDeletedFail} from './errors/ProcessDeploymentDeletedFail';
 import {ProcessPlatformSharedWithDeploymentFail} from './errors/ProcessPlatformSharedWithDeploymentFail';
 import {ProcessPlatformUnsharedWithDeploymentFail} from './errors/ProcessPlatformUnsharedWithDeploymentFail';
+import {GetContextForSensorAtTimeFail} from './errors/GetContextForSensorAtTimeFail';
 
 
 export async function createContext(context: ContextApp): Promise<ContextApp> {
@@ -83,7 +83,25 @@ export async function getLiveContextForSensor(sensorId: string): Promise<Context
 
 export async function getContextForSensorAtTime(sensorId: string, time: Date): Promise<ContextApp> {
 
-  // TODO
+  let context;
+  try {
+    context = await Context.findOne({
+      sensor: sensorId,
+      startDate: {$lte: time},
+      $or: [
+        {endDate: {$gt: time}},
+        {endDate: {$exists: false}}
+      ]
+    }).exec();
+  } catch (err) {
+    throw new GetContextForSensorAtTimeFail(undefined, err.message);
+  }
+
+  if (!context) {
+    throw new ContextNotFound(`A context for sensor ${sensorId} at ${time.toISOString()} could not be found`);
+  }
+
+  return contextDbToApp(context);    
 
 }
 

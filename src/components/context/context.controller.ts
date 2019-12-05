@@ -1,6 +1,8 @@
 import * as contextService from './context.service';
 import {BadRequest} from '../../errors/BadRequest';
 import * as joi from '@hapi/joi';
+import {Observation} from './observation.class';
+import {giveObsContext} from './context.helpers';
 
 
 const obsWithoutContextSchema = joi.object({
@@ -22,11 +24,19 @@ export async function addContextToObservation(obsWithoutContext: Observation): P
   }
 
   // Find the appropriate context
-  const context = contextService.getContextForSensorAtTime(obsWithoutContext.madeBySensor, new Date(obsWithoutContext.resultTime));
+  let context;
+  try {
+    context = await contextService.getContextForSensorAtTime(obsWithoutContext.madeBySensor, new Date(obsWithoutContext.resultTime));
+  } catch (err) {
+    if (err.name === 'ContextNotFound') {
+      // If no context found, then just return the obs as it came in
+      return obsWithoutContext;
+    } else {
+      throw err;
+    }
+  }
 
-  // TODO: If no context found, just return the obs as it came in?
-
-  // TODO
-
+  const obsWithContext = giveObsContext(obsWithoutContext, context.toAdd);
+  return obsWithContext;
 
 }
