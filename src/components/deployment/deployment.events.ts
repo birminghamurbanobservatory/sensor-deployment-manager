@@ -79,7 +79,7 @@ async function subscribeToDeploymentGetRequests(): Promise<any> {
 
   const eventName = 'deployment.get.request';
 
-  const deploymentsGetRequestSchema = joi.object({
+  const deploymentGetRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
     })
@@ -92,7 +92,7 @@ async function subscribeToDeploymentGetRequests(): Promise<any> {
 
     let deployment: DeploymentClient;
     try {
-      const {error: err} = deploymentsGetRequestSchema.validate(message);
+      const {error: err} = deploymentGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
       deployment = await getDeployment(message.where.id);
     } catch (err) {

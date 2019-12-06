@@ -15,6 +15,7 @@ import {InvalidSensor} from './errors/InvalidSensor';
 import {UpdateSensorFail} from './errors/UpdateSensorFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UnhostExternalSensorsFromDisappearingDeploymentFail} from './errors/UnhostExternalSensorsFromDisappearingDeploymentFail';
+import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 
 
 
@@ -63,9 +64,8 @@ export async function getSensor(id): Promise<SensorApp> {
 export async function getSensors(where: {isHostedBy?: string; permanentHost?: string; inDeployment?: string}): Promise<SensorApp[]> {
 
   // TODO: Might we worth having some validation on the where object here?
-  // TODO: Allow queries such as: find all sensors not in a deployment. e.g. where = {inDeployment: {exists: false}}. Use the whereToMongoFind function for this.
 
-  const findWhere: any = Object.assign({}, where);
+  const findWhere = whereToMongoFind(where);
 
   let sensors;
   try {
