@@ -42,7 +42,7 @@ async function subscribeToObservationAddContextRequests(): Promise<void> {
   const eventName = 'observation.add-context.request';
   const observationAddContextRequestSchema = joi.object({
     // Worth having this structure in case I ever need to provide any options too.
-    observation: joi.object({})
+    observation: joi.object({}).unknown().required()
   }).required();
 
   await event.subscribe(eventName, async (message): Promise<void> => {
