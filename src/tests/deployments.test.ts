@@ -1,6 +1,6 @@
 import {config} from '../config';
 import * as logger from 'node-logger';
-import {connectDb, disconnectDb} from '../utils/db';
+import {connectDb, disconnectDb} from '../db/mongodb-service';
 import * as MongodbMemoryServer from 'mongodb-memory-server';
 import * as deploymentController from '../components/deployment/deployment.controller';
 import Deployment from '../components/deployment/deployment.model';

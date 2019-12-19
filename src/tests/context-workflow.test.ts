@@ -1,6 +1,6 @@
 import {config} from '../config';
 import * as logger from 'node-logger';
-import {connectDb, disconnectDb} from '../utils/db';
+import {connectDb, disconnectDb} from '../db/mongodb-service';
 import * as MongodbMemoryServer from 'mongodb-memory-server';
 import * as sensorController from '../components/sensor/sensor.controller';
 import * as permanentHostController from '../components/permanent-host/permanent-host.controller';

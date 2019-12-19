@@ -3,7 +3,7 @@ import {LocationApp} from './location-app.class';
 export class PlatformLocationApp {
   public id?: string;
   public platform: string;
+  public date?: string | object;
   public location: LocationApp;
-  public startDate?: string | object;
-  public endDate?: string | object;
+  public locationId: string;
 }

@@ -116,16 +116,21 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
 
   let newPlatformLocation;
   if (locationToAdd) {
+    const dateNow = new Date();
     newPlatformLocation = await platformLocationService.createPlatformLocation({
       platform: createdPlatform.id,
-      startDate: new Date(),
-      location: locationToAdd
+      date: dateNow,
+      location: locationToAdd,
+      // TODO: need a better id here, i.e. needs some randomness in case you had two clients creating a platform location at the same time.
+      locationId: `client-${dateNow.toISOString()}` 
     });
-    createdPlatform.location = newPlatformLocation.location;
+    logger.debug(`Platform location created`, newPlatformLocation);
     // TODO: Should we delete the platform document if we failed to create a platform location?
   }
 
-  return platformService.platformAppToClient(createdPlatform);
+  const platformForClient = platformService.platformAppToClient(createdPlatform);
+  platformForClient.location = platformLocationService.platformLocationAppToClient(newPlatformLocation);
+  return platformForClient;
 
 }
 
@@ -214,6 +219,8 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
   logger.debug('Rehosted platform', updatedPlatform);
   logger.debug(`Platform ${id} has been successfully rehosted on ${hostId}, and the corresponding contexts have been updated too.`);
   return updatedPlatform;
+
+  // TODO: What about the platform-location???? We need to update the platform location of this platform (and potentially any children).
 
 }
 
