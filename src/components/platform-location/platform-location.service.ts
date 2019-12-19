@@ -9,6 +9,9 @@ import {InvalidPlatformLocation} from './errors/InvalidPlatformLocation';
 import {validateGeometry} from '../../utils/geojson-validator';
 
 
+// ----TODO--- Use a timescaledb datebase instead (with POSTGIS and geojson).
+
+
 export async function createPlatformLocation(platformLocation: PlatformLocationApp): Promise<PlatformLocationApp> {
 
   // Let's check that the geojson is valid here as it's a little tricky to do this in the mongoose model schema.
