@@ -243,7 +243,7 @@ export async function processPlatformHostChange(platformId: string, oldAncestors
     }
 
     if (check.nonEmptyArray(newAncestors)) {
-      newContext.toAdd.hostedByPath = concat(newAncestors, newContext.toAdd.hostedByPath)
+      newContext.toAdd.hostedByPath = concat(newAncestors, newContext.toAdd.hostedByPath);
     }
 
     return newContext;
@@ -292,7 +292,6 @@ export async function processDeploymentMadePrivate(deploymentId: string, deploym
         }
       ).exec();    
     } catch (err) {
-      console.log(err);
       throw new ProcessDeploymentMadePrivateFail(undefined, err.message);
     }
 

@@ -92,7 +92,7 @@ async function subscribeToPlatformGetRequests(): Promise<any> {
     options: joi.object({
       includeCurrentLocation: joi.boolean()
         .default(true)
-    })
+    }).default({includeCurrentLocation: true})
   })
   .required();
 
@@ -102,9 +102,9 @@ async function subscribeToPlatformGetRequests(): Promise<any> {
 
     let platforms: PlatformClient[];
     try {
-      const {error: err} = platformsGetRequestSchema.validate(message);
+      const {error: err, value: validatedMsg} = platformsGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      platforms = await getPlatform(message.where.id);
+      platforms = await getPlatform(validatedMsg.where.id, validatedMsg.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
@@ -175,7 +175,11 @@ async function subscribeToPlatformUpdateRequests(): Promise<void> {
         .required()
     })
     .required(),
-    updates: joi.object({}).required()
+    updates: joi.object({
+      // we'll let the controller check this
+    })
+    .unknown()
+    .required()
   })
   .required();
 

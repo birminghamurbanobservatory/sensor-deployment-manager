@@ -75,6 +75,11 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
     toAdd: {}
   };
 
+  // Check the deployment exists if provided
+  if (sensor.inDeployment) {
+    await deploymentService.getDeployment(sensor.inDeployment);
+  }
+
   // Is the sensor being created already in a deployment
   if (sensor.inDeployment) {
     context.toAdd.inDeployments = [sensor.inDeployment];

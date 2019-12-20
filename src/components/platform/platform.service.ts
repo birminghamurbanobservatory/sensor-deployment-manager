@@ -40,7 +40,7 @@ export async function createPlatform(platform: PlatformApp): Promise<PlatformApp
     createdPlatform = await Platform.create(platformDb);
   } catch (err) {
     if (err.name === 'MongoError' && err.code === 11000) {
-      throw new PlatformAlreadyExists(`A platform with an id of ${platform.id} already exists.`);
+      throw new PlatformAlreadyExists(`A platform with an id of '${platform.id}' already exists.`);
     // TODO: Check this works
     } else if (err.name === 'ValidationError') {
       throw new InvalidPlatform(err.message);

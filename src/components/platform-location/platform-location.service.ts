@@ -20,7 +20,7 @@ export async function createPlatformLocationsTable(): Promise<void> {
     table.timestamp('date', {useTz: true}).notNullable();
     table.specificType('geo', 'GEOGRAPHY').notNullable();
     table.jsonb('geojson').notNullable();
-    table.string('location_id').notNullable(); // e.g. client-2019-09..., or gps-abc-2019-08..., or inherited-2019-04..., this gives us a way of updating all instances, e.g. if a user realised they'd incorrected located a platform.
+    table.string('location_id').notNullable(); // e.g. building-west-2019-09..., or gps-abc-2019-08..., or inherited-2019-04..., this gives us a way of updating all instances, e.g. if a user realised they'd incorrected located a platform.
 
   });
 
@@ -65,10 +65,12 @@ export async function getCurrentPlatformLocation(platformId: string): Promise<Pl
 
   let foundPlatformLocation;
   try {
-    foundPlatformLocation = await PlatformLocation.findOne({
-      platform: platformId,
-      endDate: {$exists: false}
-    }).exec();
+    const result = await knex('platform_locations')
+    .select()
+    .where({platform: platformId})
+    .orderBy('date', 'desc')
+    .limit(1);
+    foundPlatformLocation = result[0];
   } catch (err) {
     throw new GetPlatformLocationFail(undefined, err.message);
   }
