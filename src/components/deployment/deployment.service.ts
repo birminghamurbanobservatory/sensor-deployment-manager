@@ -11,6 +11,7 @@ import * as check from 'check-types';
 import {DeploymentNotFound} from './errors/DeploymentNotFound';
 import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
 import {DeleteDeploymentFail} from './errors/DeleteDeploymentFail';
+import {difference} from 'lodash';
 
 
 export async function createDeployment(deployment: DeploymentApp): Promise<DeploymentApp> {
@@ -79,6 +80,32 @@ export async function getDeployments(where: {user?: string; public?: boolean}): 
   return deployments.map(deploymentDbToApp);
 
 }
+
+
+
+export async function getDeploymentsById(deploymentIds: string[]): Promise<DeploymentApp[]> {
+
+  let foundDocs;
+
+  try {
+    foundDocs = Deployment.find({id: {$in: deploymentIds}}).exec();
+  } catch (err) {
+    throw new GetDeploymentsFail(undefined, err.message);
+  }
+
+  const foundDeployments = foundDocs.map(deploymentDbToApp);
+  const foundDeploymentIds = foundDeployments.map((deployment) => deployment.id);
+
+  // Throws an error if we weren't able to find any of them.
+  const unfoundIds = difference(foundDeploymentIds, deploymentIds);
+  if (unfoundIds.length > 0) {
+    throw new DeploymentNotFound(`Unable to find the following deployments: ${unfoundIds.join()}.`);
+  }
+
+  return foundDeployments;
+
+}
+
 
 
 

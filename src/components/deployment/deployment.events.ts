@@ -83,6 +83,7 @@ async function subscribeToDeploymentGetRequests(): Promise<any> {
     where: joi.object({
       id: joi.string().required()
     })
+    .required()
   })
   .required();
 

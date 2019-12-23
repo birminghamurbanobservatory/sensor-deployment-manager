@@ -4,12 +4,14 @@ import {subscribeToPermanentHostEvents} from '../components/permanent-host/perma
 import {subscribeToRegistrationEvents} from '../components/registration/registration.events';
 import {subscribeToSensorEvents} from '../components/sensor/sensor.events';
 import {subscribeToContextEvents} from '../components/context/context.events';
+import {subscribeToDeploymentUserEvents} from '../components/deployment-user/deployment-user.events';
 
 
 
 export async function invokeAllSubscriptions(): Promise<void> {
 
   await subscribeToDeploymentEvents();
+  await subscribeToDeploymentUserEvents();
   await subscribeToPlatformEvents();
   await subscribeToPermanentHostEvents();
   await subscribeToRegistrationEvents();
