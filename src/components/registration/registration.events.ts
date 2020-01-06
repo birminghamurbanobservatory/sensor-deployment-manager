@@ -50,15 +50,17 @@ async function subscribeToRegistrationRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
+    let created;
     try {
       const {error: err} = registrationRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
-      await register(message.where.registrationKey, message.where.deploymentId);
+      created = await register(message.where.registrationKey, message.where.deploymentId);
+      return created;
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return;
+    return created;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

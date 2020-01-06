@@ -8,11 +8,12 @@ import {SensorAlreadyRegistered} from './errors/SensorAlreadyRegistered';
 import * as Promise from 'bluebird';
 import {ContextApp} from '../context/context-app.class';
 import * as logger from 'node-logger';
+import {PlatformClient} from '../platform/platform-client.class';
 
 
-export async function register(registrationKey, deploymentId): Promise<void> {
+export async function register(registrationKey, deploymentId): Promise<PlatformClient> {
 
-  // I may eventually allow individual sensors to have their own registration key, i.e. rather than always having sensors on a permanentHost. In which case I'd also need to check the sensors collection for registration keys. N.B. that if you do this you'll need to keep the registration keys unique across both collections.
+  // I may eventually allow individual sensors to have their own registration key, i.e. rather than always having sensors on a permanentHost. In which case I'd also need to check the sensors collection for registration keys. N.B. that if you do this you'll need to keep the registration keys unique across both collections, e.g by adding an 's' on the end of registration keys for sensors and making it 11 characters long.
 
   logger.debug(`About to use registration key '${registrationKey}' on deployment '${deploymentId}'.`);
 
@@ -75,6 +76,7 @@ export async function register(registrationKey, deploymentId): Promise<void> {
 
   logger.debug(`Successfully used registration key '${registrationKey}' on deployment '${deploymentId}' and in so doing so updated ${updatedSensors.length} sensor(s) and their context.`);
 
-  return;
+  const platformForClient = platformService.platformAppToClient(platform);
+  return platformForClient;
 
 }
