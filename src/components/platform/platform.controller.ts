@@ -18,10 +18,27 @@ import * as contextService from '../context/context.service';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {HostPlatformInPrivateDeployment} from './errors/HostPlatformInPrivateDeployment';
+import {Forbidden} from '../../errors/Forbidden';
 
 
+// TODO: I could do with some validation of this platform object
+const newPlatformSchema = joi.object({
+  id: joi.string(),
+  name: joi.string().required(),
+  description: joi.string(),
+  static: joi.boolean().default(true),
+  location: joi.object(), // i.e. geojson geometry object
+  isHostedBy: joi.string(),
+  ownerDeployment: joi.string().required()  
+})
+.required();
 
 export async function createPlatform(platform: PlatformClient): Promise<PlatformClient> {
+
+  const {error: validationErr} = newPlatformSchema.validate(platform);
+  if (validationErr) {
+    throw new InvalidPlatform(validationErr.message);
+  }
 
   const hostPlatformSpecified = check.assigned(platform.isHostedBy);
   const locationSpecified = check.assigned(platform.location);
@@ -146,7 +163,6 @@ export async function getPlatform(id: string, options?: {includeCurrentLocation:
   if (options && options.includeCurrentLocation) {
     try {
       platformLocation = await platformLocationService.getCurrentPlatformLocation(id);
-      platform.location = platformLocation.location;
     } catch (err) {
       if (err.name === 'PlatformLocationNotFound') {
         logger.debug(`Unable to find a location for the platform ${id}. It may simply not have been assigned one yet.`);
@@ -211,6 +227,8 @@ export async function unhostPlatform(id): Promise<PlatformApp> {
 
   const {platform: updatedPlatform, oldAncestors} = await platformService.unhostPlatform(id);
   await contextService.processPlatformHostChange(id, oldAncestors, []);
+
+  // TODO: add platform location?
   return updatedPlatform;
 
 }
@@ -227,6 +245,11 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
   if (hostPlatform.static === false && platform.static === true) {
     throw new InvalidPlatform('A static platform cannot be hosted by a mobile platform.');
   }  
+
+  // Check it's not already hosted on this platform
+  if (platform.isHostedBy && platform.isHostedBy === hostId) {
+    throw new Forbidden(`Platform ${id} is already hosted on platform ${hostId}.`);
+  }
 
   const {platform: updatedPlatform, oldAncestors, newAncestors} = await platformService.rehostPlatform(id, hostId);
   logger.debug(`About to process the contexts following a platform host change.`, {id, oldAncestors, newAncestors});
@@ -254,7 +277,8 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
 
   logger.debug(`Platform ${id} has been successfully rehosted on ${hostId}, and the corresponding contexts and locations have been updated too.`);
 
-  return updatedPlatform;
+  // TODO: Include the platform's current location if available (may have just been updated)?
+  return platformService.platformAppToClient(updatedPlatform);
 
 }
 

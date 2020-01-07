@@ -584,6 +584,7 @@ function platformDbToApp(platformDb: any): PlatformApp {
 
 export function platformAppToClient(platformApp: PlatformApp): PlatformClient {
   const platformClient: any = cloneDeep(platformApp);
+  delete platformClient.initialisedFrom;
   return platformClient;
 } 
 

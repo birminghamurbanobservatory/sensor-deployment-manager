@@ -4,6 +4,8 @@
 import * as mongoose from 'mongoose';
 
 
+// TODO!!!!!!! Remove this if using timescale not mongo.
+
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------

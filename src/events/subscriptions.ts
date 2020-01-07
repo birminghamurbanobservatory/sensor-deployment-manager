@@ -5,6 +5,7 @@ import {subscribeToRegistrationEvents} from '../components/registration/registra
 import {subscribeToSensorEvents} from '../components/sensor/sensor.events';
 import {subscribeToContextEvents} from '../components/context/context.events';
 import {subscribeToDeploymentUserEvents} from '../components/deployment-user/deployment-user.events';
+import {subscribeToPlatformLocationEvents} from '../components/platform-location/platform-location.events';
 
 
 
@@ -17,6 +18,7 @@ export async function invokeAllSubscriptions(): Promise<void> {
   await subscribeToRegistrationEvents();
   await subscribeToSensorEvents();
   await subscribeToContextEvents();
+  await subscribeToPlatformLocationEvents();
 
 }
 

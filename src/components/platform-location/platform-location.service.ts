@@ -1,14 +1,15 @@
 import {PlatformLocationApp} from './platform-location-app.class';
-import PlatformLocation from './platform-location.model';
 import {CreatePlatformLocationFail} from './errors/CreatePlatformLocationFail';
 import {GetPlatformLocationFail} from './errors/GetPlatformLocationFail';
 import {GetPlatformLocationsFail} from './errors/GetPlatformLocationsFail';
+import {GetCurrentPlatformLocationsFail} from './errors/GetCurrentPlatformLocationsFail';
 import {PlatformLocationNotFound} from './errors/PlatformLocationNotFound';
 import {InvalidPlatformLocation} from './errors/InvalidPlatformLocation';
 import {validateGeometry} from '../../utils/geojson-validator';
 import {knex} from '../../db/knex';
 import {convertKeysToSnakeCase, convertKeysToCamelCase} from '../../utils/class-converters';
 import {PlatformLocationClient} from './platform-location-client';
+import {convertToValuesString} from '../../db/knex-helpers';
 
 
 export async function createPlatformLocationsTable(): Promise<void> {
@@ -86,17 +87,49 @@ export async function getCurrentPlatformLocation(platformId: string): Promise<Pl
 
 export async function getCurrentPlatformLocations(platformIds: string[]): Promise<PlatformLocationApp[]> {
 
+  // Return an empty array if no platformIds are provided
+  if (platformIds.length === 0) {
+    return [];
+  }
+
   let foundPlatformLocations;
   try {
-    foundPlatformLocations = await PlatformLocation.find({
-      platform: {$in: platformIds},
-      endDate: {$exists: false}
-    }).exec();
+    // TODO: Inject some real platform ids here.
+    const result = await knex.raw(`
+      SELECT data.* FROM (VALUES ${convertToValuesString(platformIds)}) a("platformId")
+        INNER JOIN LATERAL (
+          SELECT * FROM platform_locations b
+            WHERE b.platform = a."platformId"
+            ORDER BY date DESC LIMIT 1
+        ) AS data
+      ON true
+      ORDER BY a."platformId", data.date DESC;    
+    `);
+    foundPlatformLocations = result.rows;
+  } catch (err) {
+    throw new GetCurrentPlatformLocationsFail(undefined, err.message);
+  }
+
+  return foundPlatformLocations.map(platformLocationDbToApp);
+
+}
+
+
+// TODO: allow filtering by a time window, and perhaps a spatial window
+export async function getPlatformLocations(platformId: string): Promise<PlatformLocationApp[]> {
+
+  let locations; 
+
+  try {
+    locations = await knex('platform_locations')
+    .select()
+    .where({platform: platformId})
+    .orderBy('date', 'asc');
   } catch (err) {
     throw new GetPlatformLocationsFail(undefined, err.message);
   }
 
-  return foundPlatformLocations.map(platformLocationDbToApp);
+  return locations.map(platformLocationDbToApp);
 
 }
 
