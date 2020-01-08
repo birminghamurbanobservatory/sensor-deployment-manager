@@ -1,4 +1,4 @@
-import {LocationApp} from '../platform-location/location-app.class';
+import {PlatformLocationApp} from '../platform-location/platform-location-app.class';
 
 // This is the format that this application uses (specifically the services and controllers)
 export class PlatformApp {
@@ -14,6 +14,6 @@ export class PlatformApp {
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;
-  public location?: LocationApp;
+  public location?: PlatformLocationApp;
 }
 

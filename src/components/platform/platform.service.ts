@@ -556,7 +556,7 @@ export function mergePlatformsWithPlatformLocations(platforms: PlatformApp[], pl
   const merged = platforms.map((platform) => {
     const matchingPlatformLocation = platformLocations.find((platformLocation) => platformLocation.platform === platform.id);
     if (matchingPlatformLocation) {
-      return Object.assign({}, platform, {location: matchingPlatformLocation.location});
+      return Object.assign({}, platform, {location: matchingPlatformLocation});
     } else {
       return Object.assign({}, platform);
     }
