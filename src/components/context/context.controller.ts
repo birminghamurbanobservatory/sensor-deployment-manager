@@ -38,6 +38,11 @@ export async function addContextToObservation(obsWithoutContext: Observation): P
     }
   }
 
+  // If the observation has no location, see if we can derive the location from its host platforms.
+  // First get the platform documents of all this sensor's hosts
+  // Find the most direct platform with a location, and use that.
+  // TODO
+
   const obsWithContext = giveObsContext(obsWithoutContext, context.toAdd);
   return obsWithContext;
 

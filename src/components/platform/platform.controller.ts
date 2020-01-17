@@ -1,7 +1,6 @@
 import {PlatformClient} from './platform-client.class';
 import * as deploymentService from '../deployment/deployment.service';
 import * as platformService from '../platform/platform.service';
-import * as platformLocationService from '../platform-location/platform-location.service';
 import {InvalidPlatform} from './errors/InvalidPlatform';
 import * as check from 'check-types';
 import {PlatformApp} from './platform-app.class';
@@ -10,16 +9,13 @@ import * as logger from 'node-logger';
 import {nameToClientId} from '../../utils/name-to-client-id';
 import {cloneDeep, concat} from 'lodash';
 import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
-import {PlatformLocationApp} from '../platform-location/platform-location-app.class';
 import * as sensorService from '../sensor/sensor.service';
 import * as Promise from 'bluebird';
 import {SensorApp} from '../sensor/sensor-app.class';
 import * as contextService from '../context/context.service';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
-import {HostPlatformInPrivateDeployment} from './errors/HostPlatformInPrivateDeployment';
 import {Forbidden} from '../../errors/Forbidden';
-import {PlatformLocationClient} from '../platform-location/platform-location-client';
 
 
 const newPlatformSchema = joi.object({

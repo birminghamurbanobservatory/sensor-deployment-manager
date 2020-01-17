@@ -10,7 +10,6 @@ import {getCorrelationId} from './utils/correlator';
 // Handle Uncaught Errors - Make sure the logger is already configured first.
 import './utils/handle-uncaught-errors';
 import {initialiseEvents} from './events/initialise-events';
-import {initialiseDb} from './db/initialise-timescaledb';
 
 
 //-------------------------------------------------
@@ -26,25 +25,11 @@ logger.warn(`${appName} restarted`);
   // Database
   //-------------------------------------------------
 
-  //------------------------
-  // MongoDB
-  //------------------------
   try {
     await connectDb(config.mongo.uri);
     logger.info('Initial connection to MongoDB database was successful');
   } catch (err) {
     logger.error(`Initial MongoDB database connection failed: ${err.message}`);
-  }
-
-
-  //------------------------
-  // Timescale DB
-  //------------------------
-  try {
-    await initialiseDb();
-    logger.info('Timescale DB has been initialised');  
-  } catch (err) {
-    logger.error('Failed to initialise Timescale DB', err);
   }
 
 

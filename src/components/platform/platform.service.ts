@@ -13,7 +13,6 @@ import {UpdatePlatformFail} from './errors/UpdatePlatformFail';
 import {UnhostPlatformFail} from './errors/UnhostPlatformFail';
 import {RehostPlatformFail} from './errors/RehostPlatformFail';
 import * as check from 'check-types';
-import {PlatformLocationApp} from '../platform-location/platform-location-app.class';
 import {GetDescendantsOfPlatformFail} from './errors/GetDecendantsOfPlatformFail';
 import * as Promise from 'bluebird';
 import {CutDescendantsOfPlatformFail} from './errors/CutDescendantsOfPlatformFail';
