@@ -1,5 +1,3 @@
-import {PlatformLocationClient} from '../platform-location/platform-location-client';
-
 // This is the format that clients and other microservices see.
 export class PlatformClient {
   public id?: string;
@@ -10,8 +8,20 @@ export class PlatformClient {
   public isHostedBy?: string;
   public hostedByPath?: string[];
   public static?: boolean;
+  public location?: Location;
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;
-  public location?: PlatformLocationClient;
+}
+
+
+class Location {
+  public id?: string;
+  public geometry: Geometry;
+  public validAt: string;
+}
+
+class Geometry {
+ public type: string;
+ public coordinates: any;
 }

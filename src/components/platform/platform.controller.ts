@@ -16,6 +16,8 @@ import * as contextService from '../context/context.service';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {Forbidden} from '../../errors/Forbidden';
+import {validateGeometry} from '../../utils/geojson-validator';
+import {v4 as uuid} from 'uuid';
 
 
 const newPlatformSchema = joi.object({
@@ -23,24 +25,33 @@ const newPlatformSchema = joi.object({
   name: joi.string().required(),
   description: joi.string(),
   static: joi.boolean().default(true),
-  location: joi.object(), // i.e. geojson geometry object
+  location: joi.object({
+    geometry: joi.object({
+      type: joi.string().required(),
+      coordinates: joi.array().required()
+    })
+    .custom((value) => {
+      validateGeometry(value); // throws an error if invalid
+      return value;
+    })
+    .required()
+  }),
+  updateLocationWithSensor: joi.string()
+    .when('static', {is: true, then: joi.forbidden()}),
   isHostedBy: joi.string(),
   ownerDeployment: joi.string().required()  
 })
 .required();
 
-export async function createPlatform(platform: PlatformClient): Promise<PlatformClient> {
+export async function createPlatform(platformClient: PlatformClient): Promise<PlatformClient> {
 
-  const {error: validationErr} = newPlatformSchema.validate(platform);
+  const {error: validationErr, value: platform} = newPlatformSchema.validate(platformClient);
   if (validationErr) {
     throw new InvalidPlatform(validationErr.message);
   }
 
   const hostPlatformSpecified = check.assigned(platform.isHostedBy);
-  const locationSpecified = check.assigned(platform.location);
   const idSpecified = check.assigned(platform.id);
-
-  // TODO: Should we enforce a rule that if the platform is static then a location must be provided?
 
   // Check the deployment exists
   if (check.nonEmptyString(platform.ownerDeployment)) {
@@ -76,22 +87,36 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
     logger.debug('Host Platform', hostPlatform);
   }
 
-  const platformToCreate = cloneDeep(platform);
-  delete platformToCreate.location;
+  const platformToCreate: any = cloneDeep(platform);
   platformToCreate.inDeployments = [platformToCreate.ownerDeployment];
   if (!idSpecified) {
     platformToCreate.id = nameToClientId(platformToCreate.name);
     logger.debug(`The platform name: '${platform.name}' has been converted to an id of '${platformToCreate.id}'`);
   }
 
-  // Add a hostedByPath if required
+  if (platformToCreate.location) {
+    platformToCreate.location.validAt = new Date();
+    if (!platformToCreate.location.id) {
+      platformToCreate.location.id = uuid();
+    }
+  }
+
   if (hostPlatform) {
+
+    // Add a hostedByPath if required
     if (hostPlatform.hostedByPath) {
       platformToCreate.hostedByPath = concat(hostPlatform.hostedByPath, hostPlatform.id);
     } else {
       platformToCreate.hostedByPath = [hostPlatform.id];
     }
+
+    // Inherit the host platform's location (if it makes sense to do so)
+    if (hostPlatform.location && !platformToCreate.location) {
+      platformToCreate.location = cloneDeep(hostPlatform.location);
+    }
+
   }
+
 
   let createdPlatform: PlatformApp;
   try {
@@ -108,43 +133,8 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
 
   logger.debug('New platform created', createdPlatform);
 
-  // Add a new platform location
-  let locationToAdd;
-
-  if (locationSpecified) {
-    locationToAdd = platform.location;
-  } else if (hostPlatformSpecified) {
-    // Get the current location of the host platform
-    try {
-      const hostPlatformLocation = await platformLocationService.getCurrentPlatformLocation(hostPlatform.id);
-      locationToAdd = hostPlatformLocation.location;
-    } catch (err) {
-      if (err.name === 'PlatformLocationNotFound') {
-        logger.debug(`Host platform '${hostPlatform.id}' does not have a current location, thus the new platform '${platform.name}' won't inherit its location.`);
-      } else {
-        throw err;
-      }      
-    }
-  }
-
-  let newPlatformLocation;
-  if (locationToAdd) {
-    const dateNow = new Date();
-    newPlatformLocation = await platformLocationService.createPlatformLocation({
-      platform: createdPlatform.id,
-      date: dateNow,
-      location: locationToAdd,
-      // Let's use the platform id in the location id to help keep this id unique.
-      locationId: `${createdPlatform.id}-${dateNow.toISOString()}` 
-    });
-    logger.debug(`Platform location created`, newPlatformLocation);
-    // TODO: Should we delete the platform document if we failed to create a platform location?
-  }
 
   const platformForClient = platformService.platformAppToClient(createdPlatform);
-  if (newPlatformLocation) {
-    platformForClient.location = platformLocationService.platformLocationAppToClient(newPlatformLocation);
-  }
   return platformForClient;
 
 }
@@ -153,44 +143,20 @@ export async function createPlatform(platform: PlatformClient): Promise<Platform
 export async function getPlatform(id: string, options?: {includeCurrentLocation: boolean}): Promise<PlatformClient> {
   
   const platform: PlatformApp = await platformService.getPlatform(id);
-
-  // Get the current location of this platform (if available)
-  let platformLocationForClient;
-  if (options && options.includeCurrentLocation) {
-    platformLocationForClient = await getCurrentPlatformLocationForClient(id);
-  }
-
   const platformForClient = platformService.platformAppToClient(platform);
-  if (platformLocationForClient) {
-    platformForClient.location = platformLocationForClient;
-  }
-
   return platformService.platformAppToClient(platform);
 
 }
 
 
-export async function getPlatforms(where: {inDeployment?: string}, options?: {includeCurrentLocation: boolean}): Promise<PlatformClient[]> {
+export async function getPlatforms(where: {inDeployment?: string}): Promise<PlatformClient[]> {
 
-  let platforms: PlatformApp[] = await platformService.getPlatforms(where);
+  const platforms: PlatformApp[] = await platformService.getPlatforms(where);
   logger.debug('Platforms found', platforms);
-
-  logger.debug('options', options);
-
-  if (options && options.includeCurrentLocation) {
-    // Get the current location of each of these platforms
-    const platformIds = platforms.map((platform): string => platform.id);
-    const currentLocations = await platformLocationService.getCurrentPlatformLocations(platformIds);
-    logger.debug('Found current platform locations', currentLocations);
-    platforms = platformService.mergePlatformsWithPlatformLocations(platforms, currentLocations);
-  }
 
   // Now to make the platforms client friendly
   const platformsForClient = platforms.map((platform): PlatformClient => {
     const platformForClient = platformService.platformAppToClient(platform);
-    if (platform.location) {
-      platformForClient.location = platformLocationService.platformLocationAppToClient(platform.location);
-    }
     return platformForClient;
   });
 
@@ -202,7 +168,20 @@ export async function getPlatforms(where: {inDeployment?: string}, options?: {in
 const platformUpdatesSchema = joi.object({
   name: joi.string(),
   description: joi.string(),
-  static: joi.boolean().valid(false) // for now I'll only allow static to be changed to mobile.
+  static: joi.boolean().valid(false), // for now I'll only allow static to be changed to mobile.
+  location: joi.object({
+    geometry: joi.object({
+      type: joi.string().required(),
+      coordinates: joi.array().required()
+    })
+    .custom((value) => {
+      validateGeometry(value); // throws an error if invalid
+      return value;
+    })
+    .required()
+  }),
+  updateLocationWithSensor: joi.string()
+    .when('static', {is: true, then: joi.forbidden()}),
 });
 // N.B. this particular function only allows certain properties of a platform to be updated, i.e. direct features of a platform rather than its relationships with other things, e.g. other platforms and deployments. Other controller functions handle this.
 export async function updatePlatform(id: string, updates: any): Promise<PlatformClient> {
@@ -210,19 +189,16 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
   const {error: validationErr} = platformUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
-  // TODO: If the static property is being changed then we need a check to make sure we don't end up with a static platform being hosted on a mobile one.
+  // Get the platform
+  const platformBeforeUpdate = await platformService.getPlatform(id);
 
-  // Get the current platform document
-  const updatedPlatform = await platformService.updatePlatform(id, updates);
-
-  const platformForClient = platformService.platformAppToClient(updatedPlatform);
-
-  // Get the current location of this platform (if available)
-  const platformLocationForClient = await getCurrentPlatformLocationForClient(id);
-  if (platformLocationForClient) {
-    platformForClient.location = platformLocationForClient;
+  // I don't want a static platform having a updateLocationWithSensor property
+  if (platformBeforeUpdate.static === true && updates.updateLocationWithSensor && updates.static !== false) {
+    throw new BadRequest('You cannot set a updateLocationWithSensor property for a static platform');
   }
 
+  const updatedPlatform = await platformService.updatePlatform(id, updates);
+  const platformForClient = platformService.platformAppToClient(updatedPlatform);
   return platformForClient;
 
 }
@@ -234,13 +210,6 @@ export async function unhostPlatform(id): Promise<PlatformApp> {
   await contextService.processPlatformHostChange(id, oldAncestors, []);
 
   const platformForClient = platformService.platformAppToClient(updatedPlatform);
-
-  // Get the current location of this platform (if available)
-  const platformLocationForClient = await getCurrentPlatformLocationForClient(id);
-  if (platformLocationForClient) {
-    platformForClient.location = platformLocationForClient;
-  }
-
   return platformForClient;
 
 }
@@ -268,35 +237,29 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
   await contextService.processPlatformHostChange(id, oldAncestors, newAncestors);
   logger.debug('Rehosted platform', updatedPlatform);
 
-  // Update the platform locations - this is actually quite simple, you simply take the last known location of the new host (if available), and apply this to the rehosted platform and any child platforms it may have.
-  const currentHostPlatformLocation = await platformLocationService.getCurrentPlatformLocation(hostPlatform.id);
-  if (currentHostPlatformLocation) {
-    // Does this platform have any descendents
+  // Update the locations of any descendents - take the last known location of the new host (if available), and apply this to the rehosted platform and any child platforms it may have (as long as they are mobile, or have no location).
+  if (hostPlatform.location) {
     const descendentPlatforms = await platformService.getdescendantsOfPlatform(id);
-    const platformIds = concat(id, descendentPlatforms.map((descendentPlatform) => descendentPlatform.id));
-    const newPlatformLocations = await Promise.map(platformIds, async (platformId): Promise<void> => {
-      const newPlatformLocation = await platformLocationService.createPlatformLocation({
-        // N.B. we assign a new date rather than inheriting it from the new host, the reason being that what we inherit could be very out of date, and the platform being rehosted may have a location dated after this.
-        platform: platformId,
-        date: new Date(),
-        location: currentHostPlatformLocation.location,
-        locationId: currentHostPlatformLocation.locationId
-      });
-      return newPlatformLocation;
+    await Promise.map(descendentPlatforms, async (descendentPlatform): Promise<void> => {
+
+      if (descendentPlatform.static === false || !descendentPlatform.location) {
+        const updates: any = {
+          location: hostPlatform.location
+        };
+        // Guess it makes sense to inherit updateLocationWithSensor too.
+        if (hostPlatform.updateLocationWithSensor) {
+          updates.updateLocationWithSensor = hostPlatform.updateLocationWithSensor;
+        }
+        await platformService.updatePlatform(descendentPlatform.id, updates);
+      }
+      return;
+
     });
-    logger.debug('New platform locations following rehost', newPlatformLocations);
   }
 
   logger.debug(`Platform ${id} has been successfully rehosted on ${hostId}, and the corresponding contexts and locations have been updated too.`);
 
   const platformForClient = platformService.platformAppToClient(updatedPlatform);
-
-  // Get the current location of this platform (if available)
-  const platformLocationForClient = await getCurrentPlatformLocationForClient(id);
-  if (platformLocationForClient) {
-    platformForClient.location = platformLocationForClient;
-  }
-
   return platformForClient;
 
 }
@@ -313,14 +276,9 @@ export async function sharePlatformWithDeployment(platformId, deploymentId): Pro
   // Now to update the context of sensors on this platform
   await contextService.processPlatformSharedWithDeployment(platformId, deploymentId);
 
+  // TODO: It might be worth firing off a event-stream event following this. For example the observations-manager may wish to find all the timeseries for this platform and it's original deployment and add the new deployment to the inDeployments array.
+
   const platformForClient = platformService.platformAppToClient(updatedPlatform);
-
-  // Get the current location of this platform (if available)
-  const platformLocationForClient = await getCurrentPlatformLocationForClient(platformId);
-  if (platformLocationForClient) {
-    platformForClient.location = platformLocationForClient;
-  }
-
   return platformForClient;
 
 }
@@ -334,13 +292,6 @@ export async function unsharePlatformWithDeployment(platformId, deploymentId): P
   await contextService.processPlatformUnsharedWithDeployment(platformId, deploymentId);
 
   const platformForClient = platformService.platformAppToClient(updatedPlatform);
-
-  // Get the current location of this platform (if available)
-  const platformLocationForClient = await getCurrentPlatformLocationForClient(platformId);
-  if (platformLocationForClient) {
-    platformForClient.location = platformLocationForClient;
-  }
-
   return platformForClient;
 
 }
@@ -381,25 +332,5 @@ export async function deletePlatform(id: string): Promise<void> {
   });
 
   return;
-
-}
-
-
-// A helper function that is used several times in this controller when a platform is returned to the client and it's current location needs to be included.
-export async function getCurrentPlatformLocationForClient(platformId: string): Promise<PlatformLocationClient> {
-
-  let platformLocation;
-  try {
-    platformLocation = await platformLocationService.getCurrentPlatformLocation(platformId);
-  } catch (err) {
-    if (err.name === 'PlatformLocationNotFound') {
-      logger.debug(`Unable to find a location for the platform ${platformId}. It may simply not have been assigned one yet.`);
-      return; // return nothing if no location could be found
-    } else {
-      throw err;
-    }
-  }
-  
-  return platformLocationService.platformLocationAppToClient(platformLocation);
 
 }

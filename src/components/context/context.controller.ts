@@ -43,6 +43,8 @@ export async function addContextToObservation(obsWithoutContext: Observation): P
   // Find the most direct platform with a location, and use that.
   // TODO
 
+  // If the observation is from a gps sensor then search for platforms with a matching 'updateLocationWithSensor' property, and if this observation is newer then update the location.
+
   const obsWithContext = giveObsContext(obsWithoutContext, context.toAdd);
   return obsWithContext;
 

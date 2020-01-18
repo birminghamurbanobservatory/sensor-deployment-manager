@@ -7,12 +7,22 @@ export class PlatformApp {
   public inDeployments?: string[];
   public isHostedBy?: string;
   public hostedByPath?: string[];
-  public static?: boolean;
   public initialisedFrom?: string;
+  public static?: boolean;
+  public location?: Location;
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;
-  public location?: any; // TODO
-  // TODO: make sure we're using GeoJSON for a platform's current location, i.e store a geometry object.
 }
 
+
+class Location {
+  public id?: string;
+  public geometry: Geometry;
+  public validAt: Date;
+}
+
+class Geometry {
+ public type: string;
+ public coordinates: any;
+}

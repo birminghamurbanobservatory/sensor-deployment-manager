@@ -106,7 +106,7 @@ const updatesSchema = joi.object({
   static: joi.boolean()  
 });
 
-export async function updatePlatform(id, updates: {name: string; description: string; static: boolean}): Promise<PlatformApp> {
+export async function updatePlatform(id, updates: {name: string; description: string; static: boolean; location: any; updateLocationWithSensor: string}): Promise<PlatformApp> {
 
   joi.attempt(updates, updatesSchema); // throws error if invalid
 
@@ -188,10 +188,18 @@ export async function rehostPlatform(id: string, hostId?: string | null): Promis
   }  
 
   // Now to update the platform itself
-  const updates = {
+  const updates: any = {
     isHostedBy: hostId,
     hostedByPath: newAncestors      
   };
+  // Inherit the location (under certain circumstances)
+  if (hostPlatform.location && (existingPlatform.static === false || !existingPlatform.location)) {
+    updates.location = cloneDeep(hostPlatform.location);
+    // Guess it makes sense to inherit updateLocationWithSensor too.
+    if (hostPlatform.updateLocationWithSensor) {
+      updates.updateLocationWithSensor = hostPlatform.updateLocationWithSensor;
+    }
+  }
 
   let updatedPlatform;
   try {
@@ -550,20 +558,6 @@ export async function cutDescendantsOfPlatform(id: string): Promise<void> {
 }
 
 
-
-export function mergePlatformsWithPlatformLocations(platforms: PlatformApp[], platformLocations: PlatformLocationApp[]): PlatformApp[] {
-  const merged = platforms.map((platform) => {
-    const matchingPlatformLocation = platformLocations.find((platformLocation) => platformLocation.platform === platform.id);
-    if (matchingPlatformLocation) {
-      return Object.assign({}, platform, {location: matchingPlatformLocation});
-    } else {
-      return Object.assign({}, platform);
-    }
-  });
-  return merged;
-}
-
-
 function platformAppToDb(platformApp: PlatformApp): object {
   const platformDb: any = cloneDeep(platformApp);
   platformDb._id = platformApp.id;
@@ -577,6 +571,9 @@ function platformDbToApp(platformDb: any): PlatformApp {
   platformApp.id = platformApp._id.toString();
   delete platformApp._id;
   delete platformApp.__v;
+  if (platformApp.location) {
+    delete platformApp.location._id;
+  }
   return platformApp;
 }
 
@@ -584,6 +581,10 @@ function platformDbToApp(platformDb: any): PlatformApp {
 export function platformAppToClient(platformApp: PlatformApp): PlatformClient {
   const platformClient: any = cloneDeep(platformApp);
   delete platformClient.initialisedFrom;
+  console.log(platformClient);
+  if (platformClient.location && platformClient.location.validAt) {
+    platformClient.location.validAt = platformClient.location.validAt.toISOString();
+  }  
   return platformClient;
 } 
 

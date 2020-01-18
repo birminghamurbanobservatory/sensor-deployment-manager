@@ -31,7 +31,8 @@
     "password-generator": "^2.2.0",
     "pg": "^7.15.1",
     "shortid": "^2.2.15",
-    "snakecase-keys": "^3.1.0"
+    "snakecase-keys": "^3.1.0",
+    "uuid": "^3.4.0"
   },
   "devDependencies": {
     "@types/jest": "^24.0.19",

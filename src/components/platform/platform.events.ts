@@ -1,7 +1,7 @@
 import * as event from 'event-stream';
 import {createPlatform, getPlatform, getPlatforms, updatePlatform, unhostPlatform, rehostPlatform, deletePlatform} from './platform.controller';
 import * as logger from 'node-logger';
-import {Promise} from 'bluebird'; 
+import {Promise} from 'bluebird';
 import {PlatformClient} from './platform-client.class';
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
 import * as joi from '@hapi/joi';
@@ -132,11 +132,7 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
         .required()
     })
     .min(1)
-    .required(),
-    options: joi.object({
-      includeCurrentLocation: joi.boolean()
-        .default(true)
-    }).default({includeCurrentLocation: true})
+    .required()
   })
   .required();
 
@@ -148,7 +144,7 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
     try {
       const {error: err, value: validatedMsg} = platformsGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      platforms = await getPlatforms(validatedMsg.where, validatedMsg.options);
+      platforms = await getPlatforms(validatedMsg.where);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }

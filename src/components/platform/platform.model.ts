@@ -8,6 +8,30 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
+const LocationSchema = new mongoose.Schema({
+  id: {
+    $type: String,
+    required: true
+  },
+  validAt: {
+    $type: Date,
+    required: true
+  },
+  geometry: {
+    type: {
+      $type: String,
+      required: true
+    },
+    coordinates: {
+      $type: [],
+      required: true
+    }
+  },
+}, {
+  typeKey: '$type' // need to do this so I can use the 'type' key for the geojson location
+});
+
+
 const schema = new mongoose.Schema({
   _id: {
     type: String,
@@ -51,6 +75,11 @@ const schema = new mongoose.Schema({
     type: Boolean,
     required: true
   },
+  location: {
+    type: LocationSchema,
+    required: false
+  },
+  updateLocationWithSensor: String,
   // if created from a permanentHost then make a note of the permanentHost id.
   initialisedFrom: {
     type: String
@@ -60,8 +89,8 @@ const schema = new mongoose.Schema({
     type: Date
   }
 }, {
-  timestamps: true // automatically adds createdAt and updatedAt fields
-});
+  timestamps: true, // automatically adds createdAt and updatedAt fields
+}); 
 
 
 //-------------------------------------------------
@@ -69,6 +98,7 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 schema.index({inDeployments: 1});
 schema.index({hostedByPath: 1});
+schema.index({updateLocationWithSensor: 1});
 
 
 //-------------------------------------------------
