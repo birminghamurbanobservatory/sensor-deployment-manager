@@ -118,7 +118,6 @@ describe('Context documents are created and updated correctly', () => {
     const parentPlatform = await platformController.createPlatform({
       name: 'building-1',
       ownerDeployment: createdDeployment.id,
-      inDeployments: [createdDeployment.id],
       static: true
     });
 
@@ -150,7 +149,6 @@ describe('Context documents are created and updated correctly', () => {
     const secondParentPlatform = await platformController.createPlatform({
       name: 'building-2',
       ownerDeployment: createdDeployment.id,
-      inDeployments: [createdDeployment.id],
       static: true
     });
     const platformUpdate2 = await platformController.rehostPlatform(updatedSensor.isHostedBy, secondParentPlatform.id);
