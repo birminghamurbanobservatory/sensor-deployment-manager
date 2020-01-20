@@ -96,8 +96,25 @@ export async function getPlatforms(where: {inDeployment?: string; ownerDeploymen
   }
 
   return (foundPlatforms.map(platformDbToApp));
+}
+
+
+export async function getPlatformsWithIds(ids: string[]): Promise<PlatformApp> {
+
+  let foundPlatforms;
+  try {
+    foundPlatforms = await Platform.find({
+      _id: {$in: ids}
+    }).exec();
+  } catch (err) {
+    throw new GetPlatformsFail(undefined, err.message);
+  }
+
+  return (foundPlatforms.map(platformDbToApp));
 
 }
+
+
 
 // I only want this function updating certain fields, i.e. not the isHostedBy property.
 const updatesSchema = joi.object({
