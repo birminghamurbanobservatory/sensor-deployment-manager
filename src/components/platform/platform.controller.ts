@@ -18,6 +18,7 @@ import {BadRequest} from '../../errors/BadRequest';
 import {Forbidden} from '../../errors/Forbidden';
 import {validateGeometry} from '../../utils/geojson-validator';
 import {v4 as uuid} from 'uuid';
+import {SensorNotFound} from '../sensor/errors/SensorNotFound';
 
 
 const newPlatformSchema = joi.object({
@@ -36,8 +37,7 @@ const newPlatformSchema = joi.object({
     })
     .required()
   }),
-  updateLocationWithSensor: joi.string()
-    .when('static', {is: true, then: joi.forbidden()}),
+  // N.B. it doesn't make sense to allow updateLocationWithSensor to be defined here, because we've only just created the platform and therefore there won't be any sensors on it yet that we can choose from.
   isHostedBy: joi.string(),
   ownerDeployment: joi.string().required()  
 })
@@ -140,11 +140,11 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
 }
 
 
-export async function getPlatform(id: string, options?: {includeCurrentLocation: boolean}): Promise<PlatformClient> {
+export async function getPlatform(id: string): Promise<PlatformClient> {
   
   const platform: PlatformApp = await platformService.getPlatform(id);
   const platformForClient = platformService.platformAppToClient(platform);
-  return platformService.platformAppToClient(platform);
+  return platformForClient;
 
 }
 
@@ -165,6 +165,9 @@ export async function getPlatforms(where: {inDeployment?: string}): Promise<Plat
 }
 
 
+//-------------------------------------------------
+// Update Platform
+//-------------------------------------------------
 const platformUpdatesSchema = joi.object({
   name: joi.string(),
   description: joi.string(),
@@ -195,6 +198,22 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
   // I don't want a static platform having a updateLocationWithSensor property
   if (platformBeforeUpdate.static === true && updates.updateLocationWithSensor && updates.static !== false) {
     throw new BadRequest('You cannot set a updateLocationWithSensor property for a static platform');
+  }
+
+  if (updates.updateLocationWithSensor) {
+    // Check the sensor exists
+    let sensor;
+    try {
+      sensor = await sensorService.getSensor(updates.updateLocationWithSensor);
+    } catch (err) {
+      throw new SensorNotFound(`The sensor '${updates.updateLocationWithSensor}' provided as the value for 'updateLocationWithSensor' does not exist.`);
+    }
+    // Now we need to check this sensor is actually hosted (directly or indirectly) on this platform. The easiest way to check this is to get its context. 
+    // TODO: What this doesn't allow you to do is have a platforms of a different 'branch' of platform tree use this sensor. I could get the top platform id, either from the context or the platform collection, and then find all descendent platforms and perform .includes(id) on this instead?  
+    const sensorContext = await contextService.getLiveContextForSensor(sensor.id);
+    if (!sensorContext.hostedByPath || !sensorContext.hostedByPath.includes(id)) {
+      throw new Forbidden(`The sensor '${sensor.id}' is not hosted (directly or indirectly) on the platform '${id}' and therefore cannot be used to update its location.`);
+    }
   }
 
   const updatedPlatform = await platformService.updatePlatform(id, updates);

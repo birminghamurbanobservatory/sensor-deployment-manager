@@ -10,6 +10,7 @@ import * as platformController from '../components/platform/platform.controller'
 import * as check from 'check-types';
 import {register} from '../components/registration/registration.controller';
 import Context from '../components/context/context.model';
+import {addContextToObservation} from '../components/context/context.controller';
 
 
 describe('Context documents are created and updated correctly', () => {
@@ -225,4 +226,107 @@ describe('Context documents are created and updated correctly', () => {
 
 
 
+  test('Create a sensor that is linked to a deployment from the start', async () => {
+
+    expect.assertions(11);
+
+    // Create a Deployment
+    const deploymentClient = {
+      name: 'Bobs thermometer Deployment',
+      users: [{id: 'bob', level: 'admin'}]
+    };
+
+    const deployment = await deploymentController.createDeployment(deploymentClient);
+
+    // Create a sensor
+    const sensorClient = {
+      name: 'Bobs Mercury Thermometer',
+      inDeployment: deployment.id,
+      defaults: {
+        observedProperty: {
+          value: 'temperature'
+        },
+        hasFeatureOfInterest: {
+          value: 'weather'
+        }
+      }
+    };
+
+    const sensor = await sensorController.createSensor(sensorClient);    
+
+    // Let's check the appropriate context has been created
+    const context1 = await contextService.getLiveContextForSensor(sensor.id);
+    const context1Id = context1.id;
+    expect(check.nonEmptyString(context1Id)).toBe(true);
+    const context1StartDate = context1.startDate;
+    expect(check.date(context1StartDate)).toBe(true);
+    expect(context1).toEqual({
+      id: context1Id,
+      sensor: sensor.id,
+      startDate: context1StartDate,
+      toAdd: Object.assign(sensor.defaults, {inDeployments: [deployment.id]})
+    });
+
+    // Let's create a platform in this deployment
+    const platformClient = {
+      name: 'Bobs back garden',
+      static: true,
+      ownerDeployment: deployment.id,
+      location: {
+        geometry: {
+          type: 'Point',
+          coordinates: [-1.929, 52]
+        }
+      }
+    };
+
+    const platform = await platformController.createPlatform(platformClient);
+    expect(platform).toHaveProperty('location');
+    expect(platform.location.geometry).toEqual(platformClient.location.geometry);
+    expect(typeof platform.location.id).toBe('string');
+    expect(typeof platform.location.validAt).toBe('string'); // isostring
+
+    // Let's add the sensor to this platform
+    await sensorController.hostSensorOnPlatform(sensor.id, platform.id);
+
+    // Check the context
+    const context2 = await contextService.getLiveContextForSensor(sensor.id);
+    const context2Id = context2.id;
+    expect(check.nonEmptyString(context2Id)).toBe(true);
+    const context2StartDate = context2.startDate;
+    expect(check.date(context2StartDate)).toBe(true);
+    expect(context2).toEqual({
+      id: context2Id,
+      sensor: sensor.id,
+      startDate: context2StartDate,
+      toAdd: Object.assign(sensor.defaults, {
+        inDeployments: [deployment.id],
+        hostedByPath: [platform.id]
+      })
+    });
+
+    // Now lets submit an observation to check that it gets the correction location applied
+    const observationWithoutContext = {
+      madeBySensor: sensor.id,
+      hasResult: {
+        value: 22.6
+      },
+      resultTime: new Date().toISOString()
+    };
+
+    const observationWithContext = await addContextToObservation(observationWithoutContext);
+    const expectedObservation = Object.assign({}, observationWithoutContext, {
+      inDeployments: [deployment.id],
+      hostedByPath: [platform.id],
+      observedProperty: sensor.defaults.observedProperty.value,
+      hasFeatureOfInterest: sensor.defaults.hasFeatureOfInterest.value,
+      location: platform.location
+    });
+    expect(observationWithContext).toEqual(expectedObservation);
+
+  });
+
+
 });
+
+

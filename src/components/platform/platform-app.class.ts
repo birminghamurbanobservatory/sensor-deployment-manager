@@ -10,6 +10,7 @@ export class PlatformApp {
   public initialisedFrom?: string;
   public static?: boolean;
   public location?: Location;
+  public updateLocationWithSensor?: string;
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;
@@ -18,11 +19,11 @@ export class PlatformApp {
 
 class Location {
   public id?: string;
-  public geometry: Geometry;
-  public validAt: Date;
+  public geometry?: Geometry;
+  public validAt?: Date;
 }
 
 class Geometry {
- public type: string;
- public coordinates: any;
+ public type?: string;
+ public coordinates?: any;
 }

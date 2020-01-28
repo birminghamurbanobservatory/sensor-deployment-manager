@@ -33,15 +33,20 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   });
 
   // Create a new platform in the deployment based on this permanentHost
-  const platform = await platformService.createPlatform({
+  const platformToCreate = {
     id: `${permanentHost.id}-${generateClientIdSuffix()}`,
     name: permanentHost.name,
     description: permanentHost.description,
     ownerDeployment: deploymentId,
     inDeployments: [deploymentId],
     static: permanentHost.static,
-    initialisedFrom: permanentHost.id
-  });
+    initialisedFrom: permanentHost.id,
+    updateLocationWithSensor: permanentHost.updateLocationWithSensor
+  };
+  if (permanentHost.updateLocationWithSensor) {
+    platformToCreate.updateLocationWithSensor = permanentHost.updateLocationWithSensor;
+  }
+  const platform = await platformService.createPlatform(platformToCreate);
   logger.debug(`A new platform has been created using the permanentHost ${permanentHost.id} as a basis.`, platform);
 
   // Update all these sensors so that they're now in this deployment and on this new platform.

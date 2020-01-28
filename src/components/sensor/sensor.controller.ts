@@ -87,7 +87,7 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
   // Have any defaults been set for the sensor that should be used in the context.
   if (sensor.defaults) {
-    context.toAdd = sensor.defaults;
+    context.toAdd = Object.assign({}, context.toAdd, sensor.defaults);
   }
 
   // Check the permanent host exists if provided
@@ -164,9 +164,15 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
     throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. Please remove it from this platform before changing the permanent host`);
   }
 
+  let permanentHost;
   if (updates.permanentHost) {
     // Check this permanent host exists
-    await permanentHostService.getPermanentHost(updates.permanentHost);
+    permanentHost = await permanentHostService.getPermanentHost(updates.permanentHost);
+  }
+
+  // If it's being removed from a permanent host, and the permanent host was using this sensor to update its location, then we'll need to update the permanent host too.
+  if (check.null(updates.permamentHost) && permanentHost && permanentHost.updateLocationWithSensor === id) {
+    await permanentHostService.updatePermanentHost(permanentHost.id, {updateLocationWithSensor: null});
   }
 
   const updatedSensor = await sensorService.updateSensor(id, updates);
@@ -249,7 +255,6 @@ export async function hostSensorOnPlatform(sensorId: string, platformId: string)
 
 export async function unhostSensorFromPlatform(sensorId: string): Promise<SensorClient> {
   
-
   // First let's get the sensor
   const sensor: SensorApp = await sensorService.getSensor(sensorId);
 
@@ -266,8 +271,13 @@ export async function unhostSensorFromPlatform(sensorId: string): Promise<Sensor
   // Now to update its context
   await contextService.removeSensorsHostedByPath(sensorId);
 
+  // TODO: If the sensor is defined as any platform's updateLocationWithSensor property, then we'll need to unset this property for these platforms. e.g. have platformService.removeAllUpdateLocationWithSensorReferences(sensorId).
+
   return sensorService.sensorAppToClient(updatedSensor);  
 
 }
 
 
+// TODO: Allow a sensor to be deleted. 
+// - Is it a hard delete? Probably not or else you risk allowing the id to be used again which would match a load of stored observations.
+// If you delete an observation you'll probably want to update any platforms or permanentHosts that have this sensor set as their 'updateLocationWithSensor' property.

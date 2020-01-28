@@ -48,7 +48,7 @@ const schema = new mongoose.Schema({
     }
   },
   name: {
-    type: String, 
+    type: String,
     required: true,
     maxlength: [40, 'Platform name is too long']
   },

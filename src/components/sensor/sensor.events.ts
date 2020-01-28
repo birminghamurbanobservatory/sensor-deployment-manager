@@ -171,16 +171,16 @@ async function subscribeToSensorUpdateRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let createdSensor: SensorClient;
+    let updatedSensor: SensorClient;
     try {
       const {error: err} = sensorUpdateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
-      createdSensor = await updateSensor(message.where.id, message.updates);
+      updatedSensor = await updateSensor(message.where.id, message.updates);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return createdSensor;
+    return updatedSensor;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

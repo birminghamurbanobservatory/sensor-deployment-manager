@@ -9,6 +9,7 @@ export class PlatformClient {
   public hostedByPath?: string[];
   public static?: boolean;
   public location?: Location;
+  public updateLocationWithSensor?: string;
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;
@@ -17,11 +18,11 @@ export class PlatformClient {
 
 class Location {
   public id?: string;
-  public geometry: Geometry;
-  public validAt: string;
+  public geometry?: Geometry;
+  public validAt?: string;
 }
 
 class Geometry {
- public type: string;
- public coordinates: any;
+ public type?: string;
+ public coordinates?: any;
 }

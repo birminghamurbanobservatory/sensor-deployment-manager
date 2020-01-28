@@ -8,6 +8,8 @@ import {PermanentHostClient} from './permanent-host-client.class';
 import {GetPermanentHostFail} from './errors/GetPermanentHostFail';
 import {PermanentHostNotFound} from './errors/PermanentHostNotFound';
 import {GetPermanentHostByRegistrationKeyFail} from './errors/GetPermanentHostByRegistrationKeyFail';
+import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
+import {UpdatePermanentHostFail} from './errors/UpdatePermanentHostFail';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -66,6 +68,33 @@ export async function getPermanentHostByRegistrationKey(registrationKey: string)
   }
 
   return permanentHostDbToApp(permanentHost);
+
+}
+
+
+export async function updatePermanentHost(id: string, updates: {name?: string; description?: string; static?: boolean; updateLocationWithSensor?: string}): Promise<PermanentHostApp> {
+
+  const modifiedUpdates = replaceNullUpdatesWithUnset(updates);
+
+  let updatedPermanentHost;
+  try {
+    updatedPermanentHost = await PermanentHost.findByIdAndUpdate(
+      id,
+      modifiedUpdates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new UpdatePermanentHostFail(undefined, err.message);
+  }
+
+  if (!updatedPermanentHost) {
+    throw new PermanentHostNotFound(`A permanent host with id '${id}' could not be found`);
+  }
+
+  return permanentHostDbToApp(updatedPermanentHost);  
 
 }
 

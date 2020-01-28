@@ -38,6 +38,7 @@ const schema = new mongoose.Schema({
     type: Boolean,
     default: false // as I imagine most are able to be moved around.
   },
+  updateLocationWithSensor: String, // so platforms can inherit this when generated
   registrationKey: {
     type: String,
     required: true,

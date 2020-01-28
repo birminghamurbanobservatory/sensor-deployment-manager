@@ -106,7 +106,7 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
 }
 
 
-
+// A soft delete
 export async function deleteDeployment(id: string): Promise<void> {
 
   // Delete the deployment

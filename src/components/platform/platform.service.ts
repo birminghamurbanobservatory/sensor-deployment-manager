@@ -28,6 +28,8 @@ import {SharePlatformWithDeploymentFail} from './errors/SharePlatformWithDeploym
 import {UnsharePlatformWithDeploymentFail} from './errors/UnsharePlatformWithDeploymentFail';
 import {CannotUnshareFromOwnerDeployment} from './errors/CannotUnshareFromOwnerDeployment';
 import {PlatformNotSharedWithDeployment} from './errors/PlatformNotSharedWithDeployment';
+import {UpdatePlatformsWithLocationObservationFail} from './errors/UpdatePlatformsWithLocationObservationFail';
+import {ObservationApp} from '../observation/observation-app.class';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -573,6 +575,62 @@ export async function cutDescendantsOfPlatform(id: string): Promise<void> {
   });
 
 }
+
+
+export async function updatePlatformsWithLocationObservation(observation: ObservationApp): Promise<void> {
+
+  // It's important that the observation's deployments form part of the query otherwise a platform's location could end up being updated by a sensor which was/is in a deployment that the users of the platform's deployment don't have access to.
+  if (check.not.nonEmptyArray(observation.inDeployments)) {
+    throw new Error('The observation must have an inDeployments array in order to update platform locations');
+  }
+
+  if (check.not.nonEmptyString(observation.madeBySensor)) {
+    throw new Error('The observation must have a madeBySensor property in order to update platform locations');
+  }
+
+  if (check.not.nonEmptyObject(observation.location)) {
+    throw new Error('Location object must be a non-empty object');
+  }
+
+  if (check.not.date(observation.location.validAt)) {
+    throw new Error(`Observation location must have a valid 'validAt' date`);
+  }
+
+  if (observation.location.validAt.getTime() > ((new Date()).getTime() + 5000)) {
+    throw new Error('Observation location has a validAt time in the future');
+  }
+
+  if (check.not.nonEmptyObject(observation.location.geometry)) {
+    throw new Error(`Observation location must have a 'geometry' object`);
+  }
+
+  if (check.not.nonEmptyString(observation.location.id)) {
+    throw new Error(`Observation location must have a valid 'id'.`);
+  }
+
+
+  let results;
+  try {
+    results = await Platform.updateMany({
+      updateLocationWithSensor: observation.madeBySensor,
+      inDeployments: {$in: observation.inDeployments},
+      $or: [
+        {location: {$exists: false}},
+        {'location.validAt': {$lt: observation.location.validAt}},
+      ]
+    }, {
+      location: observation.location
+    }); 
+  } catch (err) {
+    throw new UpdatePlatformsWithLocationObservationFail(undefined, err.message);
+  }
+  
+  logger.debug(`Modified ${results.nModified} platforms in response to a location observation.`);
+  
+  return;
+
+}
+
 
 
 function platformAppToDb(platformApp: PlatformApp): object {

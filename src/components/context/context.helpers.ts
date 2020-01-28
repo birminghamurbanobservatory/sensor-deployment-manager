@@ -1,10 +1,10 @@
-import {Observation} from './observation.class';
+import {ObservationApp} from '../observation/observation-app.class';
 import {ToAdd} from './context-app.class';
 import {cloneDeep, isMatch} from 'lodash';
 import * as check from 'check-types';
 
 
-export function giveObsContext(observation: Observation, toAdd: ToAdd): Observation {
+export function giveObsContext(observation: ObservationApp, toAdd: ToAdd): ObservationApp {
 
   const merged = cloneDeep(observation);
 

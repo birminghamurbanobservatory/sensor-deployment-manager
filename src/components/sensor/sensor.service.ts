@@ -60,6 +60,8 @@ export async function getSensor(id): Promise<SensorApp> {
 
 }
 
+// TODO: If you start soft deleting sensors then you'll want to actively exclude sensors that have been soft deleted from many of these queries.
+
 
 export async function getSensors(where: {isHostedBy?: string; permanentHost?: string; inDeployment?: string}): Promise<SensorApp[]> {
 
