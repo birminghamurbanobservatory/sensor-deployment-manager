@@ -202,16 +202,22 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
 
   if (updates.updateLocationWithSensor) {
     // Check the sensor exists
+    // TODO: might want to check it's a sensor that can actually measure location too
     let sensor;
     try {
       sensor = await sensorService.getSensor(updates.updateLocationWithSensor);
     } catch (err) {
-      throw new SensorNotFound(`The sensor '${updates.updateLocationWithSensor}' provided as the value for 'updateLocationWithSensor' does not exist.`);
+      if (err.name === 'SensorNotFound') {
+        throw new SensorNotFound(`The sensor '${updates.updateLocationWithSensor}' provided as the value for 'updateLocationWithSensor' does not exist.`);
+      } else {
+        throw err;
+      }
     }
-    // Now we need to check this sensor is actually hosted (directly or indirectly) on this platform. The easiest way to check this is to get its context. 
-    // TODO: What this doesn't allow you to do is have a platforms of a different 'branch' of platform tree use this sensor. I could get the top platform id, either from the context or the platform collection, and then find all descendent platforms and perform .includes(id) on this instead?  
-    const sensorContext = await contextService.getLiveContextForSensor(sensor.id);
-    if (!sensorContext.hostedByPath || !sensorContext.hostedByPath.includes(id)) {
+
+    // Now we need to check if this sensor is actually hosted (directly or indirectly) on this platform.
+    const relativePlatforms = await platformService.getRelativesOfPlatform(id);
+    const relativePlatformIds = relativePlatforms.map((relativePlatform) => relativePlatform.id);
+    if (sensor.isHostedBy !== id && !relativePlatformIds.includes(sensor.isHostedBy)) {
       throw new Forbidden(`The sensor '${sensor.id}' is not hosted (directly or indirectly) on the platform '${id}' and therefore cannot be used to update its location.`);
     }
   }
@@ -223,10 +229,27 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
 }
 
 
-export async function unhostPlatform(id): Promise<PlatformApp> {
+export async function unhostPlatform(id: string): Promise<PlatformApp> {
 
-  const {platform: updatedPlatform, oldAncestors} = await platformService.unhostPlatform(id);
-  await contextService.processPlatformHostChange(id, oldAncestors, []);
+  const {platform: updatedPlatform, oldAncestors: oldAncestorsIds} = await platformService.unhostPlatform(id);
+  await contextService.processPlatformHostChange(id, oldAncestorsIds, []);
+
+  // Get the descendents of this platform (if there are any)
+  const descendents = await platformService.getDescendantsOfPlatform(id);
+  const descendentIds = descendents.map((descendent) => descendent.id);
+
+  // Get a list of all the sensors on these platforms
+  const platfromIds = concat([id], descendentIds);
+  const sensors = await sensorService.getSensors({isHostedBy: {in: platfromIds}});
+
+  const oldAncestors = await platformService.getPlatformsWithIds(oldAncestorsIds);
+
+  // If any of the old ancestors have a updateLocationWithSensor property that equals any of these sensors then they'll need this property removing.
+  await Promise.map(oldAncestors, async (oldAncestor): Promise<void> => {
+    if (oldAncestor.updateLocationWithSensor && sensors.includes(oldAncestor.updateLocationWithSensor)) {
+      await platformService.updatePlatform(oldAncestors.id, {updateLocationWithSensor: null});
+    }
+  });  
 
   const platformForClient = platformService.platformAppToClient(updatedPlatform);
   return platformForClient;
@@ -234,7 +257,7 @@ export async function unhostPlatform(id): Promise<PlatformApp> {
 }
 
 
-export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
+export async function rehostPlatform(id: string, hostId: string): Promise<PlatformApp> {
 
   logger.debug(`About to rehost platform ${id} on ${hostId}`);
 
@@ -252,31 +275,78 @@ export async function rehostPlatform(id, hostId): Promise<PlatformApp> {
   }
 
   const {platform: updatedPlatform, oldAncestors, newAncestors} = await platformService.rehostPlatform(id, hostId);
+
   logger.debug(`About to process the contexts following a platform host change.`, {id, oldAncestors, newAncestors});
   await contextService.processPlatformHostChange(id, oldAncestors, newAncestors);
   logger.debug('Rehosted platform', updatedPlatform);
 
-  // Update the locations of any descendents - take the last known location of the new host (if available), and apply this to the rehosted platform and any child platforms it may have (as long as they are mobile, or have no location).
-  if (hostPlatform.location) {
-    const descendentPlatforms = await platformService.getdescendantsOfPlatform(id);
-    await Promise.map(descendentPlatforms, async (descendentPlatform): Promise<void> => {
+  // - If hosted platform is static
+  //     -> Do nothing, as static platforms can't have updateLocationWithSensor, and location should be defined. 
+  // - If hosted platform is mobile:
+  //     - If hosted platform has updateLocationWithSensor:
+  //         - and the host platform is static 
+  //             -> then do nothing.
+  //         - and the host platform is mobile and does not have updateLocationWithSensor set:
+  //             - Find any new relatives WITHOUT a updateLocationWithSensor property
+  //                 -> and assign them the hosted platform's updateLocationWithSensor
+  //     - If hosted platform does NOT have a updateLocationWithSensor property:
+  //         --> Also get this hosted platform's children that don't have updateLocationWithSensor set
+  //             --> set the location of these children and the hosted platform to that of the new host
+  //             --> set the updateLocationWithSensor property as that of the new host (if available)
 
-      if (descendentPlatform.static === false || !descendentPlatform.location) {
-        const updates: any = {
-          location: hostPlatform.location
-        };
-        // Guess it makes sense to inherit updateLocationWithSensor too.
-        if (hostPlatform.updateLocationWithSensor) {
-          updates.updateLocationWithSensor = hostPlatform.updateLocationWithSensor;
-        }
-        await platformService.updatePlatform(descendentPlatform.id, updates);
+  if (platform.static === false) {
+
+    if (platform.updateLocationWithSensor) {
+
+      if (hostPlatform.static === false && !hostPlatform.updateLocationWithSensor) {
+
+        const newRelativesUnfiltered = await platformService.getRelativesOfPlatform(id);
+        // We don't want the hosted platform, or any of it's children in this array
+        const newRelativesFiltered = newRelativesUnfiltered.filter((relative) => {
+          if (relative.id === id) return false;
+          if (relative.hostedByPath && relative.hostedByPath.includes(id)) return false;
+          if (relative.updateLocationWithSensor) return false;
+          return true;
+        });
+        await Promise.map(newRelativesFiltered, async (relative): Promise<void> => {
+          await platformService.updatePlatform(relative.id, {
+            updateLocationWithSensor: platform.updateLocationWithSensor
+          });
+        });
+
       }
-      return;
 
-    });
+    }
+
+    if (!platform.updateLocationWithSensor) {
+
+      const updatesForHosted: any = {};
+      if (hostPlatform.location) {
+        updatesForHosted.location = hostPlatform.location;
+      }
+      if (hostPlatform.updateLocationWithSensor) {
+        updatesForHosted.updateLocationWithSensor = hostPlatform.updateLocationWithSensor;
+      }
+
+      if (Object.keys(updatesForHosted).length > 0) {
+
+        const childrenOfPlatform = await platformService.getDescendantsOfPlatform(id);
+        const childrenWithoutUpdateLocationWithSensor = childrenOfPlatform.filter((child) => {
+          return !(child.updateLocationWithSensor);
+        });
+        const platformsThatShouldInherit = concat(platform, childrenWithoutUpdateLocationWithSensor);
+
+        await Promise.map(platformsThatShouldInherit, async (platformToUpdate): Promise<void> => {
+          await platformService.updatePlatform(platformToUpdate.id, updatesForHosted);
+        });
+
+      }
+
+    }
+
   }
 
-  logger.debug(`Platform ${id} has been successfully rehosted on ${hostId}, and the corresponding contexts and locations have been updated too.`);
+  logger.debug(`Platform ${id} has been successfully rehosted on ${hostId}.`);
 
   const platformForClient = platformService.platformAppToClient(updatedPlatform);
   return platformForClient;

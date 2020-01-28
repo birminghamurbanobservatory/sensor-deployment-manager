@@ -30,6 +30,8 @@ import {CannotUnshareFromOwnerDeployment} from './errors/CannotUnshareFromOwnerD
 import {PlatformNotSharedWithDeployment} from './errors/PlatformNotSharedWithDeployment';
 import {UpdatePlatformsWithLocationObservationFail} from './errors/UpdatePlatformsWithLocationObservationFail';
 import {ObservationApp} from '../observation/observation-app.class';
+import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
+import {RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail} from './errors/RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -106,7 +108,8 @@ export async function getPlatformsWithIds(ids: string[]): Promise<PlatformApp> {
   let foundPlatforms;
   try {
     foundPlatforms = await Platform.find({
-      _id: {$in: ids}
+      _id: {$in: ids},
+      deletedAt: {$exists: false}
     }).exec();
   } catch (err) {
     throw new GetPlatformsFail(undefined, err.message);
@@ -122,18 +125,22 @@ export async function getPlatformsWithIds(ids: string[]): Promise<PlatformApp> {
 const updatesSchema = joi.object({
   name: joi.string(),
   description: joi.string(),
-  static: joi.boolean()  
+  static: joi.boolean(),
+  location: joi.any(),
+  updateLocationWithSensor: joi.string().allow(null)
 });
 
-export async function updatePlatform(id, updates: {name: string; description: string; static: boolean; location: any; updateLocationWithSensor: string}): Promise<PlatformApp> {
+export async function updatePlatform(id, updates: {name?: string; description?: string; static?: boolean; location?: any; updateLocationWithSensor?: string}): Promise<PlatformApp> {
 
   joi.attempt(updates, updatesSchema); // throws error if invalid
+
+  const updatesModified = replaceNullUpdatesWithUnset(updates);
 
   let updatedPlatform;
   try {
     updatedPlatform = await Platform.findByIdAndUpdate(
       id,
-      updates,
+      updatesModified,
       {
         new: true,
         runValidators: true
@@ -154,7 +161,7 @@ export async function updatePlatform(id, updates: {name: string; description: st
 
 // Not only does this update this platform, but if this platform has any descendents then their hostedByPath will be updated too.
 // Also works if the platform isn't yet hosted.
-export async function rehostPlatform(id: string, hostId?: string | null): Promise<{platform: PlatformApp; oldAncestors: string[]; newAnestors: string[]}> {
+export async function rehostPlatform(id: string, hostId?: string): Promise<{platform: PlatformApp; oldAncestors: string[]; newAnestors: string[]}> {
 
   // First get the platform so we can see what ancestors it has
   const existingPlatform = await getPlatform(id);
@@ -211,14 +218,6 @@ export async function rehostPlatform(id: string, hostId?: string | null): Promis
     isHostedBy: hostId,
     hostedByPath: newAncestors      
   };
-  // Inherit the location (under certain circumstances)
-  if (hostPlatform.location && (existingPlatform.static === false || !existingPlatform.location)) {
-    updates.location = cloneDeep(hostPlatform.location);
-    // Guess it makes sense to inherit updateLocationWithSensor too.
-    if (hostPlatform.updateLocationWithSensor) {
-      updates.updateLocationWithSensor = hostPlatform.updateLocationWithSensor;
-    }
-  }
 
   let updatedPlatform;
   try {
@@ -519,7 +518,7 @@ export async function deleteDeploymentPlatforms(deploymentId: string): Promise<v
 
 
 
-export async function getdescendantsOfPlatform(id): Promise<PlatformApp[]> {
+export async function getDescendantsOfPlatform(id: string): Promise<PlatformApp[]> {
 
   const findWhere: any = {
     hostedByPath: id,
@@ -538,10 +537,33 @@ export async function getdescendantsOfPlatform(id): Promise<PlatformApp[]> {
 }
 
 
+// Get all relatives, anywhere on this platform's "tree". E.g. could be on a different "branch" and therefore wouldn't appear in the platform's hostedByPath, or could be a descendent of this platform.
+export async function getRelativesOfPlatform(id: string): Promise<PlatformApp[]> {
+
+  // Crucially you first have to find the highest ancestor and then search for any platforms with this platform it their hostedByPath.
+  const platform = await getPlatform(id);
+
+  let highestAncestorId;
+  if (!platform.isHostedBy) {
+    // If the platform has no ancestors then the highest must be this platform itself.
+    highestAncestorId = id;
+  } else {
+    highestAncestorId = platform.hostedByPath[0];
+  }
+
+  const relativesUnfiltered = await getDescendantsOfPlatform(highestAncestorId);
+
+  // Remove the platform itself from the array
+  const relativesFiltered = relativesUnfiltered.filter((relative) => relative.id !== id);
+  return relativesFiltered; 
+
+}
+
+
 
 export async function cutDescendantsOfPlatform(id: string): Promise<void> {
 
-  const descendants = await getdescendantsOfPlatform(id);
+  const descendants = await getDescendantsOfPlatform(id);
 
   await Promise.each(descendants, async (descendant) => {
 
@@ -627,6 +649,29 @@ export async function updatePlatformsWithLocationObservation(observation: Observ
   
   logger.debug(`Modified ${results.nModified} platforms in response to a location observation.`);
   
+  return;
+
+}
+
+
+export async function removeSensorFromAnyMatchingUpdateLocationWithSensor(sensorId: string): Promise<void> {
+
+  let results;
+  try {
+    results = await Platform.updateMany(
+      {
+        updateLocationWithSensor: sensorId
+      },
+      {
+        $unset: {updateLocationWithSensor: ''}
+      },
+    ).exec();
+  } catch (err) {
+    throw new RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail(undefined, err.message);
+  }
+
+  logger.debug(`Removed the sensor '${sensorId}' from the updateLocationWithSensor property of ${results.nModified} platforms`);
+
   return;
 
 }

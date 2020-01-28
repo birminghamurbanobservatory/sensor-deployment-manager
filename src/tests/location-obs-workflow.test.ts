@@ -43,7 +43,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
   test('Location obs correctly keep platform locations up to date', async () => {
 
-    expect.assertions(21);
+    expect.assertions(22);
 
     // Create a deployment
     const deploymentClient = {
@@ -72,14 +72,18 @@ describe('Location observations are correctly processed by the addContextToObser
       id: 'van-123',
       name: 'Mobile van 123',
       static: false,
-      ownerDeployment: primaryDeployment.id,
-      updateLocationWithSensor: sensor.id
+      ownerDeployment: primaryDeployment.id
     };
 
     const platform = await platformController.createPlatform(platformClient);
 
     // Host the sensor on the platform
     await sensorController.hostSensorOnPlatform(sensor.id, platform.id);
+
+    // Update the platform so that it updates its location with this sensor
+    const updatedPlatform = await platformController.updatePlatform(platform.id, {updateLocationWithSensor: sensor.id});
+
+    expect(updatedPlatform.updateLocationWithSensor).toBe(sensor.id);
 
     // Ask to add context to a new observation from the sensor.
     const observation1Client = {

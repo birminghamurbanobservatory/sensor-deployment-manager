@@ -10,6 +10,7 @@ export function whereToMongoFind(where: any): any {
 
   const mappings = {
     exists: '$exists',
+    in: '$in',
     gte: '$gte',
     gt: '$gt',
     lte: '$lte',

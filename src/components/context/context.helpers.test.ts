@@ -10,7 +10,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 22.2
       },
-      resultTime: '2019-12-04T13:00:19.665Z' 
+      resultTime: new Date('2019-12-04T13:00:19.665Z') 
     };
 
     const toAdd = { 
@@ -32,7 +32,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 22.2
       },
-      resultTime: '2019-12-04T13:00:19.665Z',
+      resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'air-temperature',
       hasFeatureOfInterest: 'weather',   
       inDeployments: ['deployment-1'],
@@ -53,7 +53,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 820
       },
-      resultTime: '2019-12-04T13:00:19.665Z',
+      resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'solar-radiation' 
     };
 
@@ -81,7 +81,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 820
       },
-      resultTime: '2019-12-04T13:00:19.665Z',
+      resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'solar-radiation',
       hasFeatureOfInterest: 'weather',   
       inDeployments: ['deployment-1'],
@@ -103,7 +103,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 820
       },
-      resultTime: '2019-12-04T13:00:19.665Z'
+      resultTime: new Date('2019-12-04T13:00:19.665Z')
     };
 
     const toAdd = { 
@@ -135,7 +135,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 820
       },
-      resultTime: '2019-12-04T13:00:19.665Z',
+      resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'voltage',
       hasFeatureOfInterest: 'energy',   
       inDeployments: ['deployment-1'],
@@ -155,7 +155,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 820
       },
-      resultTime: '2019-12-04T13:00:19.665Z',
+      resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'solar-radiation' // in this case the observed property is provided
     };
 
@@ -188,7 +188,7 @@ describe('mergeObsWithContext function tests', () => {
       hasResult: {
         value: 820
       },
-      resultTime: '2019-12-04T13:00:19.665Z',
+      resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'solar-radiation',
       hasFeatureOfInterest: 'weather',   
       inDeployments: ['deployment-1'],
