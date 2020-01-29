@@ -43,5 +43,17 @@ describe('Conversion of where object to MongoDB/Mongoose find object', () => {
   });
 
 
+  test(`Can handle a 'in' property`, () => {
+    const where = {
+      updateLocationWithSensor: {
+        in: ['sensor-1', 'sensor-2']
+      }
+    };
+    const expected = {
+      updateLocationWithSensor: {$in: ['sensor-1', 'sensor-2']}
+    };
+    expect(whereToMongoFind(where)).toEqual(expected);
+  });
+
 
 });

@@ -32,6 +32,7 @@ import {UpdatePlatformsWithLocationObservationFail} from './errors/UpdatePlatfor
 import {ObservationApp} from '../observation/observation-app.class';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail} from './errors/RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail';
+import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -76,21 +77,10 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 }
 
 
-export async function getPlatforms(where: {inDeployment?: string; ownerDeployment?: string; isHostedBy?: string}): Promise<PlatformApp[]> {
+export async function getPlatforms(where: {inDeployment?: any; ownerDeployment?: string; isHostedBy?: any; updateLocationWithSensor?: any}): Promise<PlatformApp[]> {
 
-  const findWhere: any = {
-    deletedAt: {$exists: false}
-  };
-  if (check.assigned(where.inDeployment)) {
-    findWhere.inDeployments = where.inDeployment; 
-  }
-  if (check.assigned(where.ownerDeployment)) {
-    findWhere.ownerDeployment = where.ownerDeployment;
-  }
-  if (check.assigned(where.isHostedBy)) {
-    findWhere.isHostedBy = where.isHostedBy;
-  }
-  // TODO what if we want to find all descendants of a platform, not just direct children, i.e. query hostedByPath. Use something like where.hasAncestor?
+  const findWhere = whereToMongoFind(where);
+  findWhere.deletedAt = {$exists: false};
 
   let foundPlatforms;
   try {
@@ -552,6 +542,10 @@ export async function getRelativesOfPlatform(id: string): Promise<PlatformApp[]>
   }
 
   const relativesUnfiltered = await getDescendantsOfPlatform(highestAncestorId);
+  if (highestAncestorId !== id) {
+    const highestAncestor = await getPlatform(highestAncestorId);
+    relativesUnfiltered.unshift(highestAncestor);
+  }
 
   // Remove the platform itself from the array
   const relativesFiltered = relativesUnfiltered.filter((relative) => relative.id !== id);
