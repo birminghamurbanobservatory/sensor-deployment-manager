@@ -4,7 +4,7 @@ import {Promise} from 'bluebird';
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
-import {createPermanentHost, getPermanentHost, getPermanentHosts} from './permanent-host.controller';
+import {createPermanentHost, getPermanentHost, getPermanentHosts, deletePermanentHost} from './permanent-host.controller';
 import {PermanentHostClient} from './permanent-host-client.class';
 
 
@@ -13,7 +13,8 @@ export async function subscribeToPermanentHostEvents(): Promise<void> {
   const subscriptionFunctions = [
     subscribeToPermanentHostCreateRequests,
     subscribeToPermanentHostGetRequests,
-    subscribeToPermanentHostsGetRequests
+    subscribeToPermanentHostsGetRequests,
+    subscribeToPermanentHostDeleteRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -141,3 +142,39 @@ async function subscribeToPermanentHostGetRequests(): Promise<any> {
   return;
 }
 
+
+
+//-------------------------------------------------
+// Delete Permanent Hoat
+//-------------------------------------------------
+async function subscribeToPermanentHostDeleteRequests(): Promise<any> {
+
+  const eventName = 'permanent-host.delete.request';
+
+  const permanentHostDeleteRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string()
+        .required()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    try {
+      const {error: err, value: validatedMsg} = permanentHostDeleteRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      await deletePermanentHost(validatedMsg.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}

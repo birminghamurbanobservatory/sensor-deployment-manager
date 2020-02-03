@@ -113,4 +113,12 @@ export async function updatePermanentHost(id: string, updates: {name?: string; d
 }
 
 
-// TODO: Allow a permanent host to be deleted.
+
+export async function deletePermanentHost(id: string): Promise<void> {
+
+  // Delete the platform
+  await permanentHostService.deletePermanentHost(id);
+  
+  return;
+
+}

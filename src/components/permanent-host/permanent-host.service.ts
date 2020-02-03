@@ -12,6 +12,7 @@ import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-u
 import {UpdatePermanentHostFail} from './errors/UpdatePermanentHostFail';
 import {GetPermanentHostsFail} from './errors/GetPermanentHostsFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
+import {DeletePermanentHostFail} from './errors/DeletePermanentHostFail';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -123,6 +124,38 @@ export async function updatePermanentHost(id: string, updates: {name?: string; d
 
 }
 
+
+
+// A soft delete
+export async function deletePermanentHost(id: string): Promise<void> {
+
+  const updates = {
+    deletedAt: new Date(),
+    $unset: {
+      updateLocationWithSensor: ''
+    }
+  };
+
+  let deletedPermanentHost;
+  try {
+    deletedPermanentHost = await PermanentHost.findByIdAndUpdate(
+      id,
+      updates,
+      {
+        new: true,
+      }
+    ).exec();
+  } catch (err) {
+    throw new DeletePermanentHostFail(`Failed to delete permanent host '${id}'.`, err.message);
+  }
+
+  if (!deletedPermanentHost) {
+    throw new PermanentHostNotFound(`A permanent host with id '${id}' could not be found`);
+  }
+
+  return;
+
+}
 
 
 function permanentHostAppToDb(permanentHostApp: PermanentHostApp): object {
