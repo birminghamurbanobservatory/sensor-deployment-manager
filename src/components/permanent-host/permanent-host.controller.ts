@@ -56,6 +56,16 @@ export async function getPermanentHost(id: string): Promise<PermanentHostClient>
 }
 
 
+export async function getPermanentHosts(where: any): Promise<PermanentHostClient[]> {
+
+  const permanentHosts = await permanentHostService.getPermanentHosts(where);
+  logger.debug(`${permanentHosts.length} permanent hosts found`);
+  const permanentHostsForClient = permanentHosts.map(permanentHostService.permanentHostAppToClient);
+  return permanentHostsForClient;
+
+}
+
+
 // Allow updates to permanent hosts, e.g. changing the name, description or updateLocationWithSensor (with this the listed sensor's permanentHost must match the permanentHost being updated).
 const updatePermanentHostSchema = joi.object({
   name: joi.string(),

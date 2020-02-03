@@ -10,6 +10,8 @@ import {PermanentHostNotFound} from './errors/PermanentHostNotFound';
 import {GetPermanentHostByRegistrationKeyFail} from './errors/GetPermanentHostByRegistrationKeyFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UpdatePermanentHostFail} from './errors/UpdatePermanentHostFail';
+import {GetPermanentHostsFail} from './errors/GetPermanentHostsFail';
+import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -30,6 +32,29 @@ export async function createPermanentHost(permanentHost: PermanentHostApp): Prom
   }
 
   return permanentHostDbToApp(createdPermanentHost);
+
+}
+
+
+// TODO: Might be worth adding a 'where' argument to filter the results
+export async function getPermanentHosts(where): Promise<PermanentHostApp[]> {
+
+  const findWhere = Object.assign(
+    {}, 
+    whereToMongoFind(where), 
+    {
+      deletedAt: {$exists: false}
+    }
+  );
+  
+  let permanentHosts;
+  try {
+    permanentHosts = await PermanentHost.find(findWhere).exec();
+  } catch (err) {
+    throw new GetPermanentHostsFail(undefined, err.message);
+  }
+
+  return permanentHosts.map(permanentHostDbToApp);
 
 }
 

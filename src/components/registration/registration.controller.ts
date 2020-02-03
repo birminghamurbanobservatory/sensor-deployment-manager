@@ -20,6 +20,10 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   // Get the permanent host with this registration key (errors if it can't be found)
   const permanentHost = await permanentHostService.getPermanentHostByRegistrationKey(registrationKey);
 
+  // TODO: Need to make sure that this registration key can't be used be anyone else once it has been used to create a platform in this deployment. Two choices:
+  // 1. Add a check here to make sure there's no platform (excluding deleting ones) that has a initialisedFrom property equal to this permanent host.
+  // 2. Once this registration key has been used generate a new one.
+
   // Get the deployment (errors if it can't be found)
   await deploymentService.getDeployment(deploymentId);
 
