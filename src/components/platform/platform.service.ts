@@ -82,7 +82,7 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 }
 
 
-export async function getPlatforms(where: {inDeployment?: any; ownerDeployment?: string; isHostedBy?: any; updateLocationWithSensor?: any}): Promise<PlatformApp[]> {
+export async function getPlatforms(where: {inDeployment?: any; ownerDeployment?: string; isHostedBy?: any; updateLocationWithSensor?: any; id?: object}): Promise<PlatformApp[]> {
 
   const findWhere = whereToMongoFind(where);
   findWhere.deletedAt = {$exists: false};

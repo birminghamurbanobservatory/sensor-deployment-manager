@@ -149,7 +149,7 @@ export async function getPlatform(id: string): Promise<PlatformClient> {
 }
 
 
-export async function getPlatforms(where: {inDeployment?: string}): Promise<PlatformClient[]> {
+export async function getPlatforms(where: {inDeployment?: string; id: object}): Promise<PlatformClient[]> {
 
   const platforms: PlatformApp[] = await platformService.getPlatforms(where);
   logger.debug('Platforms found', platforms);

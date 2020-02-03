@@ -3,7 +3,7 @@ import {InvalidDeployment} from './errors/InvalidDeployment';
 import {CreateDeploymentFail} from './errors/CreateDeploymentFail';
 import {DeploymentAlreadyExists} from './errors/DeploymentAlreadyExists';
 import Deployment from './deployment.model';
-import {cloneDeep, difference} from 'lodash';
+import {cloneDeep, difference, pick} from 'lodash';
 import {DeploymentApp} from './deployment-app.class';
 import {GetDeploymentsFail} from './errors/GetDeploymentsFail';
 import {GetDeploymentFail} from './errors/GetDeploymentFail';
@@ -11,6 +11,7 @@ import * as check from 'check-types';
 import {DeploymentNotFound} from './errors/DeploymentNotFound';
 import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
 import {DeleteDeploymentFail} from './errors/DeleteDeploymentFail';
+import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 
 
 export async function createDeployment(deployment: DeploymentApp): Promise<DeploymentApp> {
@@ -61,18 +62,21 @@ export async function getDeployment(id: string): Promise<DeploymentApp> {
 
 
 
-export async function getDeployments(where: {user?: string; public?: boolean}): Promise<DeploymentApp[]> {
+export async function getDeployments(where: {user?: string; public?: boolean; id: object}): Promise<DeploymentApp[]> {
 
-  // Exclude deleted deployments.
-  const findWhere: any = {
-    deletedAt: {$exists: false}
-  };
-  if (check.assigned(where.public)) {
-    findWhere.public = where.public;
-  }
+  const keysToPick = ['public', 'id'];
+  const wherePart = whereToMongoFind(pick(where, keysToPick));
+  
+  const userPart = {};
   if (check.assigned(where.user)) {
-    findWhere['users._id'] = where.user;
+    userPart['users._id'] = where.user;
   }
+
+  const findWhere = Object.assign(
+    wherePart,
+    userPart,
+    {deletedAt: {$exists: false}}
+  );
 
   let deployments;
   try {

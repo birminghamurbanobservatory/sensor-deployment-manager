@@ -57,11 +57,11 @@ export async function getDeployment(id: string): Promise<DeploymentClient> {
 }
 
 
-export async function getDeployments(where: {user?: string; public?: boolean}): Promise<DeploymentClient[]> {
+export async function getDeployments(where: {user?: string; public?: boolean; id: object}): Promise<DeploymentClient[]> {
 
   const deployments: DeploymentApp[] = await deploymentService.getDeployments(where);
   
-  logger.debug('Deployments found', deployments);
+  logger.debug(`${deployments.length} deployments found`);
   return deployments.map(deploymentService.deploymentAppToClient);
 
 }

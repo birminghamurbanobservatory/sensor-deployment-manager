@@ -124,10 +124,11 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
 
   const platformsGetRequestSchema = joi.object({
     where: joi.object({
-      inDeployment: joi.string()
-        .required()
+      inDeployment: joi.string(),
+      id: joi.object({
+        begins: joi.string()
+      })
     })
-    .min(1)
     .required()
   })
   .required();

@@ -56,4 +56,17 @@ describe('Conversion of where object to MongoDB/Mongoose find object', () => {
   });
 
 
+  test(`Can handle a 'begin' and converts id to _id property`, () => {
+    const where = {
+      id: {
+        begins: 'sens'
+      }
+    };
+    const expected = {
+      _id: {$regex: '^sens'}
+    };
+    expect(whereToMongoFind(where)).toEqual(expected);
+  });
+
+
 });

@@ -73,7 +73,7 @@ async function subscribeToPermanentHostCreateRequests(): Promise<any> {
 
 
 //-------------------------------------------------
-// Get Permanent Host
+// Get Permanent Hosts
 //-------------------------------------------------
 async function subscribeToPermanentHostsGetRequests(): Promise<any> {
   
@@ -81,9 +81,10 @@ async function subscribeToPermanentHostsGetRequests(): Promise<any> {
 
   const permanentHostGetRequestSchema = joi.object({
     where: joi.object({
-
+      id: joi.object({
+        begins: joi.string()
+      })
     })
-    .unknown()
   }).required();
 
   await event.subscribe(eventName, async (message): Promise<void> => {

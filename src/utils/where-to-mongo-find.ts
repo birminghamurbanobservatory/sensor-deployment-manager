@@ -6,7 +6,7 @@ export function whereToMongoFind(where: any): any {
     throw new Error('where argument must be an object');
   }
 
-  const find = {};
+  const find: any = {};
 
   const mappings = {
     exists: '$exists',
@@ -14,7 +14,8 @@ export function whereToMongoFind(where: any): any {
     gte: '$gte',
     gt: '$gt',
     lte: '$lte',
-    lt: '$lt'
+    lt: '$lt',
+    begins: '$regex'
   };
 
   Object.keys(where).forEach((propKey) => {
@@ -29,7 +30,11 @@ export function whereToMongoFind(where: any): any {
           if (check.not.assigned(find[propKey])) {
             find[propKey] = {};
           } 
-          find[propKey][findKey] = propObj[opKey];
+          if (opKey === 'begins') {
+            find[propKey][findKey] = `^${propObj[opKey]}`;
+          } else {
+            find[propKey][findKey] = propObj[opKey];
+          }
         } else {
           throw new Error(`Unknown key for where object called: '${opKey}'`);
         }
@@ -41,6 +46,12 @@ export function whereToMongoFind(where: any): any {
     }
 
   });
+
+  // Account for _id
+  if (find.id) {
+    find._id = find.id;
+    delete find.id;
+  }  
 
   return find;
 

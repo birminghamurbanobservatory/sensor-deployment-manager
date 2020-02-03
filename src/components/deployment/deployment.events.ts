@@ -119,7 +119,10 @@ async function subscribeToDeploymentsGetRequests(): Promise<any> {
   const deploymentsGetRequestSchema = joi.object({
     where: joi.object({
       user: joi.string(),
-      public: joi.boolean()
+      public: joi.boolean(),
+      id: joi.object({
+        begins: joi.string()
+      })
     })
   })
   .required();
