@@ -64,7 +64,12 @@ export async function getPermanentHost(id: string): Promise<PermanentHostApp> {
 
   let permanentHost;
   try {
-    permanentHost = await PermanentHost.findById(id).exec();
+    permanentHost = await PermanentHost.findOne(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },      
+    ).exec();
   } catch (err) {
     throw new GetPermanentHostFail(undefined, err.message);
   }
@@ -104,8 +109,11 @@ export async function updatePermanentHost(id: string, updates: {name?: string; d
 
   let updatedPermanentHost;
   try {
-    updatedPermanentHost = await PermanentHost.findByIdAndUpdate(
-      id,
+    updatedPermanentHost = await PermanentHost.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      }, 
       modifiedUpdates,
       {
         new: true,
@@ -138,8 +146,11 @@ export async function deletePermanentHost(id: string): Promise<void> {
 
   let deletedPermanentHost;
   try {
-    deletedPermanentHost = await PermanentHost.findByIdAndUpdate(
-      id,
+    deletedPermanentHost = await PermanentHost.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
       updates,
       {
         new: true,

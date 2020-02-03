@@ -63,7 +63,12 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 
   let foundPlatform;
   try {
-    foundPlatform = await Platform.findById(id).exec();
+    foundPlatform = await Platform.findOne(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      }
+    ).exec();
   } catch (err) {
     throw new GetPlatformFail(undefined, err.message);
   }
@@ -128,8 +133,11 @@ export async function updatePlatform(id, updates: {name?: string; description?: 
 
   let updatedPlatform;
   try {
-    updatedPlatform = await Platform.findByIdAndUpdate(
-      id,
+    updatedPlatform = await Platform.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
       updatesModified,
       {
         new: true,
@@ -459,8 +467,11 @@ export async function deletePlatform(id: string): Promise<void> {
 
   let deletedPlatform;
   try {
-    deletedPlatform = await Platform.findByIdAndUpdate(
-      id,
+    deletedPlatform = await Platform.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
       updates,
       {
         new: true,

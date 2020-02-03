@@ -3,7 +3,7 @@ import {InvalidDeployment} from './errors/InvalidDeployment';
 import {CreateDeploymentFail} from './errors/CreateDeploymentFail';
 import {DeploymentAlreadyExists} from './errors/DeploymentAlreadyExists';
 import Deployment from './deployment.model';
-import {cloneDeep} from 'lodash';
+import {cloneDeep, difference} from 'lodash';
 import {DeploymentApp} from './deployment-app.class';
 import {GetDeploymentsFail} from './errors/GetDeploymentsFail';
 import {GetDeploymentFail} from './errors/GetDeploymentFail';
@@ -11,7 +11,6 @@ import * as check from 'check-types';
 import {DeploymentNotFound} from './errors/DeploymentNotFound';
 import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
 import {DeleteDeploymentFail} from './errors/DeleteDeploymentFail';
-import {difference} from 'lodash';
 
 
 export async function createDeployment(deployment: DeploymentApp): Promise<DeploymentApp> {
@@ -41,7 +40,12 @@ export async function getDeployment(id: string): Promise<DeploymentApp> {
 
   let deployment;
   try {
-    deployment = await Deployment.findById(id).exec();
+    deployment = await Deployment.findOne(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      }       
+    ).exec();
   } catch (err) {
     throw new GetDeploymentFail(undefined, err.message);
   }
@@ -114,8 +118,11 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
 
   let updatedDeployment;
   try {
-    updatedDeployment = await Deployment.findByIdAndUpdate(
-      id,
+    updatedDeployment = await Deployment.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      }, 
       updates,
       {
         new: true,
@@ -146,8 +153,11 @@ export async function deleteDeployment(id: string): Promise<void> {
 
   let deletedDeployment;
   try {
-    deletedDeployment = await Deployment.findByIdAndUpdate(
-      id,
+    deletedDeployment = await Deployment.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      }, 
       updates,
       {
         new: true,

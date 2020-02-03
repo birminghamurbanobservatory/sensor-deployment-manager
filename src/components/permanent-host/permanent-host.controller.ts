@@ -14,7 +14,22 @@ import {InvalidPermanentHost} from './errors/InvalidPermanentHost';
 import {Forbidden} from '../../errors/Forbidden';
 
 
+const newPermanentHostSchema = joi.object({
+  id: joi.string(),
+  name: joi.string()
+    .required(),
+  description: joi.string(),
+  static: joi.boolean()
+  // N.B. updateLocationWithSensor is not allow here, as the client first has to create this permanent host in order to add locational sensors to it and then it can be updated to use one of these sensors for location.
+})
+.required();
+
 export async function createPermanentHost(permanentHost: PermanentHostClient): Promise<PermanentHostClient> {
+
+  const {error: err} = newPermanentHostSchema.validate(permanentHost);
+  if (err) {
+    throw new InvalidPermanentHost(err.message);
+  }
 
   const permanentHostToCreate: PermanentHostApp = permanentHostService.permanentHostClientToApp(permanentHost);
 

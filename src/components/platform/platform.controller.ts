@@ -412,7 +412,7 @@ export async function deletePlatform(id: string): Promise<void> {
 
     await sensorService.removeSensorFromPlatform(sensor.id);
 
-    // If the sensor is physically attached to this platform then we need to remove it from the deployment to
+    // If the sensor is physically attached to this platform then we need to remove it from the deployment too
     if (sensor.permanentHost) {
       await sensorService.removeSensorFromDeployment(sensor.id);
     }

@@ -279,7 +279,11 @@ export async function unhostSensorFromPlatform(sensorId: string): Promise<Sensor
 }
 
 
-// TODO: Allow a sensor to be deleted. 
-// - Is it a hard delete? Probably not or else you risk allowing the id to be used again which would match a load of stored observations.
-// If you delete an observation you'll probably want to update any platforms or permanentHosts that have this sensor set as their 'updateLocationWithSensor' property, e.g. using the function:
-// platformService.removeSensorFromAnyMatchingUpdateLocationWithSensor()
+export async function deleteSensor(id: string): Promise<void> {
+
+  await contextService.endLiveContextForSensor(id, new Date());
+  await sensorService.deleteSensor(id);
+  await platformService.removeSensorFromAnyMatchingUpdateLocationWithSensor(id);
+  return;
+
+}

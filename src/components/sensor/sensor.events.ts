@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createSensor, updateSensor, hostSensorOnPlatform, unhostSensorFromPlatform, getSensor, getSensors} from './sensor.controller';
+import {createSensor, updateSensor, hostSensorOnPlatform, unhostSensorFromPlatform, getSensor, getSensors, deleteSensor} from './sensor.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
@@ -15,7 +15,8 @@ export async function subscribeToSensorEvents(): Promise<void> {
     subscribeToPlatformSensorHostRequests,
     subscribeToPlatformSensorUnhostRequests,
     subscribeToSensorGetRequests,
-    subscribeToSensorsGetRequests
+    subscribeToSensorsGetRequests,
+    subscribeToSensorDeleteRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -252,6 +253,39 @@ async function subscribeToPlatformSensorUnhostRequests(): Promise<any> {
     }
 
     return updatedSensor;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;
+}
+
+
+//-------------------------------------------------
+// Delete Sensor
+//-------------------------------------------------
+async function subscribeToSensorDeleteRequests(): Promise<any> {
+  
+  const eventName = 'sensor.delete.request';
+  const sensorDeleteRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+    .required()
+  }).required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    try {
+      const {error: err} = sensorDeleteRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
+      await deleteSensor(message.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

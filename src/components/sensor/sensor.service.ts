@@ -16,6 +16,7 @@ import {UpdateSensorFail} from './errors/UpdateSensorFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UnhostExternalSensorsFromDisappearingDeploymentFail} from './errors/UnhostExternalSensorsFromDisappearingDeploymentFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
+import {DeleteSensorFail} from './errors/DeleteSensorFail';
 
 
 
@@ -47,7 +48,10 @@ export async function getSensor(id): Promise<SensorApp> {
 
   let sensor;
   try {
-    sensor = await Sensor.findById(id).exec();
+    sensor = await Sensor.findOne({
+      _id: id,
+      deletedAt: {$exists: false}
+    }).exec();
   } catch (err) {
     throw new GetSensorFail(undefined, err.message);
   }
@@ -60,14 +64,19 @@ export async function getSensor(id): Promise<SensorApp> {
 
 }
 
-// TODO: If you start soft deleting sensors then you'll want to actively exclude sensors that have been soft deleted from many of these queries.
 
 
 export async function getSensors(where: {isHostedBy?: any; permanentHost?: any; inDeployment?: any}): Promise<SensorApp[]> {
 
   // TODO: Might we worth having some validation on the where object here?
 
-  const findWhere = whereToMongoFind(where);
+  const findWhere = Object.assign(
+    {}, 
+    whereToMongoFind(where), 
+    {
+      deletedAt: {$exists: false}
+    }
+  );
 
   let sensors;
   try {
@@ -85,8 +94,11 @@ export async function removeSensorFromPlatform(id: string): Promise<void> {
 
   try {
     const updates = {$unset: {isHostedBy: ''}};
-    await Sensor.findByIdAndUpdate(
-      id,
+    await Sensor.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
       updates,
       {
         new: true,
@@ -106,8 +118,11 @@ export async function removeSensorFromDeployment(id: string): Promise<void> {
   try {
     // Because the platform belongs to the deployment we'll need to remove it from the platform too.
     const updates = {$unset: {isHostedBy: '', inDeployment: ''}};
-    await Sensor.findByIdAndUpdate(
-      id,
+    await Sensor.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
       updates,
       {
         new: true,
@@ -151,8 +166,11 @@ export async function updateSensor(id: string, updates: any): Promise<SensorApp>
 
   let updatedSensor;
   try {
-    updatedSensor = await Sensor.findByIdAndUpdate(
-      id,
+    updatedSensor = await Sensor.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
       modifiedUpdates,
       {
         new: true,
@@ -170,6 +188,44 @@ export async function updateSensor(id: string, updates: any): Promise<SensorApp>
   return sensorDbToApp(updatedSensor);
 
 }
+
+
+// A soft delete
+export async function deleteSensor(id: string): Promise<void> {
+
+  const updates = {
+    deletedAt: new Date(),
+    $unset: {
+      // Can always look at the context documents if you need to remember which deployment/platform this sensor was in/on.
+      inDeployment: '',
+      isHostedBy: '',
+    }
+  };
+
+  let deletedSensor;
+  try {
+    deletedSensor = await Sensor.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
+      updates,
+      {
+        new: true,
+      }
+    ).exec();
+  } catch (err) {
+    throw new DeleteSensorFail(`Failed to delete sensor '${id}'.`, err.message);
+  }
+
+  if (!deletedSensor) {
+    throw new SensorNotFound(`A sensor with id '${id}' could not be found`);
+  }
+
+  return;
+
+}
+
 
 
 // Handy when a deployment is made private or deleted.
