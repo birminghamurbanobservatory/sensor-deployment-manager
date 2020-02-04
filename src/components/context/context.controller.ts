@@ -47,7 +47,7 @@ export async function addContextToObservation(observation: ObservationClient): P
 
   let updatedObs;
   if (context) {
-    updatedObs = giveObsContext(obsWithoutContext, context.toAdd);
+    updatedObs = giveObsContext(obsWithoutContext, context);
   } else {
     updatedObs = cloneDeep(obsWithoutContext);
   }

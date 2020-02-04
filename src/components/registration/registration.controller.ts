@@ -71,14 +71,10 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
     const newContext: ContextApp = {
       sensor: sensor.id,
       startDate: transitionDate,
-      toAdd: {
-        inDeployments: [sensor.inDeployment], 
-        hostedByPath: [sensor.isHostedBy]
-      }
+      inDeployments: [sensor.inDeployment], 
+      hostedByPath: [sensor.isHostedBy],
+      defaults: sensor.defaults || []
     };
-    if (sensor.defaults) {
-      newContext.toAdd = Object.assign({}, newContext.toAdd, sensor.defaults);
-    }
     return await contextService.createContext(newContext);
   });
   logger.debug('New live contexts have been created', newLiveContexts);

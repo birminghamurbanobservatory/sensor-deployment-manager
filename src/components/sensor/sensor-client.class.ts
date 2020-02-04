@@ -5,18 +5,20 @@ export class SensorClient {
   public inDeployment?: string;
   public isHostedBy?: string;
   public permanentHost?: string;
-  public defaults?: Defaults;
+  public defaults?: Default[];
   public createdAt?: string;
   public deletedAt?: string;
 }
 
-class Defaults {
-  observedProperty?: {value: string};
-  hasFeatureOfInterest?: {value: string; ifs?: IF[]};
-  usedProcedures?: {value: string[]};  
+export class Default {
+  id?: string;
+  observedProperty?: string;
+  hasFeatureOfInterest?: string;
+  usedProcedures?: string[];
+  when?: When;
 }
 
-class IF {
-  if: any;
-  value: any;
+export class When {
+  observedProperty?: string;
+  hasFeatureOfInterest?: string;
 }

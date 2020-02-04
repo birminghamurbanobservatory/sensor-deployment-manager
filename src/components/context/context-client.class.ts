@@ -1,23 +1,27 @@
+// TODO: Do I even need this? Will there ever be a request for the actual context document or is it more a case of other microservices sending their observations to this microservice and expecting to receive the observation back, but now with extra context properties added.
 export class ContextClient {
   public id?: string;
   public sensor?: string;
   public startDate?: Date;
   public endDate?: Date;
-  public toAdd?: ToAdd;
-}
-
-// TODO: Do I even need this? Will there ever be a request for the actual context document or is it more a case of other microservices sending their observations to this microservice and expecting to receive the observation back, but now with extra context properties added.
-
-class ToAdd {
-  inDeployments?: string[];
-  hostedByPath?: string[];
-  observedProperty?: {value: string};
-  hasFeatureOfInterest?: {value: string; ifs?: IF[]};
-  usedProcedures?: {value: string[]};
+  public inDeployments?: string[];
+  public hostedByPath?: string[];
+  public defaults: Default[];
 }
 
 
-class IF {
-  if: any;
-  value: any;
+export class Default {
+  id?: string;
+  observedProperty?: string;
+  hasFeatureOfInterest?: string;
+  usedProcedures?: string[];
+  when?: When;
 }
+
+export class When {
+  observedProperty?: string;
+  hasFeatureOfInterest?: string;
+}
+
+
+

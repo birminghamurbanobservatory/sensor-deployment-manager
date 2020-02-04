@@ -263,6 +263,15 @@ function sensorDbToApp(sensorDb: any): SensorApp {
   sensorApp.id = sensorApp._id.toString();
   delete sensorApp._id;
   delete sensorApp.__v;
+  if (sensorApp.defaults) {
+    sensorApp.defaults = sensorApp.defaults.map((def): any => {
+      if (def._id) {
+        def.id = def._id;
+        delete def._id;
+      }
+      return def;
+    });
+  }  
   return sensorApp;
 }
 

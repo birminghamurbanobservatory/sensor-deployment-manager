@@ -61,14 +61,10 @@ describe('Context documents are created and updated correctly', () => {
       id: 'sensor-123',
       name: 'Sensor 123',
       permanentHost: permanentHost.id,
-      defaults: {
-        observedProperty: {
-          value: 'temperature'
-        },
-        hasFeatureOfInterest: {
-          value: 'weather'
-        }
-      }
+      defaults: [
+        {observedProperty: 'temperature'},
+        {hasFeatureOfInterest: 'weather'}
+      ]
     };
     const sensor = await sensorController.createSensor(sensorClient);
 
@@ -139,14 +135,10 @@ describe('Context documents are created and updated correctly', () => {
       id: 'zephyr-152342-co2',
       name: 'Zephyr 152342 CO2 sensor',
       permanentHost: permanentHost.id,
-      defaults: {
-        observedProperty: {
-          value: 'co2-concentration'
-        },
-        hasFeatureOfInterest: {
-          value: 'atmosphere'
-        }
-      }
+      defaults: [
+        {observedProperty: 'co2-concentration'},
+        {hasFeatureOfInterest: 'atmosphere'}
+      ]
     };
     const sensor1 = await sensorController.createSensor(sensor1Client);
 
@@ -155,11 +147,9 @@ describe('Context documents are created and updated correctly', () => {
       id: 'zephyr-152342-gps',
       name: 'Zephyr 152342 GPS sensor',
       permanentHost: permanentHost.id,
-      defaults: {
-        observedProperty: {
-          value: 'location'
-        }
-      }
+      defaults: [
+        {observedProperty: 'location'},
+      ]
     };
     const sensor2 = await sensorController.createSensor(sensor2Client);
 

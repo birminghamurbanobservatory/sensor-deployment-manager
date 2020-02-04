@@ -19,6 +19,17 @@ import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWi
 import {generateSensorId, prefixForGeneratedIds} from '../../utils/generate-sensor-id';
 
 
+const defaultSchema = joi.object({
+  observedProperty: joi.string(),
+  hasFeatureOfInterest: joi.string(),
+  usedProcedures: joi.array().items(joi.string()),
+  when: joi.array().items(joi.object({
+    observedProperty: joi.string(),
+    hasFeatureOfInterest: joi.string(),
+    usedProcedures: joi.array().items(joi.string()),
+  }))
+});
+
 const newSensorSchema = joi.object({
   id: joi.string(), // we'll leave the model schema to check the length
   name: joi.string(),
@@ -26,17 +37,7 @@ const newSensorSchema = joi.object({
   permanentHost: joi.string(),
   inDeployment: joi.string(),
   // N.B. isHostedBy is not allow here. Hosting a sensor on a platform is a separate step and depends on whether the sensor has a permanentHost or not. 
-  defaults: joi.object({
-    observedProperty: joi.object({
-      value: joi.string()
-    }),
-    hasFeatureOfInterest: joi.object({
-      value: joi.string()
-    }),
-    usedProcedure: joi.object({
-      value: joi.array().items(joi.string())
-    })
-  }) 
+  defaults: joi.array().items(defaultSchema)
 })
 .xor('permanentHost', 'inDeployment') 
 // Either a sensor has a permanentHost and is therefore added to a deployment via a registration key OR a standalone sensor must be created already in a deployment.
@@ -72,7 +73,6 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
   const context: ContextApp = {
     sensor: sensor.id,
     startDate: new Date(),
-    toAdd: {}
   };
 
   // Check the deployment exists if provided
@@ -82,13 +82,11 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
   // Is the sensor being created already in a deployment
   if (sensor.inDeployment) {
-    context.toAdd.inDeployments = [sensor.inDeployment];
+    context.inDeployments = [sensor.inDeployment];
   }
 
   // Have any defaults been set for the sensor that should be used in the context.
-  if (sensor.defaults) {
-    context.toAdd = Object.assign({}, context.toAdd, sensor.defaults);
-  }
+  context.defaults = sensor.defaults || [];
 
   // Check the permanent host exists if provided
   if (sensor.permanentHost) {
@@ -191,7 +189,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
     const newContext: ContextApp = {
       sensor: id,
       startDate: transitionDate,
-      toAdd: updatedSensor.defaults || {}
+      defaults: updatedSensor.defaults || []
     };
 
     // Create the new context

@@ -8,17 +8,22 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
-const ifSchema = new mongoose.Schema({
-  if: {
+const defaultSchema = new mongoose.Schema({
+  observedProperty: String,
+  hasFeatureOfInterest: String,
+  usedProcedures: {
+    type: [String],
+    default: undefined // so it doesn't assign an empty array by default
+  },
+  when: {
     observedProperty: String,
     hasFeatureOfInterest: String,
-    usedProcedures: [String]
-    // If you ever need more advanced if conditions then you could could try using the format:
-    // usedProcedures: {$contains: 'mean-average'}
-  },
-  value: {}  // i.e. mongodb's way of implying 'any'
+    usedProcedures: {
+      type: [String],
+      default: undefined // so it doesn't assign an empty array by default
+    }    
+  }
 });
-
 
 const schema = new mongoose.Schema({
   _id: {
@@ -56,23 +61,9 @@ const schema = new mongoose.Schema({
     type: String
   },
   defaults: {
-    observedProperty: { 
-      value: String,
-    },
-    hasFeatureOfInterest: { 
-      value: String,
-      ifs: {
-        type: [ifSchema],
-        default: undefined
-      } 
-    },
-    usedProcedures: {
-      value: {
-        type: [String],
-        default: undefined
-      } 
-    }
-  },
+    type: [defaultSchema],
+    default: [] // we want this to be an empty array by default
+  }
 }, {
   timestamps: true // automatically adds createdAt and updatedAt fields
 });

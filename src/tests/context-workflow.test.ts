@@ -11,6 +11,7 @@ import * as check from 'check-types';
 import {register} from '../components/registration/registration.controller';
 import Context from '../components/context/context.model';
 import {addContextToObservation} from '../components/context/context.controller';
+import {cloneDeep} from 'lodash';
 
 
 describe('Context documents are created and updated correctly', () => {
@@ -43,7 +44,7 @@ describe('Context documents are created and updated correctly', () => {
 
   test('For the various stages of a sensors lifecycle the context should update correctly', async () => {
 
-    expect.assertions(24);
+    expect.assertions(30);
 
     // Create a permanent host
     const permanentHost = {
@@ -57,14 +58,14 @@ describe('Context documents are created and updated correctly', () => {
       id: 'sensor-123',
       name: 'Sensor 123',
       permanentHost: createdPermanentHost.id,
-      defaults: {
-        observedProperty: {
-          value: 'temperature'
+      defaults: [
+        {
+          observedProperty: 'temperature'
         },
-        hasFeatureOfInterest: {
-          value: 'weather'
+        {
+          hasFeatureOfInterest: 'weather'
         }
-      }
+      ]
     };
     const createdSensor = await sensorController.createSensor(sensor);
 
@@ -74,11 +75,13 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context1Id)).toBe(true);
     const context1StartDate = context1.startDate;
     expect(check.date(context1StartDate)).toBe(true);
+    // I can't easily do a 'toEqual' match on the context defaults with the sensor defaults, as the defaults get an _id property when saved, so just using a .toMatchObject instead.
+    expect(context1.defaults).toMatchObject(sensor.defaults);
     expect(context1).toEqual({
       id: context1Id,
       sensor: sensor.id,
       startDate: context1StartDate,
-      toAdd: sensor.defaults
+      defaults: context1.defaults
     });
     
     // Create a deployment
@@ -101,18 +104,15 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context2Id)).toBe(true);
     const context2StartDate = context2.startDate;
     expect(check.date(context2StartDate)).toBe(true);
+    // I can't easily do a 'toEqual' match on the context defaults with the sensor defaults, as the defaults get an _id property when saved, so just using a .toMatchObject instead.
+    expect(context2.defaults).toMatchObject(sensor.defaults);    
     expect(context2).toEqual({
       id: context2Id,
       sensor: sensor.id,
       startDate: context2StartDate,
-      toAdd: Object.assign(
-        {},
-        {
-          inDeployments: [deployment.id],
-          hostedByPath: [updatedSensor.isHostedBy]
-        }, 
-        sensor.defaults
-      )
+      inDeployments: [deployment.id],
+      hostedByPath: [updatedSensor.isHostedBy],
+      defaults: context2.defaults
     });
 
     // Create another platform in the deployment
@@ -132,18 +132,15 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context3Id)).toBe(true);
     const context3StartDate = context3.startDate;
     expect(check.date(context3StartDate)).toBe(true);
+    // I can't easily do a 'toEqual' match on the context defaults with the sensor defaults, as the defaults get an _id property when saved, so just using a .toMatchObject instead.
+    expect(context3.defaults).toMatchObject(sensor.defaults);
     expect(context3).toEqual({
       id: context3Id,
       sensor: sensor.id,
       startDate: context3StartDate,
-      toAdd: Object.assign(
-        {},
-        {
-          inDeployments: [deployment.id],
-          hostedByPath: [parentPlatform.id, platformUpdate1.id]
-        }, 
-        sensor.defaults
-      )
+      inDeployments: [deployment.id],
+      hostedByPath: [parentPlatform.id, platformUpdate1.id],
+      defaults: context3.defaults
     });    
 
     // Let's create another parent platform and move it over to that instead
@@ -161,18 +158,15 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context4Id)).toBe(true);
     const context4StartDate = context4.startDate;
     expect(check.date(context4StartDate)).toBe(true);
+    // I can't easily do a 'toEqual' match on the context defaults with the sensor defaults, as the defaults get an _id property when saved, so just using a .toMatchObject instead.
+    expect(context4.defaults).toMatchObject(sensor.defaults);
     expect(context4).toEqual({
       id: context4Id,
       sensor: sensor.id,
       startDate: context4StartDate,
-      toAdd: Object.assign(
-        {},
-        {
-          inDeployments: [deployment.id],
-          hostedByPath: [secondParentPlatform.id, platformUpdate2.id]
-        }, 
-        sensor.defaults
-      )
+      inDeployments: [deployment.id],
+      hostedByPath: [secondParentPlatform.id, platformUpdate2.id],
+      defaults: context4.defaults
     });   
 
     // Now lets unhost the platform from it's parent
@@ -186,18 +180,15 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context5Id)).toBe(true);
     const context5StartDate = context5.startDate;
     expect(check.date(context5StartDate)).toBe(true);
+    // I can't easily do a 'toEqual' match on the context defaults with the sensor defaults, as the defaults get an _id property when saved, so just using a .toMatchObject instead.
+    expect(context5.defaults).toMatchObject(sensor.defaults);
     expect(context5).toEqual({
       id: context5Id,
       sensor: sensor.id,
       startDate: context5StartDate,
-      toAdd: Object.assign(
-        {},
-        {
-          inDeployments: [deployment.id],
-          hostedByPath: [platformUpdate3.id]
-        }, 
-        sensor.defaults
-      )
+      inDeployments: [deployment.id],
+      hostedByPath: [platformUpdate3.id],
+      defaults: context5.defaults
     });      
 
     // Now to delete the platform from the deployment
@@ -213,11 +204,14 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context6Id)).toBe(true);
     const context6StartDate = context6.startDate;
     expect(check.date(context6StartDate)).toBe(true);
+    // I can't easily do a 'toEqual' match on the context defaults with the sensor defaults, as the defaults get an _id property when saved, so just using a .toMatchObject instead.
+    expect(context6.defaults).toMatchObject(sensor.defaults);
     expect(context6).toEqual({
       id: context6Id,
       sensor: sensor.id,
       startDate: context6StartDate,
-      toAdd: sensor.defaults // back to just the defaults
+      // All that's left now are the defaults
+      defaults: context6.defaults
     });
 
 
@@ -228,7 +222,7 @@ describe('Context documents are created and updated correctly', () => {
 
   test('Create a sensor that is linked to a deployment from the start', async () => {
 
-    expect.assertions(11);
+    expect.assertions(13);
 
     // Create a Deployment
     const deploymentClient = {
@@ -239,17 +233,19 @@ describe('Context documents are created and updated correctly', () => {
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a sensor
+    const exampleObservedProperty = 'temperature';
+    const exampleHasFeatureOfInterest = 'weather';
     const sensorClient = {
       name: 'Bobs Mercury Thermometer',
       inDeployment: deployment.id,
-      defaults: {
-        observedProperty: {
-          value: 'temperature'
+      defaults: [
+        {
+          observedProperty: exampleObservedProperty
         },
-        hasFeatureOfInterest: {
-          value: 'weather'
+        {
+          hasFeatureOfInterest: exampleHasFeatureOfInterest
         }
-      }
+      ]
     };
 
     const sensor = await sensorController.createSensor(sensorClient);    
@@ -260,11 +256,17 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context1Id)).toBe(true);
     const context1StartDate = context1.startDate;
     expect(check.date(context1StartDate)).toBe(true);
+    const context1DefaultsWithoutIds = cloneDeep(context1.defaults).map((def) => {
+      delete def.id;
+      return def;
+    });
+    expect(context1DefaultsWithoutIds).toEqual(sensorClient.defaults);
     expect(context1).toEqual({
       id: context1Id,
       sensor: sensor.id,
       startDate: context1StartDate,
-      toAdd: Object.assign(sensor.defaults, {inDeployments: [deployment.id]})
+      inDeployments: [deployment.id],
+      defaults: context1.defaults
     });
 
     // Let's create a platform in this deployment
@@ -295,14 +297,18 @@ describe('Context documents are created and updated correctly', () => {
     expect(check.nonEmptyString(context2Id)).toBe(true);
     const context2StartDate = context2.startDate;
     expect(check.date(context2StartDate)).toBe(true);
+    const context2DefaultsWithoutIds = cloneDeep(context2.defaults).map((def) => {
+      delete def.id;
+      return def;
+    });
+    expect(context2DefaultsWithoutIds).toEqual(sensorClient.defaults);
     expect(context2).toEqual({
       id: context2Id,
       sensor: sensor.id,
       startDate: context2StartDate,
-      toAdd: Object.assign(sensor.defaults, {
-        inDeployments: [deployment.id],
-        hostedByPath: [platform.id]
-      })
+      inDeployments: [deployment.id],
+      hostedByPath: [platform.id],
+      defaults: context2.defaults
     });
 
     // Now lets submit an observation to check that it gets the correction location applied
@@ -318,8 +324,8 @@ describe('Context documents are created and updated correctly', () => {
     const expectedObservation = Object.assign({}, observationWithoutContext, {
       inDeployments: [deployment.id],
       hostedByPath: [platform.id],
-      observedProperty: sensor.defaults.observedProperty.value,
-      hasFeatureOfInterest: sensor.defaults.hasFeatureOfInterest.value,
+      observedProperty: exampleObservedProperty,
+      hasFeatureOfInterest: exampleHasFeatureOfInterest,
       location: platform.location
     });
     expect(observationWithContext).toEqual(expectedObservation);

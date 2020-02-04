@@ -58,11 +58,9 @@ describe('Location observations are correctly processed by the addContextToObser
     // Create a sensor
     const sensorClient = {
       inDeployment: primaryDeployment.id,
-      defaults: {
-        observedProperty: {
-          value: 'location'
-        }
-      }
+      defaults: [
+        {observedProperty: 'location'}
+      ]
     };
 
     const sensor = await sensorController.createSensor(sensorClient);
@@ -210,26 +208,24 @@ describe('Location observations are correctly processed by the addContextToObser
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
     // Create a location sensor on this permanent host
+    const exampleObservedPropertyForLocationSensor = 'location';
     const locationSensorClient = {
       name: 'Zephyr 123 GPS Sensor',
       permanentHost: permanentHost.id,
-      defaults: {
-        observedProperty: {
-          value: 'location'
-        }
-      }
+      defaults: [
+        {observedProperty: exampleObservedPropertyForLocationSensor}
+      ]
     };
     const locationSensor = await sensorController.createSensor(locationSensorClient);    
 
     // Create a non-location sensor on this permanent host
+    const exampleObservedPropertyForNonLocationSensor = 'no2-concentration';
     const nonLocationSensorClient = {
       name: 'Zephyr 123 NO2 Sensor',
       permanentHost: permanentHost.id,
-      defaults: {
-        observedProperty: {
-          value: 'no2-concentration'
-        }
-      }
+      defaults: [
+        {observedProperty: exampleObservedPropertyForNonLocationSensor}
+      ]
     };
     const nonLocationSensor = await sensorController.createSensor(nonLocationSensorClient);
 
@@ -261,7 +257,7 @@ describe('Location observations are correctly processed by the addContextToObser
     expect(locObs1).toEqual(Object.assign({}, locObs1Client, {
       inDeployments: [deployment.id],
       hostedByPath: [platform.id],
-      observedProperty: locationSensor.defaults.observedProperty.value,
+      observedProperty: exampleObservedPropertyForLocationSensor,
       location: {
         id: locObs1LocationId,
         geometry: locObs1Client.hasResult.value,
@@ -286,7 +282,7 @@ describe('Location observations are correctly processed by the addContextToObser
     expect(nonLocObs1).toEqual(Object.assign({}, nonLocObs1Client, {
       inDeployments: [deployment.id],
       hostedByPath: [platform.id],
-      observedProperty: nonLocationSensor.defaults.observedProperty.value,
+      observedProperty: exampleObservedPropertyForNonLocationSensor,
       location: locObs1.location // should match that of the location obs
     }));
 
@@ -318,7 +314,7 @@ describe('Location observations are correctly processed by the addContextToObser
     expect(nonLocObs2).toEqual(Object.assign({}, nonLocObs2Client, {
       inDeployments: [deployment.id],
       hostedByPath: [platform.id],
-      observedProperty: nonLocationSensor.defaults.observedProperty.value,
+      observedProperty: exampleObservedPropertyForNonLocationSensor,
       location: locObs2.location // should match that of the second location obs
     }));
 

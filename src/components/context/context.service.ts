@@ -111,7 +111,7 @@ export async function getLiveContextsForPlatform(platformId: string): Promise<Co
   let contexts;
   try {
     contexts = await Context.find({
-      'toAdd.hostedByPath': platformId,
+      hostedByPath: platformId,
       endDate: {$exists: false}
     }).exec();
   } catch (err) {
@@ -160,7 +160,7 @@ export async function endLiveContextsForPlatform(platformId: string, endDate?: o
   try {
     await Context.updateMany(
       {
-        'toAdd.hostedByPath': platformId,
+        hostedByPath: platformId,
         endDate: {$exists: false}
       },
       {
@@ -190,7 +190,7 @@ export async function processSensorRemovedFromDeployment(sensorId: string, senso
   };
 
   if (sensorDefaults) {
-    newContext.toAdd = sensorDefaults;
+    newContext.defaults = sensorDefaults;
   }
 
   // Create the new context
@@ -211,7 +211,7 @@ export async function processSensorRemovedFromPlatform(sensorId: string): Promis
   const newContext = cloneDeep(endedContext);
   newContext.startDate = transitionDate;
   delete newContext.id;
-  delete newContext.toAdd.hostedByPath;
+  delete newContext.hostedByPath;
   delete newContext.endDate;
 
   // Create the new context
@@ -236,14 +236,14 @@ export async function processPlatformHostChange(platformId: string, oldAncestors
     newContext.startDate = transitionDate;
 
     if (check.nonEmptyArray(oldAncestors)) {
-      pullAll(newContext.toAdd.hostedByPath, oldAncestors); // mutates
-      if (newContext.toAdd.hostedByPath.length === 0) {
-        delete newContext.toAdd.hostedByPath;
+      pullAll(newContext.hostedByPath, oldAncestors); // mutates
+      if (newContext.hostedByPath.length === 0) {
+        delete newContext.hostedByPath;
       }
     }
 
     if (check.nonEmptyArray(newAncestors)) {
-      newContext.toAdd.hostedByPath = concat(newAncestors, newContext.toAdd.hostedByPath);
+      newContext.hostedByPath = concat(newAncestors, newContext.hostedByPath);
     }
 
     return newContext;
@@ -269,8 +269,8 @@ export async function processDeploymentMadePrivate(deploymentId: string, deploym
   // - Find any live contexts who have these platforms in their hostedByPath AND do NOT have this deployment listed in their inDeployments array.
   try {
     const oldContextsDb = await Context.find({
-      'toAdd.hostedByPath': {$in: deploymentPlatformIds},
-      'toAdd.inDeployments': {$nin: [deploymentId]},
+      hostedByPath: {$in: deploymentPlatformIds},
+      inDeployments: {$nin: [deploymentId]},
       endDate: {$exists: false}
     })
     .exec();
@@ -299,9 +299,9 @@ export async function processDeploymentMadePrivate(deploymentId: string, deploym
     newContexts.forEach((newContext) => {
       delete newContext.endDate;
       delete newContext.id;
-      pullAll(newContext.toAdd.hostedByPath, deploymentPlatformIds);
-      if (newContext.toAdd.hostedByPath.length === 0) {
-        delete newContext.toAdd.hostedByPath;
+      pullAll(newContext.hostedByPath, deploymentPlatformIds);
+      if (newContext.hostedByPath.length === 0) {
+        delete newContext.hostedByPath;
       }
     });
 
@@ -326,7 +326,7 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
   // - Find any live contexts with this deploymentId
   try {
     const oldContextsDb = await Context.find({
-      'toAdd.inDeployments': deploymentId,
+      inDeployments: deploymentId,
       endDate: {$exists: false}
     })
     .exec();
@@ -355,15 +355,15 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
     newContexts.forEach((newContext) => {
       delete newContext.endDate;
       delete newContext.id;
-      if (newContext.toAdd.hostedByPath) {
-        pullAll(newContext.toAdd.hostedByPath, deploymentPlatformIds);
-        if (newContext.toAdd.hostedByPath.length === 0) {
-          delete newContext.toAdd.hostedByPath;
+      if (newContext.hostedByPath) {
+        pullAll(newContext.hostedByPath, deploymentPlatformIds);
+        if (newContext.hostedByPath.length === 0) {
+          delete newContext.hostedByPath;
         }
       }
-      pull(newContext.toAdd.inDeployments, deploymentId);
-      if (newContext.toAdd.inDeployments.length === 0) {
-        delete newContext.toAdd.inDeployments;
+      pull(newContext.inDeployments, deploymentId);
+      if (newContext.inDeployments.length === 0) {
+        delete newContext.inDeployments;
       }
     });
 
@@ -389,7 +389,7 @@ export async function changeSensorsHostedByPath(sensorId: string, hostedByPath: 
   // End the current context
   const endedContext = await endLiveContextForSensor(sensorId, transitionDate);
 
-  const newContext = merge({}, endedContext, {toAdd: {hostedByPath}});
+  const newContext = merge({}, endedContext, {hostedByPath});
   delete newContext.id;
   delete newContext.endDate;
   const createdContext = await createContext(newContext);
@@ -423,7 +423,7 @@ export async function processPlatformSharedWithDeployment(platformId: string, de
   // Get all the existing contexts for this platform so we can copy them
   try {
     const oldContextsDb = await Context.find({
-      'toAdd.hostedByPath': platformId,
+      hostedByPath: platformId,
       endDate: {$exists: false}
     })
     .exec();
@@ -452,7 +452,7 @@ export async function processPlatformSharedWithDeployment(platformId: string, de
     newContexts.forEach((newContext) => {
       delete newContext.endDate;
       delete newContext.id;
-      newContext.toAdd.inDeployments = uniq(concat(newContext.toAdd.inDeployments, deploymentId));
+      newContext.inDeployments = uniq(concat(newContext.inDeployments, deploymentId));
     });
 
     const newContextsDb = newContexts.map(contextAppToDb);
@@ -476,7 +476,8 @@ export async function processPlatformUnsharedWithDeployment(platformId: string, 
   // Get all the existing contexts for this platform so we can copy them
   try {
     const oldContextsDb = await Context.find({
-      'toAdd.inDeployments': platformId,
+      hostedByPath: platformId,
+      inDeployment: deploymentId,
       endDate: {$exists: false}
     })
     .exec();
@@ -505,7 +506,7 @@ export async function processPlatformUnsharedWithDeployment(platformId: string, 
     newContexts.forEach((newContext) => {
       delete newContext.endDate;
       delete newContext.id;
-      pull(newContext.toAdd.inDeployments, deploymentId);
+      pull(newContext.inDeployments, deploymentId);
     });
 
     const newContextsDb = newContexts.map(contextAppToDb);
@@ -533,6 +534,15 @@ function contextDbToApp(contextDb: any): ContextApp {
   contextApp.id = contextApp._id.toString();
   delete contextApp._id;
   delete contextApp.__v;
+  if (contextApp.defaults) {
+    contextApp.defaults = contextApp.defaults.map((def): any => {
+      if (def._id) {
+        def.id = def._id;
+        delete def._id;
+      }
+      return def;
+    });
+  } 
   return contextApp;
 }
 

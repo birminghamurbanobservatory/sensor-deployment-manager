@@ -6,11 +6,11 @@ import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {ContextClient} from './context-client.class';
 import {addContextToObservation} from './context.controller';
+import {ObservationClient} from '../observation/observation-client.class';
 
 export async function subscribeToContextEvents(): Promise<void> {
 
   const subscriptionFunctions = [
-    subscribeToContextUpdateRequests,
     subscribeToObservationAddContextRequests
   ];
 
@@ -49,7 +49,7 @@ async function subscribeToObservationAddContextRequests(): Promise<void> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let updatedObservation: ContextClient;
+    let updatedObservation: ObservationClient;
     try {
       const {error: err} = observationAddContextRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
@@ -66,51 +66,4 @@ async function subscribeToObservationAddContextRequests(): Promise<void> {
 
 }
 
-
-
-//-------------------------------------------------
-// Update Context
-//-------------------------------------------------
-// TODO: Do I event need this?
-async function subscribeToContextUpdateRequests(): Promise<void> {
-
-  const eventName = 'context.update.request';
-  const contextUpdateRequestSchema = joi.object({
-    where: joi.object({
-      sensor: joi.string().required(),
-      deployment: joi.string()
-    })
-      .required(),
-    // This is not where the inDeployment and isHostedBy fields are changed, this is done by updating a sensor.
-    updates: joi.object({
-      toAdd: joi.object({
-        observedProperty: joi.any(),
-        hasFeatureOfInterest: joi.any(),
-        usedProcedures: joi.any()
-      })
-        .min(1)
-        .required()
-    })
-      .required()
-  }).required();
-
-  await event.subscribe(eventName, async (message): Promise<void> => {
-
-    logger.debug(`New ${eventName} message.`, message);
-
-    let updatedContext: ContextClient;
-    try {
-      const {error: err} = contextUpdateRequestSchema.validate(message);
-      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
-      // updatedContext = await updateContext(message.where.id, message.updates);
-    } catch (err) {
-      logCensorAndRethrow(eventName, err);
-    }
-
-    return updatedContext;
-  });
-
-  logger.debug(`Subscribed to ${eventName} requests`);
-  return;
-}
 

@@ -153,10 +153,8 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Check this sensor's context is as expected
     const externalPlatformSensorContext = await contextService.getLiveContextForSensor(externalPlatformSensor.id);
     expect(externalPlatformSensorContext).toMatchObject({
-      toAdd: {
-        hostedByPath: [externalPlatform.id],
-        inDeployments: [nonShareeDeployment.id]
-      }
+      hostedByPath: [externalPlatform.id],
+      inDeployments: [nonShareeDeployment.id]
     });
 
     // Create a standalone sensor
@@ -173,10 +171,8 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Let's check the context has updated for this platforms sensor
     const sharedSensorContext = await contextService.getLiveContextForSensor(sharedPlatformSensor.id);
     expect(sharedSensorContext).toMatchObject({
-      toAdd: {
-        hostedByPath: [sharedPlatform.id],
-        inDeployments: [originalDeployment.id, shareeDeployment.id]
-      }
+      hostedByPath: [sharedPlatform.id],
+      inDeployments: [originalDeployment.id, shareeDeployment.id]
     });
 
     //------------------------
@@ -191,11 +187,9 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Check context of the external sensor on this platform is correct
     const updatedExternalPlatformSensorContext = await contextService.getLiveContextForSensor(externalPlatformSensor.id);
     expect(updatedExternalPlatformSensorContext).toMatchObject({
-      toAdd: {
-        hostedByPath: [nonSharedPlatform.id, externalPlatform.id],
-        inDeployments: [nonShareeDeployment.id]
-        // Note how the sensor doesn't end up "in" the original deployment, merely its hosted on the deployment's platform. It would only end up "in" when the host platform is shared with the new deployment.
-      }
+      hostedByPath: [nonSharedPlatform.id, externalPlatform.id],
+      inDeployments: [nonShareeDeployment.id]
+      // Note how the sensor doesn't end up "in" the original deployment, merely its hosted on the deployment's platform. It would only end up "in" when the host platform is shared with the new deployment.
     });
 
     //------------------------
@@ -207,11 +201,9 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Check the context has updated
     const hostedStandaloneSensorContext = await contextService.getLiveContextForSensor(standaloneSensor.id);
     expect(hostedStandaloneSensorContext).toMatchObject({
-      toAdd: {
-        hostedByPath: [nonSharedPlatform.id],
-        inDeployments: [nonShareeDeployment.id]
-        // Note how the sensor doesn't end up "in" the original deployment, merely its hosted on the deployment's platform.
-      }
+      hostedByPath: [nonSharedPlatform.id],
+      inDeployments: [nonShareeDeployment.id]
+      // Note how the sensor doesn't end up "in" the original deployment, merely its hosted on the deployment's platform.
     });
 
     //------------------------
@@ -229,10 +221,8 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Its sensor's context should also reflect this
     const unhostedExternalSensorContext = await contextService.getLiveContextForSensor(externalPlatformSensor.id);
     expect(unhostedExternalSensorContext).toMatchObject({
-      toAdd: {
-        hostedByPath: [externalPlatform.id],
-        inDeployments: [nonShareeDeployment.id]
-      }
+      hostedByPath: [externalPlatform.id],
+      inDeployments: [nonShareeDeployment.id]
     });
 
     // The shared platform should still have the shareeDeployment listed
@@ -241,15 +231,15 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // As should the context for the sensor hosted on the shared platform
     const sharedPlatformSensorAfterPrivate = await contextService.getLiveContextForSensor(sharedPlatformSensor.id);
-    expect(sharedPlatformSensorAfterPrivate.toAdd.inDeployments).toEqual([originalDeployment.id, shareeDeployment.id]);
+    expect(sharedPlatformSensorAfterPrivate.inDeployments).toEqual([originalDeployment.id, shareeDeployment.id]);
 
     // The standalone sensor should now be unhosted
     const unhostedStandaloneSensor = await sensorController.getSensor(standaloneSensor.id);
     expect(unhostedStandaloneSensor.isHostedBy).toBeUndefined();
     // Check it's context too
     const unhostedStandaloneSensorContext = await contextService.getLiveContextForSensor(standaloneSensor.id);
-    expect(unhostedStandaloneSensorContext.toAdd.inDeployments).toEqual([nonShareeDeployment.id]);
-    expect(unhostedStandaloneSensorContext.toAdd.hostedByPath).toBeUndefined();
+    expect(unhostedStandaloneSensorContext.inDeployments).toEqual([nonShareeDeployment.id]);
+    expect(unhostedStandaloneSensorContext.hostedByPath).toBeUndefined();
 
   });
 

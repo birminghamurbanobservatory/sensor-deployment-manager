@@ -3,20 +3,23 @@ export class ContextApp {
   public sensor?: string;
   public startDate?: Date;
   public endDate?: Date;
-  public toAdd?: ToAdd;
+  public inDeployments?: string[];
+  public hostedByPath?: string[];
+  public defaults?: Default[];
 }
 
 
-export class ToAdd {
-  inDeployments?: string[];
-  hostedByPath?: string[];
-  observedProperty?: {value: string};
-  hasFeatureOfInterest?: {value?: string; ifs?: IF[]};
-  usedProcedures?: {value: string[]};
+export class Default {
+  id?: string;
+  observedProperty?: string;
+  hasFeatureOfInterest?: string;
+  usedProcedures?: string[];
+  when?: When;
+}
+
+export class When {
+  observedProperty?: string;
+  hasFeatureOfInterest?: string;
 }
 
 
-class IF {
-  if: any;
-  value: any;
-}
