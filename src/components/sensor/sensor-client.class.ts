@@ -7,7 +7,7 @@ export class SensorClient {
   public permanentHost?: string;
   public defaults?: Default[];
   public createdAt?: string;
-  public deletedAt?: string;
+  public updatedAt?: string;
 }
 
 export class Default {
