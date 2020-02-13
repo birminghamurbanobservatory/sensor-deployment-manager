@@ -53,6 +53,7 @@ export async function addContextToObservation(observation: ObservationClient): P
   }
 
   // Is this an observation of a location, e.g. from a gps sensor.
+  // TODO: update this so that any type of sensor can update a platforms location, just so long as it has a location object. This will be how I keep the netatmo locations up to date.
   const observesLocation = updatedObs.observedProperty === 'location';
 
   //------------------------
