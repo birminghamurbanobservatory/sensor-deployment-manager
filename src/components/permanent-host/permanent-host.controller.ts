@@ -132,7 +132,9 @@ export async function updatePermanentHost(id: string, updates: {name?: string; d
 export async function deletePermanentHost(id: string): Promise<void> {
 
   // Delete the platform
+  logger.debug(`Deleting permanent host '${id}'`);
   await permanentHostService.deletePermanentHost(id);
+  logger.debug(`Permanent host '${id}' deleted`);
   
   return;
 
