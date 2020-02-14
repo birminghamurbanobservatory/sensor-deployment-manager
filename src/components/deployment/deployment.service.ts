@@ -165,6 +165,7 @@ export async function deleteDeployment(id: string): Promise<void> {
       updates,
       {
         new: true,
+        runValidators: true
       }
     ).exec();
   } catch (err) {
@@ -213,6 +214,8 @@ function deploymentDbToApp(deploymentDb: any): DeploymentApp {
 
 export function deploymentAppToClient(deploymentApp: DeploymentApp): DeploymentClient {
   const deploymentClient: any = cloneDeep(deploymentApp);
+  deploymentClient.createdAt = deploymentClient.createdAt.toISOString();
+  deploymentClient.updatedAt = deploymentClient.updatedAt.toISOString();
   return deploymentClient;
 } 
 

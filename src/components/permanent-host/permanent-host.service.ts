@@ -154,6 +154,7 @@ export async function deletePermanentHost(id: string): Promise<void> {
       updates,
       {
         new: true,
+        runValidators: true
       }
     ).exec();
   } catch (err) {
@@ -188,6 +189,8 @@ function permanentHostDbToApp(permanentHostDb: any): PermanentHostApp {
 
 export function permanentHostAppToClient(permanentHostApp: PermanentHostApp): PermanentHostClient {
   const permanentHostClient: any = cloneDeep(permanentHostApp);
+  permanentHostClient.createdAt = permanentHostClient.createdAt.toISOString();
+  permanentHostClient.updatedAt = permanentHostClient.updatedAt.toISOString();
   return permanentHostClient;
 } 
 

@@ -63,6 +63,10 @@ const schema = new mongoose.Schema({
   defaults: {
     type: [defaultSchema],
     default: [] // we want this to be an empty array by default
+  },
+  // for soft deletes
+  deletedAt: { 
+    type: Date
   }
 }, {
   timestamps: true // automatically adds createdAt and updatedAt fields

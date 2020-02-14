@@ -50,6 +50,10 @@ const schema = new mongoose.Schema({
         return `Permanent host registration key must be 10 characters long.`;
       }
     }
+  },
+  // for soft deletes
+  deletedAt: { 
+    type: Date
   }
 }, {
   timestamps: true // automatically adds createdAt and updatedAt fields

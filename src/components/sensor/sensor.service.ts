@@ -212,6 +212,7 @@ export async function deleteSensor(id: string): Promise<void> {
       updates,
       {
         new: true,
+        runValidators: true
       }
     ).exec();
   } catch (err) {
@@ -278,6 +279,8 @@ function sensorDbToApp(sensorDb: any): SensorApp {
 
 export function sensorAppToClient(sensorApp: SensorApp): SensorClient {
   const sensorClient: any = cloneDeep(sensorApp);
+  sensorClient.createdAt = sensorClient.createdAt.toISOString();
+  sensorClient.updatedAt = sensorClient.updatedAt.toISOString();
   return sensorClient;
 } 
 

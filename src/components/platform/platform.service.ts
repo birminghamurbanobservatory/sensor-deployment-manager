@@ -481,6 +481,7 @@ export async function deletePlatform(id: string): Promise<void> {
       updates,
       {
         new: true,
+        runValidators: true
       }
     ).exec();
   } catch (err) {
@@ -715,6 +716,8 @@ export function platformAppToClient(platformApp: PlatformApp): PlatformClient {
   if (platformClient.location && platformClient.location.validAt) {
     platformClient.location.validAt = platformClient.location.validAt.toISOString();
   }  
+  platformClient.createdAt = platformClient.createdAt.toISOString();
+  platformClient.updatedAt = platformClient.updatedAt.toISOString();
   return platformClient;
 } 
 
