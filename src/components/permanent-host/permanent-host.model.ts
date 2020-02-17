@@ -51,6 +51,9 @@ const schema = new mongoose.Schema({
       }
     }
   },
+  registeredAs: {
+    type: String, // the platform ID initialised from this permamentHost and to which the sensors are currently hosted by.
+  },
   // for soft deletes
   deletedAt: { 
     type: Date

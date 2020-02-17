@@ -13,6 +13,9 @@ import {UpdatePermanentHostFail} from './errors/UpdatePermanentHostFail';
 import {GetPermanentHostsFail} from './errors/GetPermanentHostsFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {DeletePermanentHostFail} from './errors/DeletePermanentHostFail';
+import {DeregisterPermanentHostFail} from './errors/DeregisterPermanentHostFail';
+import {PermanentHostAlreadyRegistered} from './errors/PermanentHostAlreadyRegistered';
+import {UpdatePermanentHostRegisteredAsFail} from './errors/UpdatePermanentHostRegisteredAsFail';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -168,6 +171,79 @@ export async function deletePermanentHost(id: string): Promise<void> {
   return;
 
 }
+
+
+export async function updatePermanentHostRegisteredAs(permanentHostId: string, platformId: string): Promise<PermanentHostApp> {
+
+  // We only want to allow this if registeredAs isn't already set. 
+  const existingPermanentHost = await getPermanentHost(permanentHostId);
+
+  if (existingPermanentHost.registeredAs) {
+    throw new PermanentHostAlreadyRegistered(`Cannot update the registeredAs property of permanent host '${permanentHostId}' because is is already registered as ${existingPermanentHost.registeredAs}.`);
+  }
+
+  const updates = {
+    registeredAs: platformId
+  };
+
+  let registeredPermanentHost;
+  try {
+    registeredPermanentHost = await PermanentHost.findOneAndUpdate(
+      {
+        _id: permanentHostId,
+        deletedAt: {$exists: false}
+      },
+      updates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new UpdatePermanentHostRegisteredAsFail(`Failed to update the registeredAs property of permanent host '${permanentHostId}'.`, err.message);
+  }
+
+  if (!registeredPermanentHost) {
+    throw new PermanentHostNotFound(`A permanent host with id '${permanentHostId}' could not be found`);
+  }
+
+  return registeredPermanentHost; 
+
+}
+
+
+export async function deregisterPermanentHost(id: string): Promise<PermanentHostApp> {
+
+  const updates = {
+    $unset: {
+      registeredAs: ''
+    }
+  };
+
+  let deregisteredPermanentHost;
+  try {
+    deregisteredPermanentHost = await PermanentHost.findOneAndUpdate(
+      {
+        _id: id,
+        deletedAt: {$exists: false}
+      },
+      updates,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).exec();
+  } catch (err) {
+    throw new DeregisterPermanentHostFail(`Failed to delete permanent host '${id}'.`, err.message);
+  }
+
+  if (!deregisteredPermanentHost) {
+    throw new PermanentHostNotFound(`A permanent host with id '${id}' could not be found`);
+  }
+
+  return deregisteredPermanentHost;
+
+} 
 
 
 function permanentHostAppToDb(permanentHostApp: PermanentHostApp): object {

@@ -5,6 +5,7 @@ export class PermanentHostClient {
   public static?: boolean;
   public updateLocationWithSensor?: string;
   public registrationKey?: string;
+  public registeredAs?: string;
   public createdAt?: string;
   public updatedAt?: string;
 }

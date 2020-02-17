@@ -17,6 +17,7 @@ import {DeploymentApp} from '../deployment/deployment-app.class';
 import {concat} from 'lodash';
 import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWithPermanentHost';
 import {generateSensorId, prefixForGeneratedIds} from '../../utils/generate-sensor-id';
+import {CannotHostSensorOnPermanentHost} from './errors/CannotHostSensorOnPermanentHost';
 
 
 const defaultSchema = joi.object({
@@ -217,6 +218,11 @@ export async function hostSensorOnPlatform(sensorId: string, platformId: string)
 
   // Throws error if the platform does not exist
   const platform: PlatformApp = await platformService.getPlatform(platformId);
+
+  // If this platform is itself created from a permanentHost then don't allow more sensors to be hosted on it.
+  if (platform.initialisedFrom) {
+    throw new CannotHostSensorOnPermanentHost(`Platform '${platformId}' was generated from a permanent host and therefore it is not possible to add an extra sensor to it this way.`);
+  }
 
   // Check it's ok to add the sensor to this platform
   let hasAccessToPlatform;

@@ -19,6 +19,7 @@ import {Forbidden} from '../../errors/Forbidden';
 import {validateGeometry} from '../../utils/geojson-validator';
 import {v4 as uuid} from 'uuid';
 import {SensorNotFound} from '../sensor/errors/SensorNotFound';
+import * as permanentHostService from '../permanent-host/permanent-host.service';
 
 
 const newPlatformSchema = joi.object({
@@ -399,12 +400,11 @@ export async function deletePlatform(id: string): Promise<void> {
 
   // Update any platforms that are hosted on this platform
   await platformService.cutDescendantsOfPlatform(id);
-  // TODO: We need to update the context of sensors hosted on these descendant platforms.
 
   // Delete the platform
   await platformService.deletePlatform(id);
   
-  // Get all the sensors hosted on this platform 
+  // Get all the sensors hosted on this platform
   const sensors: SensorApp[] = await sensorService.getSensors({isHostedBy: id});
 
   // Loop through each sensor
@@ -415,17 +415,25 @@ export async function deletePlatform(id: string): Promise<void> {
     // If the sensor is physically attached to this platform then we need to remove it from the deployment too
     if (sensor.permanentHost) {
       await sensorService.removeSensorFromDeployment(sensor.id);
-    }
-
-    // Update the contexts
-    if (sensor.permanentHost) {
+      // This will require a more drastic change to the context
       await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.defaults);
-    } else {
-      await contextService.processSensorRemovedFromPlatform(sensor.id);
     }
 
   });
 
+  // Wipe any record of this platform from the hostedByPath of any live contexts. This also works for sensors that weren't directly hosted on this platform.
+  await contextService.processPlatformDeleted(id);
+
+  // If the platform was generated from a permanentHost then we can set this permanentHost as being unregistered, and therefore free to be added to a different deployment.
+  if (platform.initialisedFrom) {
+    await permanentHostService.deregisterPermanentHost(platform.initialisedFrom);
+  }
+
   return;
 
 }
+
+
+// TODO: Add a releaseSensors function? This is aimed at users who have initialised a platform from a permanent host using a registration key. They want to release the sensors, but want to keep a record of the platform. I.e. this is an alternative to deleting the whole platform. This would also update the permanentHost's registeredAs property, allowing the permanentHost to be registered elsewhere.
+// The API endpoint could be:
+// DELETE /deployments/:deploymentId/platforms/:platformId/sensors

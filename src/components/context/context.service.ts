@@ -3,7 +3,7 @@ import {ContextApp} from './context-app.class';
 import {ContextClient} from './context-client.class';
 import {GetLiveContextForSensorFail} from './errors/GetLiveContextForSensorFail';
 import {ContextNotFound} from './errors/ContextNotFound';
-import {cloneDeep, merge, concat, pull, pullAll, uniq} from 'lodash';
+import {cloneDeep, merge, concat, pull, pullAll, uniq, without} from 'lodash';
 import {ContextAlreadyExists} from './errors/ContextAlreadyExists';
 import {CreateContextFail} from './errors/CreateContextFail';
 import {InvalidContext} from './errors/InvalidContext';
@@ -216,6 +216,38 @@ export async function processSensorRemovedFromPlatform(sensorId: string): Promis
 
   // Create the new context
   await createContext(newContext);
+
+  return;
+
+}
+
+// Removes any reference to the platform from hostedByPaths
+export async function processPlatformDeleted(platformId: string): Promise<void> {
+
+  const transitionDate = new Date();
+
+  const existingContexts = await getLiveContextsForPlatform(platformId);
+
+  await Promise.map(existingContexts, async (existingContext) => {
+
+    await endLiveContextForSensor(existingContext.madeBySensor, transitionDate);
+
+    const newContext = cloneDeep(existingContext);
+    newContext.startDate = transitionDate;
+    delete newContext.id;
+    delete newContext.endDate;
+
+    if (existingContext.hostedByPath.length === 1) {
+      // Remove the hostedByPath entirely when it only contained this platform.
+      delete newContext.hostedByPath;
+    } else {
+      // Leaves the other platform ids in the array
+      newContext.hostedByPath = without(newContext.hostedByPath, platformId);
+    }
+
+    await createContext(newContext);
+
+  });
 
   return;
 

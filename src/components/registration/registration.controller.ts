@@ -9,6 +9,7 @@ import * as Promise from 'bluebird';
 import {ContextApp} from '../context/context-app.class';
 import * as logger from 'node-logger';
 import {PlatformClient} from '../platform/platform-client.class';
+import {PermanentHostAlreadyRegistered} from '../permanent-host/errors/PermanentHostAlreadyRegistered';
 
 
 export async function register(registrationKey, deploymentId): Promise<PlatformClient> {
@@ -20,9 +21,9 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   // Get the permanent host with this registration key (errors if it can't be found)
   const permanentHost = await permanentHostService.getPermanentHostByRegistrationKey(registrationKey);
 
-  // TODO: Need to make sure that this registration key can't be used be anyone else once it has been used to create a platform in this deployment. Two choices:
-  // 1. Add a check here to make sure there's no platform (excluding deleting ones) that has a initialisedFrom property equal to this permanent host.
-  // 2. Once this registration key has been used generate a new one.
+  if (permanentHost.registeredAs) {
+    throw new PermanentHostAlreadyRegistered(`This permament host is already registered as platform '${permanentHost.registeredAs}.'`);
+  }
 
   // Get the deployment (errors if it can't be found)
   await deploymentService.getDeployment(deploymentId);
@@ -78,6 +79,9 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
     return await contextService.createContext(newContext);
   });
   logger.debug('New live contexts have been created', newLiveContexts);
+
+  // Update the permanentHost so we know it is registered
+  await permanentHostService.updatePermanentHostRegisteredAs(permanentHost.id, platform.id);
 
   logger.debug(`Successfully used registration key '${registrationKey}' on deployment '${deploymentId}' and in so doing so updated ${updatedSensors.length} sensor(s) and their context.`);
 
