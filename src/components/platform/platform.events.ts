@@ -129,7 +129,6 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
         begins: joi.string()
       })
     })
-    .required()
   })
   .required();
 
