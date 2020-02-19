@@ -18,6 +18,7 @@ import {concat} from 'lodash';
 import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWithPermanentHost';
 import {generateSensorId, prefixForGeneratedIds} from '../../utils/generate-sensor-id';
 import {CannotHostSensorOnPermanentHost} from './errors/CannotHostSensorOnPermanentHost';
+import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
 
 
 const defaultSchema = joi.object({
@@ -100,6 +101,17 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
   const createdContext = await contextService.createContext(context);
   logger.debug('Context created for new sensor', createdContext);
+
+  // If there's a corresponding Unknown Sensor document for this sensor then delete it as the sensor is no longer unknown.
+  try {
+    await deleteUnknownSensor(createdSensor.id);
+  } catch (err) {
+    if (err.name === 'UnknownSensorNotFound') {
+      // This is fine, it just means there's been no observations from this sensor yet.
+    } else {
+      throw err;
+    }
+  }
 
   return sensorService.sensorAppToClient(createdSensor);
 

@@ -10,6 +10,8 @@ import {validateGeometry} from '../../utils/geojson-validator';
 import {v4 as uuid} from 'uuid';
 import {observationAppToClient, observationClientToApp} from '../observation/observation.service';
 import {ObservationClient} from '../observation/observation-client.class';
+import {upsertUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
+import {getSensor} from '../sensor/sensor.service';
 
 
 const obsWithoutContextSchema = joi.object({
@@ -39,7 +41,30 @@ export async function addContextToObservation(observation: ObservationClient): P
     context = await contextService.getContextForSensorAtTime(obsWithoutContext.madeBySensor, new Date(obsWithoutContext.resultTime));
   } catch (err) {
     if (err.name === 'ContextNotFound') {
+
       logger.debug('No context was found for this observation.');
+      // If no context is found, then it's either because we have no record of this sensor, or because the resultTime is outside of the contexts's start and end dates. If it's the case that the sensor is completely unknown then lets keep a record of this unknown sensor.
+      let sensorIsUnknown;
+      try {
+        // TODO: do we also want to find a sensor even if it has been deleted? {deletedAt: true}?
+        await getSensor(observation.madeBySensor);
+      } catch (err) {
+        if (err.name === 'SensorNotFound') {
+          sensorIsUnknown = true;
+        } else {
+          throw err;
+        }
+      }
+
+      if (sensorIsUnknown) {
+        logger.debug(`Upserting unknown sensor (sensor id: ${observation.madeBySensor})`);
+        const unknownSensor = {
+          id: observation.madeBySensor,
+          lastObservation: observation
+        };
+        await upsertUnknownSensor(unknownSensor);
+      }
+
     } else {
       throw err;
     }
