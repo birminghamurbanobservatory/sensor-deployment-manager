@@ -210,6 +210,7 @@ describe('Location observations are correctly processed by the addContextToObser
     // Create a location sensor on this permanent host
     const exampleObservedPropertyForLocationSensor = 'location';
     const locationSensorClient = {
+      id: 'zephyr-123-gps',
       name: 'Zephyr 123 GPS Sensor',
       permanentHost: permanentHost.id,
       defaults: [
@@ -221,6 +222,7 @@ describe('Location observations are correctly processed by the addContextToObser
     // Create a non-location sensor on this permanent host
     const exampleObservedPropertyForNonLocationSensor = 'no2-concentration';
     const nonLocationSensorClient = {
+      id: 'zephyr-123-no2',
       name: 'Zephyr 123 NO2 Sensor',
       permanentHost: permanentHost.id,
       defaults: [

@@ -41,10 +41,10 @@ const newSensorSchema = joi.object({
   // N.B. isHostedBy is not allow here. Hosting a sensor on a platform is a separate step and depends on whether the sensor has a permanentHost or not. 
   defaults: joi.array().items(defaultSchema)
 })
-.xor('permanentHost', 'inDeployment') 
-// Either a sensor has a permanentHost and is therefore added to a deployment via a registration key OR a standalone sensor must be created already in a deployment.
-.without('inDeployment', 'id')
-// When a sensor is being added directly to a deployment, then don't allow the user to set the id themselves, this is to avoid clashes with more readable IDs that superusers assign to sensors on permanentHosts.
+.or('id', 'inDeployment')
+// If an ID isn't provided, then inDeployment must be, as this indicates that a deployment sensor is being created.
+.without('inDeployment', 'permanentHost')
+// I don't want inDeployment and permanentHost to be set at the same time. Is the sensor has a permanentHost then the mechanism for adding the sensor to a deployment is via a registration key.
 .required();
 
 
@@ -142,10 +142,9 @@ const sensorUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   name: joi.string(),
   description: joi.string(),
+  inDeployment: joi.string().allow(null),
   permanentHost: joi.string().allow(null),
-  defaults: joi.object({})
-    .allow(null)
-    .unknown()  
+  defaults: joi.array().items(defaultSchema).allow(null) 
 })
 .min(1)
 .required(); 
@@ -161,18 +160,30 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   const {error: validationErr} = sensorUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
+  // If the sensor will have a permanentHost, then inDeployment cannot be set here, the mechanism for adding the sensor to the deployment would be via the registrationKey of the permanentHost
+  if ((updates.permanentHost || (oldSensor.permanentHost && updates.permanentHost !== null)) && updates.inDeployment) {
+    throw new BadRequest(`It is not possible to set 'inDeployment' when the sensor will have a permanent host.`);
+  }
+
   const permanentHostChange = check.containsKey(updates, 'permanentHost') && 
     oldSensor.permanentHost !== updates.permanentHost &&
     !(!oldSensor.permanentHost && updates.permanentHost === null);
 
-  const defaultsChange = check.containsKey(updates, 'defaultsChange');
+  const inDeploymentChange = check.containsKey(updates, 'inDeployment') && 
+    oldSensor.inDeployment !== updates.inDeployment &&
+    !(!oldSensor.inDeployment && updates.inDeployment === null);
 
-  // Only allow the user to update the permanentHost when the sensor is currently unassigned to a deployment or platform.
-  if (permanentHostChange && (oldSensor.inDeployment)) {
-    throw new BadRequest(`The sensor is still in the '${oldSensor.inDeployment}' deployment. Please remove it from this deployment before changing the permanent host`);
+  if (inDeploymentChange && oldSensor.isHostedBy) {
+    throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. You cannot change its deployment until the sensor is removed from this platform.`);
   }
+
   if (permanentHostChange && (oldSensor.isHostedBy)) {
-    throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. Please remove it from this platform before changing the permanent host`);
+    throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. You cannot change the permanent host until the platform is removed from this platform.`);
+  }
+
+  // Only allow the user to set the permanentHost if the sensor won't be assigned to a deployment
+  if (permanentHostChange && updates.permanentHost && oldSensor.inDeployment && updates.inDeployment !== null) {
+    throw new BadRequest(`The sensor cannot be assigned a permanent host when it is, or will be, in a deployment.`);
   }
 
   let permanentHost;
@@ -189,21 +200,36 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   const updatedSensor = await sensorService.updateSensor(id, updates);
   logger.debug(`Sensor '${id}' updated.`);
 
-  // If the sensor isn't in a deployment then changes to its defaults should also update its context
-  if (!oldSensor.inDeployment && defaultsChange) {
+  let contextUpdateRequired;
+  const transitionDate = new Date();
+  const newContext: ContextApp = {
+    sensor: id,
+    startDate: transitionDate,
+    defaults: updatedSensor.defaults
+    // We don't need to worry about inheriting defaults from the previous context, because the only thing (other than changing the defaults), that would trigger a context change is changing the deployment, in which case we'd want to revert to the sensor defaults anyway.
+    // Because inDeployment and permanentHost cannot be changed unless isHostedBy is unset, then we know that we don't need to add a isHostedBy property here.
+  };
+
+  // If the deployment has changed
+  if (inDeploymentChange) {
+    contextUpdateRequired = true;
+    if (updates.inDeployment) {
+      newContext.inDeployments = [updates.inDeployment];
+    }
+  }
+
+  const defaultsChange = check.containsKey(updates, 'defaultsChange');
+  if (defaultsChange) {
+    contextUpdateRequired = true;
+  }
+
+  if (contextUpdateRequired) {
 
     logger.debug(`Context for sensor ${id} needs updating.`);
-    
+
     // End current context
     const transitionDate = new Date();
     await contextService.endLiveContextForSensor(id, transitionDate);
-    
-    // Create new context
-    const newContext: ContextApp = {
-      sensor: id,
-      startDate: transitionDate,
-      defaults: updatedSensor.defaults || []
-    };
 
     // Create the new context
     const createdContext = await contextService.createContext(newContext);

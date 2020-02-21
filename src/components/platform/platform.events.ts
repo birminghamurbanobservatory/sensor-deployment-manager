@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createPlatform, getPlatform, getPlatforms, updatePlatform, unhostPlatform, rehostPlatform, deletePlatform} from './platform.controller';
+import {createPlatform, getPlatform, getPlatforms, updatePlatform, unhostPlatform, rehostPlatform, deletePlatform, releasePlatformSensors} from './platform.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird';
 import {PlatformClient} from './platform-client.class';
@@ -17,7 +17,8 @@ export async function subscribeToPlatformEvents(): Promise<void> {
     subscribeToPlatformUpdateRequests,
     subscribeToPlatformUnhostRequests,
     subscribeToPlatformRehostRequests,
-    subscribeToPlatformDeleteRequests
+    subscribeToPlatformDeleteRequests,
+    subscribeToPlatformReleaseSensorsRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -300,6 +301,42 @@ async function subscribeToPlatformDeleteRequests(): Promise<any> {
       const {error: err, value: validatedMsg} = platformsDeleteRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
       await deletePlatform(validatedMsg.where.id);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;  
+
+}
+
+
+//-------------------------------------------------
+// Delete Platform
+//-------------------------------------------------
+async function subscribeToPlatformReleaseSensorsRequests(): Promise<any> {
+
+  const eventName = 'platform.release-sensors.request';
+
+  const platformsDeleteRequestSchema = joi.object({
+    where: joi.object({
+      platformId: joi.string()
+        .required()
+    })
+  })
+  .required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    try {
+      const {error: err, value: validatedMsg} = platformsDeleteRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      await releasePlatformSensors(validatedMsg.where.platformId);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
