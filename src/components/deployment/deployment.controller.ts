@@ -69,7 +69,7 @@ export async function getDeployments(where: {user?: string; public?: boolean; id
 
 const updateDeploymentSchema = joi.object({
   name: joi.string(),
-  description: joi.string(),
+  description: joi.string().allow(''),
   public: joi.boolean()
 })
 .required();

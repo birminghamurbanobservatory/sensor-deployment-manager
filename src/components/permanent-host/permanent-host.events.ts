@@ -4,7 +4,7 @@ import {Promise} from 'bluebird';
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
-import {createPermanentHost, getPermanentHost, getPermanentHosts, deletePermanentHost} from './permanent-host.controller';
+import {createPermanentHost, getPermanentHost, getPermanentHosts, deletePermanentHost, updatePermanentHost} from './permanent-host.controller';
 import {PermanentHostClient} from './permanent-host-client.class';
 
 
@@ -14,6 +14,7 @@ export async function subscribeToPermanentHostEvents(): Promise<void> {
     subscribeToPermanentHostCreateRequests,
     subscribeToPermanentHostGetRequests,
     subscribeToPermanentHostsGetRequests,
+    subscribeToPermanentHostUpdateRequests,
     subscribeToPermanentHostDeleteRequests
   ];
 
@@ -143,6 +144,44 @@ async function subscribeToPermanentHostGetRequests(): Promise<any> {
   return;
 }
 
+
+//-------------------------------------------------
+// Update Permanent Host
+//-------------------------------------------------
+async function subscribeToPermanentHostUpdateRequests(): Promise<any> {
+  
+  const eventName = 'permament-host.update.request';
+
+  const permanentHostUpdateRequestSchema = joi.object({
+    where: joi.object({
+      id: joi.string().required()
+    })
+      .required(),
+    updates: joi.object({}) // let the controller and model schemas handle the detailed validation.
+      .min(1)
+      .unknown()
+      .required()
+  }).required();
+
+  await event.subscribe(eventName, async (message): Promise<void> => {
+
+    logger.debug(`New ${eventName} message.`, message);
+
+    let updatedPermanentHost: PermanentHostClient;
+    try {
+      const {error: err} = permanentHostUpdateRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
+      updatedPermanentHost = await updatePermanentHost(message.where.id, message.updates);
+    } catch (err) {
+      logCensorAndRethrow(eventName, err);
+    }
+
+    return updatedPermanentHost;
+  });
+
+  logger.debug(`Subscribed to ${eventName} requests`);
+  return;
+}
 
 
 //-------------------------------------------------

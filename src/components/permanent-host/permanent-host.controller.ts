@@ -7,11 +7,12 @@ import {nameToClientId} from '../../utils/name-to-client-id';
 import {PermanentHostApp} from './permanent-host-app.class';
 import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
 import {SensorNotFound} from '../sensor/errors/SensorNotFound';
-import {getSensor} from '../sensor/sensor.service';
+import {getSensor, getSensors} from '../sensor/sensor.service';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {InvalidPermanentHost} from './errors/InvalidPermanentHost';
 import {Forbidden} from '../../errors/Forbidden';
+import {SensorsRemainOnPermanentHost} from './errors/SensorsRemainOnPermanentHost';
 
 
 const newPermanentHostSchema = joi.object({
@@ -84,7 +85,7 @@ export async function getPermanentHosts(where: any): Promise<PermanentHostClient
 // Allow updates to permanent hosts, e.g. changing the name, description or updateLocationWithSensor (with this the listed sensor's permanentHost must match the permanentHost being updated).
 const updatePermanentHostSchema = joi.object({
   name: joi.string(),
-  description: joi.string(),
+  description: joi.string().allow(''),
   static: joi.boolean(),
   updateLocationWithSensor: joi.string().allow(null)
 })
@@ -131,7 +132,13 @@ export async function updatePermanentHost(id: string, updates: {name?: string; d
 
 export async function deletePermanentHost(id: string): Promise<void> {
 
-  // Delete the platform
+  // Don't allow it to be deleted if there are still sensors bound to it.
+  const hostedSensors = await getSensors({permanentHost: id});
+  if (hostedSensors.length > 0) {
+    const sensorIds = hostedSensors.map((sensor) => sensor.id);
+    throw new SensorsRemainOnPermanentHost(`Cannot be deleted until the following sensors have been removed from this permanent host: ${sensorIds.join(',')}.`);
+  }
+
   logger.debug(`Deleting permanent host '${id}'`);
   await permanentHostService.deletePermanentHost(id);
   logger.debug(`Permanent host '${id}' deleted`);

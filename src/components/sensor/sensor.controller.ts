@@ -323,9 +323,19 @@ export async function unhostSensorFromPlatform(sensorId: string): Promise<Sensor
 
 export async function deleteSensor(id: string): Promise<void> {
 
+  // If this sensor is hosted on a permanentHost then we'll need to make sure this permanentHost isn't using this sensor to update it's location, if so we need to change this.
+  const sensor = await sensorService.getSensor(id);
+  if (sensor.permanentHost) {
+    const permanentHost = await permanentHostService.getPermanentHost(sensor.permanentHost);
+    if (permanentHost.updateLocationWithSensor === id) {
+      await permanentHostService.updatePermanentHost(permanentHost.id, {updateLocationWithSensor: null});
+    }
+  }
+
   await contextService.endLiveContextForSensor(id, new Date());
   await sensorService.deleteSensor(id);
   await platformService.removeSensorFromAnyMatchingUpdateLocationWithSensor(id);
+
   return;
 
 }
