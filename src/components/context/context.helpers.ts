@@ -9,78 +9,59 @@ export function giveObsContext(observation: ObservationApp, context: ContextApp)
   const merged = cloneDeep(observation);
 
   const easyMergeKeys = ['inDeployments', 'hostedByPath'];
-  const complexMergeKeys = ['observedProperty', 'hasFeatureOfInterest', 'usedProcedures'];
-
   easyMergeKeys.forEach((key) => {
     if (check.not.assigned(observation[key]) && check.assigned(context[key])) {
       merged[key] = context[key];
     }
   });
 
-  // Step 1. Apply any defaults for properties that don't also have 'when' defaults
-  complexMergeKeys.forEach((key) => {
+  const observedPropertyInObservation = observation.observedProperty;
 
-    // Only add these defaults if the given property isn't already set.
-    if (check.not.assigned(observation[key])) {
+  let configToMerge;
 
-      const defaultsForThisKey = context.defaults.filter((def) => {
-        return check.assigned(def[key]);
+  if (context.config.length > 0) {
+
+    if (observedPropertyInObservation) {
+
+      const matchingConfig = context.config.find((config) => {
+        return config.observedProperty === observedPropertyInObservation;
       });
 
-      const whenDefaultsForThisKey = defaultsForThisKey.filter((def) => {
-        return check.assigned(def.when);
-      });
+      if (matchingConfig) {
+        configToMerge = matchingConfig;
 
-      if (whenDefaultsForThisKey.length === 0) {
-        defaultsForThisKey.forEach((def) => {
-          merged[key] = def[key];
+      } else {
+        // Get the config with priority instead
+        const priorityConfig = context.config.find((config) => {
+          return config.hasPriority;
         });
+        configToMerge = priorityConfig;
       }
 
-    }
+    } else {
 
-  });
-
-  // Step 2. Now apply any defaults with a matching 'when' clause 
-  complexMergeKeys.forEach((key) => {
-
-    // Only add these defaults if the given property isn't already set.
-    if (check.not.assigned(observation[key])) {
-
-      const whenDefaultsForThisKey = context.defaults.filter((def) => {
-        return check.assigned(def[key]) && check.assigned(def.when);
+      // Get the config with priority instead
+      const priorityConfig = context.config.find((config) => {
+        return config.hasPriority;
       });
-
-      whenDefaultsForThisKey.forEach((def) => {
-        if (isMatch(merged, def.when)) {
-          merged[key] = def[key];
-        }
-      });
+      configToMerge = priorityConfig;
 
     }
 
-  });  
+  }
 
-  // Step 3. Now if the whens didn't find anything they could apply, then we can apply the non-when defaults if available.
-  complexMergeKeys.forEach((key) => {
+  if (configToMerge) {
 
-    // Only add these defaults if the given property isn't already set.
-    if (check.not.assigned(merged[key])) {
+    const complexMergeKeys = ['observedProperty', 'hasFeatureOfInterest', 'usedProcedure', 'discipline'];
 
-      const defaultsWithoutWhenForThisKey = context.defaults.filter((def) => {
-        return check.assigned(def[key]) && check.not.assigned(def.when);
-      });
+    complexMergeKeys.forEach((key) => {
+      // Add the config property if it hasn't already been set in the observation. In theory observedProperty would be the only property that would already be set anyway
+      if (configToMerge[key] && !observation[key]) {
+        merged[key] = configToMerge[key];
+      }
+    });
 
-      defaultsWithoutWhenForThisKey.forEach((def) => {
-        merged[key] = def[key];
-      });
-
-    }
-
-  });
-
-
-  // TODO: should I be concatinating the userProcedures array?
+  }
 
   return merged;
 

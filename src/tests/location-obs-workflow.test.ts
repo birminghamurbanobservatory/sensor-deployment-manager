@@ -58,8 +58,11 @@ describe('Location observations are correctly processed by the addContextToObser
     // Create a sensor
     const sensorClient = {
       inDeployment: primaryDeployment.id,
-      defaults: [
-        {observedProperty: 'location'}
+      initialConfig: [
+        {
+          hasPriority: true,
+          observedProperty: 'location'
+        }
       ]
     };
 
@@ -213,8 +216,11 @@ describe('Location observations are correctly processed by the addContextToObser
       id: 'zephyr-123-gps',
       name: 'Zephyr 123 GPS Sensor',
       permanentHost: permanentHost.id,
-      defaults: [
-        {observedProperty: exampleObservedPropertyForLocationSensor}
+      initialConfig: [
+        {
+          hasPriority: true,
+          observedProperty: exampleObservedPropertyForLocationSensor
+        }
       ]
     };
     const locationSensor = await sensorController.createSensor(locationSensorClient);    
@@ -225,8 +231,11 @@ describe('Location observations are correctly processed by the addContextToObser
       id: 'zephyr-123-no2',
       name: 'Zephyr 123 NO2 Sensor',
       permanentHost: permanentHost.id,
-      defaults: [
-        {observedProperty: exampleObservedPropertyForNonLocationSensor}
+      initialConfig: [
+        {
+          hasPriority: true,
+          observedProperty: exampleObservedPropertyForNonLocationSensor
+        }
       ]
     };
     const nonLocationSensor = await sensorController.createSensor(nonLocationSensorClient);

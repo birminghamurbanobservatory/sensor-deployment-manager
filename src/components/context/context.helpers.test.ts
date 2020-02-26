@@ -19,14 +19,13 @@ describe('mergeObsWithContext function tests', () => {
       startDate: new Date('2019-12-02T15:00:12.775Z'),
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],
-      defaults: [
+      config: [
         { 
-          observedProperty: 'air-temperature'
-        }, {
-          hasFeatureOfInterest: 'weather'
-        },
-        {
-          usedProcedures: ['point-sample']
+          hasPriority: true,
+          observedProperty: 'AirTemperature',
+          hasFeatureOfInterest: 'EarthAtmosphere',
+          discipline: ['Meteorology'],
+          usedProcedure: ['point-sample']
         }
       ]
     };
@@ -37,11 +36,12 @@ describe('mergeObsWithContext function tests', () => {
         value: 22.2
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
-      observedProperty: 'air-temperature',
-      hasFeatureOfInterest: 'weather',   
+      observedProperty: 'AirTemperature',
+      hasFeatureOfInterest: 'EarthAtmosphere',   
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],     
-      usedProcedures: ['point-sample']
+      usedProcedure: ['point-sample'],
+      discipline: ['Meteorology'],
     };
 
     const merged = giveObsContext(observation, context);
@@ -50,7 +50,7 @@ describe('mergeObsWithContext function tests', () => {
   });
 
 
-  test(`Can handle some 'when' objects`, () => {
+  test(`Works when as expected when multiple configs defined`, () => {
     
     const observation = {
       madeBySensor: 'solar-panel-123',
@@ -66,19 +66,17 @@ describe('mergeObsWithContext function tests', () => {
       startDate: new Date('2019-12-02T15:00:12.775Z'),      
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],
-      defaults: [
+      config: [
         {
-          observedProperty: 'voltage'
+          hasPriority: true,
+          observedProperty: 'voltage',
+          discipline: ['Energy']
         },
         {
-          hasFeatureOfInterest: 'energy'
+          hasPriority: false,
+          observedProperty: 'solar-radiation',
+          discipline: ['Meteorology']        
         },
-        {
-          hasFeatureOfInterest: 'weather',
-          when: {
-            observedProperty: 'solar-radiation'
-          }
-        }
       ]
     };
 
@@ -89,7 +87,7 @@ describe('mergeObsWithContext function tests', () => {
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'solar-radiation',
-      hasFeatureOfInterest: 'weather',   
+      discipline: ['Meteorology'],    
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],         
     };
@@ -101,102 +99,43 @@ describe('mergeObsWithContext function tests', () => {
 
 
 
-
-  test('Applies values first if no whens, then whens, then values with whens (case 1)', () => {
+  test(`Applies the hasPriority config when no observed property in the observation`, () => {
     
     const observation = {
       madeBySensor: 'solar-panel-123',
       hasResult: {
-        value: 820
+        value: 3.4
       },
-      resultTime: new Date('2019-12-04T13:00:19.665Z')
+      resultTime: new Date('2019-12-04T13:00:19.665Z'),
     };
 
-    const context = { 
+    const context: ContextApp = { 
       sensor: 'solar-panel-123',
       startDate: new Date('2019-12-02T15:00:12.775Z'),      
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],
-      defaults: [
+      config: [
         {
-          observedProperty: 'voltage'
+          hasPriority: true,
+          observedProperty: 'voltage',
+          discipline: ['Energy']
         },
         {
-          hasFeatureOfInterest: 'energy',
-          when: {
-            observedProperty: 'voltage'
-          }
+          hasPriority: false,
+          observedProperty: 'solar-radiation',
+          discipline: ['Meteorology']        
         },
-        {
-          hasFeatureOfInterest: 'weather',
-          when: {
-            observedProperty: 'solar-radiation'
-          }
-        }
       ]
     };
 
     const expected = {
       madeBySensor: 'solar-panel-123',
       hasResult: {
-        value: 820
+        value: 3.4
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'voltage',
-      hasFeatureOfInterest: 'energy',   
-      inDeployments: ['deployment-1'],
-      hostedByPath: ['platform-parent', 'platform-child'],         
-    };
-
-    const merged = giveObsContext(observation, context);
-    expect(merged).toEqual(expected);
-
-  });
-
-
-  test('Applies values first if no whens, then whens, then values with whens (case 2)', () => {
-    
-    const observation = {
-      madeBySensor: 'solar-panel-123',
-      hasResult: {
-        value: 820
-      },
-      resultTime: new Date('2019-12-04T13:00:19.665Z'),
-      observedProperty: 'solar-radiation' // in this case the observed property is provided
-    };
-
-    const context = { 
-      sensor: 'solar-panel-123',
-      startDate: new Date('2019-12-02T15:00:12.775Z'),      
-      inDeployments: ['deployment-1'],
-      hostedByPath: ['platform-parent', 'platform-child'],
-      defaults: [
-        {
-          observedProperty: 'voltage'
-        },
-        {
-          hasFeatureOfInterest: 'energy',
-          when: {
-            observedProperty: 'voltage'
-          }
-        },
-        {
-          hasFeatureOfInterest: 'weather',
-          when: {
-            observedProperty: 'solar-radiation'
-          }
-        }
-      ]
-    };
-
-    const expected = {
-      madeBySensor: 'solar-panel-123',
-      hasResult: {
-        value: 820
-      },
-      resultTime: new Date('2019-12-04T13:00:19.665Z'),
-      observedProperty: 'solar-radiation',
-      hasFeatureOfInterest: 'weather',   
+      discipline: ['Energy'],    
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],         
     };

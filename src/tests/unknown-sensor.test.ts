@@ -53,8 +53,9 @@ describe('Unknown sensor tests', () => {
       id: 'sensor-123',
       name: 'Sensor 123',
       permanentHost: permanentHost.id,
-      defaults: [
+      initialConfig: [
         {
+          hasPriority: true,
           observedProperty: exampleObservedProperty
         },
       ]
@@ -136,8 +137,9 @@ describe('Unknown sensor tests', () => {
       id: unknownSensorId,
       name: 'Now known sensor',
       permanentHost: permanentHost.id,
-      defaults: [
+      initialConfig: [
         {
+          hasPriority: true,
           observedProperty: exampleObservedProperty
         },
       ]

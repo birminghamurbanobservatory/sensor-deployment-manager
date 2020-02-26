@@ -8,20 +8,23 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
-const defaultSchema = new mongoose.Schema({
-  observedProperty: String,
+const configSchema = new mongoose.Schema({
+  hasPriority: {
+    type: Boolean,
+    required: true
+  }, // if true then use this over the others when the observation has no observedProperty.
+  observedProperty: {
+    type: String,
+    required: true // because the value of determines that this is the set of properties to apply.
+  },
   hasFeatureOfInterest: String,
-  usedProcedures: {
+  discipline: {
     type: [String],
     default: undefined // so it doesn't assign an empty array by default
   },
-  when: {
-    observedProperty: String,
-    hasFeatureOfInterest: String,
-    usedProcedures: {
-      type: [String],
-      default: undefined // so it doesn't assign an empty array by default
-    }    
+  usedProcedure: {
+    type: [String],
+    default: undefined // so it doesn't assign an empty array by default
   }
 });
 
@@ -60,8 +63,12 @@ const schema = new mongoose.Schema({
   permanentHost: {
     type: String
   },
-  defaults: {
-    type: [defaultSchema],
+  initialConfig: {
+    type: [configSchema],
+    default: [] // we want this to be an empty array by default
+  },
+  currentConfig: {
+    type: [configSchema],
     default: [] // we want this to be an empty array by default
   },
   // for soft deletes

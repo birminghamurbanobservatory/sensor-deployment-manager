@@ -8,7 +8,7 @@ export class ObservationApp {
   public hasFeatureOfInterest?: string;
   public location?: Location;
   public observedProperty?: string;
-  public usedProcedures?: string[];
+  public usedProcedure?: string[];
 }
 
 class Result {

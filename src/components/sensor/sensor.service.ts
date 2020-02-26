@@ -159,7 +159,7 @@ export async function removeSensorsFromDeployment(deploymentId: string): Promise
 
 export async function updateSensor(id: string, updates: any): Promise<SensorApp> {
 
-  // N.B. for simplicity we won't let users update individual properties of the defaults object, if they want to update the defaults they have to provide all the defaults they want everytime.
+  // N.B. for simplicity we won't let users update individual objects in the initialConfig or currentConfig arrays. Theyt'll have to update the whole thing in one go. 
 
   // If there's any properties such as inDeployment or isHostedBy that you want to remove completely, e.g. because a sensor has been removed from a deployment then pass in a value of null to have the property unset, e.g. {inDeployment: null}.
   const modifiedUpdates = replaceNullUpdatesWithUnset(updates);
@@ -264,16 +264,18 @@ function sensorDbToApp(sensorDb: any): SensorApp {
   sensorApp.id = sensorApp._id.toString();
   delete sensorApp._id;
   delete sensorApp.__v;
-  if (sensorApp.defaults) {
-    sensorApp.defaults = sensorApp.defaults.map((def): any => {
-      if (def._id) {
-        def.id = def._id;
-        delete def._id;
-      }
-      return def;
-    });
-  }  
+  sensorApp.initialConfig = sensorApp.initialConfig.map(renameId);
+  sensorApp.currentConfig = sensorApp.currentConfig.map(renameId);
   return sensorApp;
+}
+
+
+function renameId(doc): any {
+  if (doc._id) {
+    doc.id = doc._id;
+    delete doc._id;
+  }
+  return doc;
 }
 
 

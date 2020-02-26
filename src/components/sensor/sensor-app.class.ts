@@ -5,20 +5,17 @@ export class SensorApp {
   public inDeployment?: string;
   public isHostedBy?: string;
   public permanentHost?: string;
-  public defaults?: Default[]; 
+  public initialConfig?: Config[];
+  public currentConfig?: Config[];
   public createdAt?: string;
   public updatedAt?: string;
 }
 
-export class Default {
+export class Config {
   id?: string;
+  hasPriority?: boolean;
   observedProperty?: string;
   hasFeatureOfInterest?: string;
-  usedProcedures?: string[];
-  when?: When;
-}
-
-export class When {
-  observedProperty?: string;
-  hasFeatureOfInterest?: string;
+  discipline?: string[];
+  usedProcedure?: string[];
 }

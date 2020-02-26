@@ -74,7 +74,7 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
       startDate: transitionDate,
       inDeployments: [sensor.inDeployment], 
       hostedByPath: [sensor.isHostedBy],
-      defaults: sensor.defaults || []
+      config: sensor.initialConfig || []
     };
     return await contextService.createContext(newContext);
   });

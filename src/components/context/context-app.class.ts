@@ -5,21 +5,17 @@ export class ContextApp {
   public endDate?: Date;
   public inDeployments?: string[];
   public hostedByPath?: string[];
-  public defaults?: Default[];
+  public config?: Config[];
 }
 
 
-export class Default {
+export class Config {
   id?: string;
+  hasPriority?: boolean;
   observedProperty?: string;
   hasFeatureOfInterest?: string;
-  usedProcedures?: string[];
-  when?: When;
-}
-
-export class When {
-  observedProperty?: string;
-  hasFeatureOfInterest?: string;
+  discipline?: string[];
+  usedProcedure?: string[];
 }
 
 

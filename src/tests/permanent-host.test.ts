@@ -126,12 +126,11 @@ describe('Permanent host testing', () => {
       id: 'sensor-123',
       name: 'Sensor 123',
       permanentHost: permanentHost.id,
-      defaults: [
+      initialConfig: [
         {
-          observedProperty: 'temperature'
-        },
-        {
-          hasFeatureOfInterest: 'weather'
+          hasPriority: true,
+          observedProperty: 'temperature',
+          hasFeatureOfInterest: 'EarthAtmosphere'
         }
       ]
     };

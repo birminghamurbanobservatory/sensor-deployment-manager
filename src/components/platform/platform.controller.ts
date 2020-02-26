@@ -416,7 +416,7 @@ export async function deletePlatform(id: string): Promise<void> {
     if (sensor.permanentHost) {
       await sensorService.removeSensorFromDeployment(sensor.id);
       // This will require a more drastic change to the context
-      await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.defaults);
+      await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.initialConfig);
     }
 
   });
@@ -455,7 +455,7 @@ export async function releasePlatformSensors(id: string): Promise<void> {
     if (sensor.permanentHost) {
       await sensorService.removeSensorFromDeployment(sensor.id);
       // This will require a more drastic change to the context
-      await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.defaults);
+      await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.initialConfig);
     }
 
   });

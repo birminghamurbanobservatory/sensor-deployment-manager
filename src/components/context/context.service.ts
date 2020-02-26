@@ -176,8 +176,8 @@ export async function endLiveContextsForPlatform(platformId: string, endDate?: o
 }
 
 
-// When a sensor leaves a deployment the context is created from scratch again using any sensor defaults.
-export async function processSensorRemovedFromDeployment(sensorId: string, sensorDefaults?: any): Promise<void> {
+// When a sensor leaves a deployment the context is created from scratch again using any sensor initialConfig.
+export async function processSensorRemovedFromDeployment(sensorId: string, initialConfig?: any): Promise<void> {
 
   const transitionDate = new Date();
 
@@ -189,8 +189,8 @@ export async function processSensorRemovedFromDeployment(sensorId: string, senso
     startDate: transitionDate
   };
 
-  if (sensorDefaults) {
-    newContext.defaults = sensorDefaults;
+  if (initialConfig) {
+    newContext.config = initialConfig;
   }
 
   // Create the new context
@@ -566,16 +566,17 @@ function contextDbToApp(contextDb: any): ContextApp {
   contextApp.id = contextApp._id.toString();
   delete contextApp._id;
   delete contextApp.__v;
-  if (contextApp.defaults) {
-    contextApp.defaults = contextApp.defaults.map((def): any => {
-      if (def._id) {
-        def.id = def._id;
-        delete def._id;
-      }
-      return def;
-    });
-  } 
+  contextApp.config = contextApp.config.map(renameId);
   return contextApp;
+}
+
+
+function renameId(doc): any {
+  if (doc._id) {
+    doc.id = doc._id;
+    delete doc._id;
+  }
+  return doc;
 }
 
 
