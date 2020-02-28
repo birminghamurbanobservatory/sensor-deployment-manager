@@ -223,15 +223,6 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
     await permanentHostService.updatePermanentHost(permanentHost.id, {updateLocationWithSensor: null});
   }
 
-  // If the sensor is not staying in the same deployment then, and the initialConfig is being updated and the currentConfig is not, then we'll want the currentConfig to be the same as the initialConfig.
-  if (
-    validUpdates.initialConfig &&  
-    !validUpdates.currentConfig &&
-    (inDeploymentChange || oldSensor.inDeployment === null)
-  ) {
-    validUpdates.currentConfig = validUpdates.initialConfig;
-  }
-
   const updatedSensor = await sensorService.updateSensor(id, validUpdates);
   logger.debug(`Sensor '${id}' updated.`);
 
