@@ -12,6 +12,7 @@ import {observationAppToClient, observationClientToApp} from '../observation/obs
 import {ObservationClient} from '../observation/observation-client.class';
 import {upsertUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
 import {getSensor} from '../sensor/sensor.service';
+import * as check from 'check-types';
 
 
 const obsWithoutContextSchema = joi.object({
@@ -77,12 +78,23 @@ export async function addContextToObservation(observation: ObservationClient): P
     updatedObs = cloneDeep(obsWithoutContext);
   }
 
-  // Is this an observation of a location, e.g. from a gps sensor.
-  // TODO: update this so that any type of sensor can update a platforms location, just so long as it has a location object. This will be how I keep the netatmo locations up to date.
-  const observesLocation = updatedObs.observedProperty === 'location';
+
+  // Chances are if I'm getting data from GPS sensors then the ingestor will add the location to the 'location' property, and not just have it as the value, but just in case it doesn't let's use the code below to make sure the 'location' property is added. It's worth adding this now so that it's given an id that's stored in any platform locations that are updated, and will be passed on to be saved by the observations-manager.
+  if (updatedObs.observedProperty === 'Location' && !updatedObs.location) {
+    // Let's double check that the value is valid geometry
+    validateGeometry(updatedObs.hasResult.value);
+    updatedObs.location = {
+      id: uuid(),
+      validAt: new Date(updatedObs.resultTime),
+      geometry: updatedObs.hasResult.value
+    };
+  }
+
+
+  const observesLocation = check.nonEmptyObject(updatedObs.location);
 
   //------------------------
-  // Non-location observations
+  // Observation without location
   //------------------------
   if (!observesLocation) {
 
@@ -105,20 +117,9 @@ export async function addContextToObservation(observation: ObservationClient): P
     }
 
   //------------------------
-  // Location observations
+  // Observation with location
   //------------------------
   } else {
-
-    // If it doesn't have a location object yet then add one. It's worth adding this now so that it's given an id thats stored in any platform locations that are updated, and will be passed on to be saved by the observations-manager.
-    if (!updatedObs.location) {
-      // Let's double check that the value is valid geometry
-      validateGeometry(updatedObs.hasResult.value);
-      updatedObs.location = {
-        id: uuid(),
-        validAt: new Date(updatedObs.resultTime),
-        geometry: updatedObs.hasResult.value
-      };        
-    }
 
     // Are there any platforms that have their location updated by this sensor
     if (updatedObs.inDeployments && updatedObs.inDeployments.length > 0) {

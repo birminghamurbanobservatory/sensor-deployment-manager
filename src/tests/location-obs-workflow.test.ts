@@ -61,7 +61,7 @@ describe('Location observations are correctly processed by the addContextToObser
       initialConfig: [
         {
           hasPriority: true,
-          observedProperty: 'location'
+          observedProperty: 'Location'
         }
       ]
     };
@@ -211,7 +211,7 @@ describe('Location observations are correctly processed by the addContextToObser
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
     // Create a location sensor on this permanent host
-    const exampleObservedPropertyForLocationSensor = 'location';
+    const exampleObservedPropertyForLocationSensor = 'Location';
     const locationSensorClient = {
       id: 'zephyr-123-gps',
       name: 'Zephyr 123 GPS Sensor',

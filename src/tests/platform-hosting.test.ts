@@ -156,7 +156,7 @@ describe('Context documents are created and updated correctly', () => {
       initialConfig: [
         {
           hasPriority: true,
-          observedProperty: 'location'
+          observedProperty: 'Location'
         },
       ]
     };

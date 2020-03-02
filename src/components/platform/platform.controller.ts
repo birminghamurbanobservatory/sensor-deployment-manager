@@ -184,13 +184,13 @@ const platformUpdatesSchema = joi.object({
     })
     .required()
   }),
-  updateLocationWithSensor: joi.string()
+  updateLocationWithSensor: joi.string().allow(null)
     .when('static', {is: true, then: joi.forbidden()}),
 });
 // N.B. this particular function only allows certain properties of a platform to be updated, i.e. direct features of a platform rather than its relationships with other things, e.g. other platforms and deployments. Other controller functions handle this.
 export async function updatePlatform(id: string, updates: any): Promise<PlatformClient> {
 
-  const {error: validationErr} = platformUpdatesSchema.validate(updates);
+  const {error: validationErr, value: updatesToApply} = platformUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
   // Get the platform
@@ -203,7 +203,6 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
 
   if (updates.updateLocationWithSensor) {
     // Check the sensor exists
-    // TODO: might want to check it's a sensor that can actually measure location too
     let sensor;
     try {
       sensor = await sensorService.getSensor(updates.updateLocationWithSensor);
@@ -215,7 +214,7 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
       }
     }
 
-    // Now we need to check if this sensor is actually hosted (directly or indirectly) on this platform.
+    // Now we need to check if this sensor is hosted on the same tree that this platform is on.
     const relativePlatforms = await platformService.getRelativesOfPlatform(id);
     const relativePlatformIds = relativePlatforms.map((relativePlatform) => relativePlatform.id);
     if (sensor.isHostedBy !== id && !relativePlatformIds.includes(sensor.isHostedBy)) {
@@ -223,7 +222,14 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
     }
   }
 
-  const updatedPlatform = await platformService.updatePlatform(id, updates);
+  if (updates.location) {
+    updatesToApply.location.validAt = new Date();
+    if (!updates.location.id) {
+      updatesToApply.location.id = uuid();
+    }
+  }
+
+  const updatedPlatform = await platformService.updatePlatform(id, updatesToApply);
   const platformForClient = platformService.platformAppToClient(updatedPlatform);
   return platformForClient;
 
