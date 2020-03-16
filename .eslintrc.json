@@ -116,7 +116,7 @@
     "newline-per-chained-call": [
       "error",
       { 
-        "ignoreChainWithDepth": 4
+        "ignoreChainWithDepth": 6
       }
     ],
     // "padded-blocks": [

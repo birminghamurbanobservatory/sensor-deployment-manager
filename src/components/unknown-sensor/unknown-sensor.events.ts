@@ -1,9 +1,11 @@
 import * as event from 'event-stream';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
+import * as joi from '@hapi/joi';
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
 import {UnknownSensorClient} from './unknown-sensor-client.class';
 import {getUnknownSensors} from './unknown-sensor.controller';
+import {BadRequest} from '../../errors/BadRequest';
 
 export async function subscribeToUnknownSensorEvents(): Promise<void> {
 
@@ -32,24 +34,30 @@ export async function subscribeToUnknownSensorEvents(): Promise<void> {
 
 
 //-------------------------------------------------
-// Get Sensors
+// Get Unknown Sensors
 //-------------------------------------------------
 async function subscribeToUnknownSensorsGetRequests(): Promise<any> {
 
   const eventName = 'unknown-sensors.get.request';
 
+  const unknownSensorGetRequestSchema = joi.object({
+    options: joi.object({}).unknown() // let the controller check this
+  }).required();
+
   await event.subscribe(eventName, async (message): Promise<void> => {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let unknownSensors: UnknownSensorClient[];
+    let results;
     try {
-      unknownSensors = await getUnknownSensors();
+      const {error: err} = unknownSensorGetRequestSchema.validate(message);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);   
+      results = await getUnknownSensors(message.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return unknownSensors;
+    return results;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

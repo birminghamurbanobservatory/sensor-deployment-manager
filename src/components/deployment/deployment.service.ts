@@ -116,8 +116,6 @@ export async function getDeploymentsById(deploymentIds: string[]): Promise<Deplo
 
 
 
-
-
 export async function updateDeployment(id: string, updates: any): Promise<DeploymentApp> {
 
   let updatedDeployment;

@@ -6,6 +6,8 @@ import {UpsertUnknownSensorFail} from './errors/UpsertUnknownSensorFail';
 import {GetUnknownSensorsFail} from './errors/GetUnknownSensorsFail';
 import {UnknownSensorNotFound} from './errors/UnknownSensorNotFound';
 import {DeleteUnknownSensorFail} from './errors/DeleteUnknownSensorFail';
+import {PaginationOptions} from '../common/pagination-options.class';
+import * as check from 'check-types';
 
 
 export async function upsertUnknownSensor(unknownSensor: UnknownSensorApp): Promise<UnknownSensorApp> {
@@ -36,16 +38,58 @@ export async function upsertUnknownSensor(unknownSensor: UnknownSensorApp): Prom
 }
 
 
-export async function getUnknownSensors(): Promise<UnknownSensorApp[]> {
+export async function getUnknownSensors(options: PaginationOptions = {}): Promise<{data: UnknownSensorApp[]; totalCount: number}> {
 
-  let unknownSensors;
+  const where = {};
+
+  const sortObj = {};
+  const sortOrderNumeric = options.sortOrder === 'desc' ? -1 : 1;
+  const sortKey = (!options.sortBy || options.sortBy === 'id') ? '_id' : options.sortBy;
+  sortObj[sortKey] = sortOrderNumeric;
+
+  // Build the array of aggregate stages for getting the data itself.
+  const dataStages: any = [
+    {$match: where},
+    {$sort: sortObj}
+  ];
+
+  if (check.assigned(options.offset)) {
+    dataStages.push({$skip: options.offset});
+  }
+
+  if (check.assigned(options.limit)) {
+    dataStages.push({$limit: options.limit});
+  }
+
+  let results;
   try {
-    unknownSensors = await UnknownSensor.find({}).exec();
+    const response = await UnknownSensor.aggregate()
+    .facet({
+      data: dataStages,
+      totalCount: [
+        {$match: where},
+        {$count: 'totalCount'}
+      ]
+    })
+    .exec();
+    results = response[0]; // for some reason the response is in an array
   } catch (err) {
     throw new GetUnknownSensorsFail(undefined, err.message);
   }
 
-  return unknownSensors.map(unknownSensorDbToApp);  
+  const unknownSensorsForApp = results.data.map(unknownSensorDbToApp);
+
+  let totalCount;
+  if (results.totalCount.length > 0) {
+    totalCount = results.totalCount[0].totalCount;
+  } else {
+    totalCount = 0;
+  }
+
+  return {
+    data: unknownSensorsForApp,
+    totalCount
+  };
 
 }
 
@@ -80,7 +124,11 @@ function unknownSensorAppToDb(unknownSensorApp: UnknownSensorApp): object {
 
 
 function unknownSensorDbToApp(unknownSensorDb: any): UnknownSensorApp {
-  const unknownSensorApp = unknownSensorDb.toObject();
+  let unknownSensorApp = cloneDeep(unknownSensorDb);
+  if (unknownSensorApp.toObject) {
+    // Need this if statement, because .aggregate responses seem to be POJO
+    unknownSensorApp = unknownSensorApp.toObject();
+  }
   unknownSensorApp.id = unknownSensorApp._id.toString();
   delete unknownSensorApp._id;
   delete unknownSensorApp.__v;
