@@ -121,7 +121,13 @@ async function subscribeToSensorsGetRequests(): Promise<any> {
 
   const sensorsGetRequestSchema = joi.object({
     where: joi.object({
-      inDeployment: joi.string(),
+      inDeployment: joi.alternatives().try(
+        joi.string(),
+        joi.object({
+          in: joi.array().items(joi.string()).min(1),
+          exists: joi.boolean()
+        }).min(1)
+      ),
       permanentHost: joi.string(),
       id: joi.object({
         begins: joi.string()
