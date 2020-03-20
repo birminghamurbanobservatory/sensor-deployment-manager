@@ -78,7 +78,8 @@ describe('Unknown sensor tests', () => {
     expect(knownSensorObsWithContext.observedProperty).toBe(exampleObservedProperty);
 
     // At this point there should be no unknown sensors
-    let unknownSensors = await unknownSensorController.getUnknownSensors();
+    const result1 = await unknownSensorController.getUnknownSensors();
+    let unknownSensors = result1.data;
     expect(unknownSensors.length).toBe(0);
 
     // Now to try adding context to an unknown sensor
@@ -95,10 +96,10 @@ describe('Unknown sensor tests', () => {
     expect(unknownSensorObsWithContext).toEqual(unknownSensorObsWithoutContext1);
 
     // We should now have any unknown sensor
-    unknownSensors = await unknownSensorController.getUnknownSensors();
-    let unknownSensor;
+    const result2 = await unknownSensorController.getUnknownSensors();
+    unknownSensors = result2.data;
     expect(unknownSensors.length).toBe(1);
-    unknownSensor = unknownSensors[0];
+    let unknownSensor = unknownSensors[0];
     expect(typeof unknownSensor.createdAt).toBe('string');
     expect(typeof unknownSensor.updatedAt).toBe('string');
     expect(unknownSensor).toEqual({
@@ -121,7 +122,8 @@ describe('Unknown sensor tests', () => {
     // Nothing should have changed to the obs
     expect(unknownSensorObsWithContext2).toEqual(unknownSensorObsWithoutContext2);
     // Get the unknown sensors
-    unknownSensors = await unknownSensorController.getUnknownSensors();
+    const result3 = await unknownSensorController.getUnknownSensors();
+    unknownSensors = result3.data;
     expect(unknownSensors.length).toBe(1);
     unknownSensor = unknownSensors[0];
     expect(unknownSensor).toEqual({
@@ -148,7 +150,8 @@ describe('Unknown sensor tests', () => {
     const nowKnownSensor = await sensorController.createSensor(nowKnownSensorClient);
 
     // There should now be no unknown sensors
-    unknownSensors = await unknownSensorController.getUnknownSensors();
+    const result4 = await unknownSensorController.getUnknownSensors();
+    unknownSensors = result4.data;
     expect(unknownSensors.length).toBe(0);
 
     // Now when we ask for context it should get some
@@ -163,7 +166,8 @@ describe('Unknown sensor tests', () => {
     expect(nowKnownSensorObsWithContext.observedProperty).toBe(exampleObservedProperty);
 
     // There should still be no unknown sensors
-    unknownSensors = await unknownSensorController.getUnknownSensors();
+    const result5 = await unknownSensorController.getUnknownSensors();
+    unknownSensors = result5.data;
     expect(unknownSensors.length).toBe(0);
 
   });
