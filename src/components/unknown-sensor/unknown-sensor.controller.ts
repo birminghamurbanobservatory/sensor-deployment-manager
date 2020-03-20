@@ -27,8 +27,7 @@ export async function getUnknownSensors(options?: PaginationOptions): Promise<{d
   return {
     data: unknownSensorsForClient,
     meta: {
-      totalCount: results.totalCount
-      // TODO: Add next and prev links too.
+      total: results.total
     }
   };
 

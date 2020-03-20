@@ -38,7 +38,7 @@ export async function upsertUnknownSensor(unknownSensor: UnknownSensorApp): Prom
 }
 
 
-export async function getUnknownSensors(options: PaginationOptions = {}): Promise<{data: UnknownSensorApp[]; totalCount: number}> {
+export async function getUnknownSensors(options: PaginationOptions = {}): Promise<{data: UnknownSensorApp[]; total: number}> {
 
   const where = {};
 
@@ -66,9 +66,9 @@ export async function getUnknownSensors(options: PaginationOptions = {}): Promis
     const response = await UnknownSensor.aggregate()
     .facet({
       data: dataStages,
-      totalCount: [
+      total: [
         {$match: where},
-        {$count: 'totalCount'}
+        {$count: 'total'}
       ]
     })
     .exec();
@@ -79,16 +79,16 @@ export async function getUnknownSensors(options: PaginationOptions = {}): Promis
 
   const unknownSensorsForApp = results.data.map(unknownSensorDbToApp);
 
-  let totalCount;
-  if (results.totalCount.length > 0) {
-    totalCount = results.totalCount[0].totalCount;
+  let total;
+  if (results.total.length > 0) {
+    total = results.total[0].total;
   } else {
-    totalCount = 0;
+    total = 0;
   }
 
   return {
     data: unknownSensorsForApp,
-    totalCount
+    total
   };
 
 }
