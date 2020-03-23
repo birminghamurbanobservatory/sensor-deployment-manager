@@ -120,19 +120,7 @@ async function subscribeToSensorsGetRequests(): Promise<any> {
   const eventName = 'sensors.get.request';
 
   const sensorsGetRequestSchema = joi.object({
-    where: joi.object({
-      inDeployment: joi.alternatives().try(
-        joi.string(),
-        joi.object({
-          in: joi.array().items(joi.string()).min(1),
-          exists: joi.boolean()
-        }).min(1)
-      ),
-      permanentHost: joi.string(),
-      id: joi.object({
-        begins: joi.string()
-      })
-    })
+    where: joi.object({}).unknown() // the controller checks this
   })
   .required();
 

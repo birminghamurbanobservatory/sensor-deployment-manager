@@ -124,18 +124,7 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
   const eventName = 'platforms.get.request';
 
   const platformsGetRequestSchema = joi.object({
-    where: joi.object({
-      inDeployment: joi.alternatives().try(
-        joi.string(),
-        joi.object({
-          in: joi.array().items(joi.string()).min(1),
-          exists: joi.boolean()
-        }).min(1)
-      ),
-      id: joi.object({
-        begins: joi.string()
-      })
-    })
+    where: joi.object({}).unknown() // let the controller check this
   })
   .required();
 

@@ -15,7 +15,8 @@ export function whereToMongoFind(where: any): any {
     gt: '$gt',
     lte: '$lte',
     lt: '$lt',
-    begins: '$regex'
+    begins: '$regex',
+    includes: '' // this one's a bit special
   };
 
   Object.keys(where).forEach((propKey) => {
@@ -32,6 +33,8 @@ export function whereToMongoFind(where: any): any {
           } 
           if (opKey === 'begins') {
             find[propKey][findKey] = `^${propObj[opKey]}`;
+          } else if (opKey === 'includes') {
+            find[propKey] = propObj[opKey];
           } else {
             find[propKey][findKey] = propObj[opKey];
           }

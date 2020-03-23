@@ -137,9 +137,33 @@ export async function getSensor(id: string): Promise<SensorClient> {
 }
 
 
+const getSensorsWhereSchema = joi.object({
+  inDeployment: joi.alternatives().try(
+    joi.string(),
+    joi.object({
+      in: joi.array().items(joi.string()).min(1),
+      exists: joi.boolean()
+    }).min(1)
+  ),
+  isHostedBy: joi.alternatives().try(
+    joi.string(),
+    joi.object({
+      in: joi.array().items(joi.string()).min(1),
+      exists: joi.boolean()
+    }).min(1)
+  ),
+  permanentHost: joi.string(),
+  id: joi.object({
+    begins: joi.string()
+  })
+});
+
 export async function getSensors(where: any): Promise<SensorClient[]> {
 
-  const sensors: SensorApp[] = await sensorService.getSensors(where);
+  const {error: err, value: validWhere} = getSensorsWhereSchema.validate(where);
+  if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
+
+  const sensors: SensorApp[] = await sensorService.getSensors(validWhere);
   logger.debug('Sensors found', sensors);
   return sensors.map(sensorService.sensorAppToClient);
 

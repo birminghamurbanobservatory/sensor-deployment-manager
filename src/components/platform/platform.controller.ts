@@ -150,9 +150,38 @@ export async function getPlatform(id: string): Promise<PlatformClient> {
 }
 
 
-export async function getPlatforms(where?: {inDeployment?: any; id?: object}): Promise<PlatformClient[]> {
+const getPlatformsWhereSchema = joi.object({
+  inDeployment: joi.alternatives().try(
+    joi.string(),
+    joi.object({
+      in: joi.array().items(joi.string()).min(1),
+      exists: joi.boolean()
+    }).min(1)
+  ),
+  id: joi.object({
+    begins: joi.string()
+  }),
+  isHostedBy: joi.alternatives().try(
+    joi.string(),
+    joi.object({
+      in: joi.array().items(joi.string()).min(1),
+      exists: joi.boolean() 
+    }).min(1)
+  ),
+  hostedByPath: joi.alternatives().try(
+    // TODO: accept an array here for allowing an exact match, or lquery style query.
+    joi.object({
+      includes: joi.string()
+    })
+  )
+});
 
-  const platforms: PlatformApp[] = await platformService.getPlatforms(where);
+export async function getPlatforms(where?: {inDeployment?: any; id?: object; isHostedBy: any}): Promise<PlatformClient[]> {
+
+  const {error: err, value: validatedWhere} = getPlatformsWhereSchema.validate(where);
+  if (err) throw new BadRequest(`Invalid where object: ${err.message}`);
+
+  const platforms: PlatformApp[] = await platformService.getPlatforms(validatedWhere);
   logger.debug('Platforms found', platforms);
 
   // Now to make the platforms client friendly

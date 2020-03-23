@@ -69,4 +69,17 @@ describe('Conversion of where object to MongoDB/Mongoose find object', () => {
   });
 
 
+  test(`Can handle an 'include'`, () => {
+    const where = {
+      hostedByPath: {
+        includes: 'weather-station-4'
+      }
+    };
+    const expected = {
+      hostedByPath: 'weather-station-4'
+    };
+    expect(whereToMongoFind(where)).toEqual(expected);
+  });
+
+
 });
