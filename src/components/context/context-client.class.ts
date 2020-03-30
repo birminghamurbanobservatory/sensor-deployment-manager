@@ -14,9 +14,10 @@ export class Config {
   id?: string;
   hasPriority?: boolean;
   observedProperty?: string;
+  unit?: string;
   hasFeatureOfInterest?: string;
-  discipline?: string[];
-  usedProcedure?: string[];
+  disciplines?: string[];
+  usedProcedures?: string[];
 }
 
 

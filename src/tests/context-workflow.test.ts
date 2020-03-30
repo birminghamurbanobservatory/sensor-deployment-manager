@@ -62,7 +62,7 @@ describe('Context documents are created and updated correctly', () => {
         {
           hasPriority: true,
           observedProperty: 'AirTemperature',
-          discipline: ['Meteorology']
+          disciplines: ['Meteorology']
         }
       ]
     };

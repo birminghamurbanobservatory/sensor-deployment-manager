@@ -5,10 +5,12 @@ export class ObservationApp {
   public hostedByPath?: string[];
   public inDeployments?: string[];
   public resultTime?: Date;
-  public hasFeatureOfInterest?: string;
   public location?: Location;
   public observedProperty?: string;
-  public usedProcedure?: string[];
+  public unit?: string;
+  public hasFeatureOfInterest?: string;
+  public disciplines?: string[];
+  public usedProcedures?: string[];
 }
 
 class Result {

@@ -16,12 +16,17 @@ const configSchema = new mongoose.Schema({
     type: String,
     required: true // because the value of determines that this is the set of properties to apply.
   },
-  hasFeatureOfInterest: String,
-  discipline: {
+  unit: {
+    type: String
+  },
+  hasFeatureOfInterest: {
+    type: String
+  },
+  disciplines: {
     type: [String],
     default: undefined // so it doesn't assign an empty array by default
   },
-  usedProcedure: {
+  usedProcedures: {
     type: [String],
     default: undefined // so it doesn't assign an empty array by default
   }

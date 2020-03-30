@@ -23,9 +23,10 @@ describe('mergeObsWithContext function tests', () => {
         { 
           hasPriority: true,
           observedProperty: 'AirTemperature',
+          unit: 'DegreeCelsius',
           hasFeatureOfInterest: 'EarthAtmosphere',
-          discipline: ['Meteorology'],
-          usedProcedure: ['point-sample']
+          disciplines: ['Meteorology'],
+          usedProcedures: ['point-sample']
         }
       ]
     };
@@ -37,11 +38,12 @@ describe('mergeObsWithContext function tests', () => {
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'AirTemperature',
+      unit: 'DegreeCelsius',
       hasFeatureOfInterest: 'EarthAtmosphere',   
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],     
-      usedProcedure: ['point-sample'],
-      discipline: ['Meteorology'],
+      usedProcedures: ['point-sample'],
+      disciplines: ['Meteorology'],
     };
 
     const merged = giveObsContext(observation, context);
@@ -58,7 +60,7 @@ describe('mergeObsWithContext function tests', () => {
         value: 820
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
-      observedProperty: 'solar-radiation' 
+      observedProperty: 'SolarRadiation' 
     };
 
     const context: ContextApp = { 
@@ -69,13 +71,15 @@ describe('mergeObsWithContext function tests', () => {
       config: [
         {
           hasPriority: true,
-          observedProperty: 'voltage',
-          discipline: ['Energy']
+          observedProperty: 'Voltage',
+          unit: 'Volt',
+          disciplines: ['Energy']
         },
         {
           hasPriority: false,
-          observedProperty: 'solar-radiation',
-          discipline: ['Meteorology']        
+          observedProperty: 'SolarRadiation',
+          unit: 'WattPerSquareMetre',
+          disciplines: ['Meteorology']        
         },
       ]
     };
@@ -86,7 +90,8 @@ describe('mergeObsWithContext function tests', () => {
         value: 820
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
-      observedProperty: 'solar-radiation',
+      observedProperty: 'SolarRadiation',
+      unit: 'WattPerSquareMetre',
       discipline: ['Meteorology'],    
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],         
@@ -117,13 +122,15 @@ describe('mergeObsWithContext function tests', () => {
       config: [
         {
           hasPriority: true,
-          observedProperty: 'voltage',
-          discipline: ['Energy']
+          observedProperty: 'Voltage',
+          unit: 'Volt',
+          disciplines: ['Energy']
         },
         {
           hasPriority: false,
-          observedProperty: 'solar-radiation',
-          discipline: ['Meteorology']        
+          observedProperty: 'SolarRadiation',
+          unit: 'WattPerSquareMetre',
+          disciplines: ['Meteorology']        
         },
       ]
     };
@@ -134,8 +141,9 @@ describe('mergeObsWithContext function tests', () => {
         value: 3.4
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
-      observedProperty: 'voltage',
-      discipline: ['Energy'],    
+      observedProperty: 'Voltage',
+      unit: 'Volt',
+      disciplines: ['Energy'],    
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],         
     };

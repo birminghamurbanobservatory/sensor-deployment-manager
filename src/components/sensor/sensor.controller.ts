@@ -24,9 +24,10 @@ import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
 const configSchema = joi.object({
   hasPriority: joi.boolean().required(),
   observedProperty: joi.string().required(),
+  unit: joi.string(),
   hasFeatureOfInterest: joi.string(),
-  discipline: joi.array().items(joi.string()),
-  usedProcedure: joi.array().items(joi.string())
+  disciplines: joi.array().items(joi.string()),
+  usedProcedures: joi.array().items(joi.string())
 });
 
 const newSensorSchema = joi.object({
