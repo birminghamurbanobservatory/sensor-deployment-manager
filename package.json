@@ -1,6 +1,6 @@
 {
   "name": "sensor-deployment-manager",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Manages sensor deployments.",
   "main": "dist/index.js",
   "scripts": {
