@@ -92,7 +92,7 @@ describe('mergeObsWithContext function tests', () => {
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'SolarRadiation',
       unit: 'WattPerSquareMetre',
-      discipline: ['Meteorology'],    
+      disciplines: ['Meteorology'],    
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],         
     };
