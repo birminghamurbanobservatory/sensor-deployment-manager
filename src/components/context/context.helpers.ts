@@ -52,12 +52,22 @@ export function giveObsContext(observation: ObservationApp, context: ContextApp)
 
   if (configToMerge) {
 
-    const complexMergeKeys = ['observedProperty', 'unit', 'hasFeatureOfInterest', 'usedProcedures', 'disciplines'];
+    const complexMergeKeys = ['observedProperty', 'hasFeatureOfInterest', 'usedProcedures', 'disciplines'];
 
     complexMergeKeys.forEach((key) => {
       // Add the config property if it hasn't already been set in the observation.
       if (configToMerge[key] && !observation[key]) {
         merged[key] = configToMerge[key];
+      }
+    });
+
+    // Need to handle properties that go in hasResult differently
+    const hasResultMergeKeys = ['unit'];
+
+    hasResultMergeKeys.forEach((key) => {
+      // Add the config property if it hasn't already been set in the observation.
+      if (configToMerge[key] && !observation.hasResult[key]) {
+        merged.hasResult[key] = configToMerge[key];
       }
     });
 

@@ -34,11 +34,11 @@ describe('mergeObsWithContext function tests', () => {
     const expected = {
       madeBySensor: 'sensor123',
       hasResult: {
-        value: 22.2
+        value: 22.2,
+        unit: 'DegreeCelsius'
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'AirTemperature',
-      unit: 'DegreeCelsius',
       hasFeatureOfInterest: 'EarthAtmosphere',   
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],     
@@ -87,11 +87,11 @@ describe('mergeObsWithContext function tests', () => {
     const expected = {
       madeBySensor: 'solar-panel-123',
       hasResult: {
-        value: 820
+        value: 820,
+        unit: 'WattPerSquareMetre',
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'SolarRadiation',
-      unit: 'WattPerSquareMetre',
       disciplines: ['Meteorology'],    
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],         
@@ -138,11 +138,11 @@ describe('mergeObsWithContext function tests', () => {
     const expected = {
       madeBySensor: 'solar-panel-123',
       hasResult: {
-        value: 3.4
+        value: 3.4,
+        unit: 'Volt'
       },
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'Voltage',
-      unit: 'Volt',
       disciplines: ['Energy'],    
       inDeployments: ['deployment-1'],
       hostedByPath: ['platform-parent', 'platform-child'],         
