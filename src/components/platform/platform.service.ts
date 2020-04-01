@@ -33,6 +33,7 @@ import {ObservationApp} from '../observation/observation-app.class';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail} from './errors/RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
+import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -642,6 +643,10 @@ export async function updatePlatformsWithLocationObservation(observation: Observ
     throw new Error(`Observation location must have a valid 'id'.`);
   }
 
+  const updates: any = {};
+  updates.location = cloneDeep(observation.location);
+  // update the centroid object too
+  updates.location.centroid = calculateGeometryCentroid(observation.location.geometry);
 
   let results;
   try {
@@ -652,9 +657,7 @@ export async function updatePlatformsWithLocationObservation(observation: Observ
         {location: {$exists: false}},
         {'location.validAt': {$lt: observation.location.validAt}},
       ]
-    }, {
-      location: observation.location
-    }); 
+    }, updates); 
   } catch (err) {
     throw new UpdatePlatformsWithLocationObservationFail(undefined, err.message);
   }

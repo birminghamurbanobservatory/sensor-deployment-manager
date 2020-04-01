@@ -27,6 +27,24 @@ const LocationSchema = new mongoose.Schema({
       required: true
     }
   },
+  centroid: {
+    lat: {
+      $type: Number, // WGS 84
+      required: true,
+      min: -90,
+      max: 90
+    },
+    lng: {
+      $type: Number,
+      required: true,
+      min: -180,
+      max: 180
+    },
+    height: {
+      $type: Number, // in meters
+      required: false
+    }
+  }
 }, {
   typeKey: '$type' // need to do this so I can use the 'type' key for the geojson location
 });

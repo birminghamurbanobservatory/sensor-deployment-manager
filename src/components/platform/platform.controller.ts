@@ -20,6 +20,7 @@ import {validateGeometry} from '../../utils/geojson-validator';
 import {v4 as uuid} from 'uuid';
 import {SensorNotFound} from '../sensor/errors/SensorNotFound';
 import * as permanentHostService from '../permanent-host/permanent-host.service';
+import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
 
 
 const newPlatformSchema = joi.object({
@@ -99,6 +100,10 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
     platformToCreate.location.validAt = new Date();
     if (!platformToCreate.location.id) {
       platformToCreate.location.id = uuid();
+    }
+    if (platformToCreate.location.geometry) {
+      // Add a centroid object
+      platformToCreate.location.centroid = calculateGeometryCentroid(platformToCreate.location.geometry);
     }
   }
 
@@ -255,6 +260,10 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
     updatesToApply.location.validAt = new Date();
     if (!updates.location.id) {
       updatesToApply.location.id = uuid();
+    }
+    if (updates.location.geometry) {
+      // Update the centroid object too
+      updatesToApply.location.centroid = calculateGeometryCentroid(updates.location.geometry);
     }
   }
 

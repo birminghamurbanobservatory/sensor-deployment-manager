@@ -25,6 +25,6 @@ class Location {
 }
 
 class Geometry {
-  type?: string;
-  coordinates?: any;
+  type: string;
+  coordinates: any;
 }

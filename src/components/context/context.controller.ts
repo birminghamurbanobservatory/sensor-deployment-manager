@@ -108,7 +108,9 @@ export async function addContextToObservation(observation: ObservationClient): P
       updatedObs.hostedByPath.forEach((platformId) => {
         const matchingPlatform = platforms.find((platform) => platform.id === platformId);
         if (matchingPlatform && matchingPlatform.location) {
-          updatedObs.location = matchingPlatform.location;
+          const locationWithoutCentroid = cloneDeep(matchingPlatform.location);
+          delete locationWithoutCentroid.centroid;
+          updatedObs.location = locationWithoutCentroid;
         } 
       });
       if (updatedObs.location) {

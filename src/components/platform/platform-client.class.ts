@@ -9,6 +9,7 @@ export class PlatformClient {
   public hostedByPath?: string[];
   public static?: boolean;
   public location?: Location;
+  public centroid?: Centroid;
   public updateLocationWithSensor?: string;
   public createdAt?: string;
   public updatedAt?: string;
@@ -23,6 +24,12 @@ class Location {
 }
 
 class Geometry {
- public type?: string;
- public coordinates?: any;
+ public type: string;
+ public coordinates: any;
+}
+
+class Centroid {
+  public lat: number;
+  public lng: number;
+  public height?: number
 }
