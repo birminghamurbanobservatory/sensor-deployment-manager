@@ -9,7 +9,6 @@ export class PlatformClient {
   public hostedByPath?: string[];
   public static?: boolean;
   public location?: Location;
-  public centroid?: Centroid;
   public updateLocationWithSensor?: string;
   public createdAt?: string;
   public updatedAt?: string;
@@ -20,6 +19,7 @@ export class PlatformClient {
 class Location {
   public id?: string;
   public geometry?: Geometry;
+  public centroid?: Centroid;
   public validAt?: string;
 }
 
