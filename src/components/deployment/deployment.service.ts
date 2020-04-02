@@ -96,7 +96,7 @@ export async function getDeploymentsById(deploymentIds: string[]): Promise<Deplo
   let foundDocs;
 
   try {
-    foundDocs = Deployment.find({id: {$in: deploymentIds}}).exec();
+    foundDocs = Deployment.find({_id: {$in: deploymentIds}}).exec();
   } catch (err) {
     throw new GetDeploymentsFail(undefined, err.message);
   }
