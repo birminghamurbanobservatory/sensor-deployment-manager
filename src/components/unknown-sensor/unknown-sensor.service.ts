@@ -38,7 +38,7 @@ export async function upsertUnknownSensor(unknownSensor: UnknownSensorApp): Prom
 }
 
 
-export async function getUnknownSensors(options: PaginationOptions = {}): Promise<{data: UnknownSensorApp[]; total: number}> {
+export async function getUnknownSensors(options: PaginationOptions = {}): Promise<{data: UnknownSensorApp[]; count: number; total: number}> {
 
   const where = {};
 
@@ -47,47 +47,43 @@ export async function getUnknownSensors(options: PaginationOptions = {}): Promis
   const sortKey = (!options.sortBy || options.sortBy === 'id') ? '_id' : options.sortBy;
   sortObj[sortKey] = sortOrderNumeric;
 
-  // Build the array of aggregate stages for getting the data itself.
-  const dataStages: any = [
-    {$match: where},
-    {$sort: sortObj}
-  ];
+  const findOptions: any = {
+    sort: sortObj,
+    skip: check.assigned(options.offset) ? options.offset : 0
+  };
 
-  if (check.assigned(options.offset)) {
-    dataStages.push({$skip: options.offset});
+  const limitAssigned = check.assigned(options.limit);
+  if (limitAssigned) {
+    findOptions.limit = options.limit;
   }
 
-  if (check.assigned(options.limit)) {
-    dataStages.push({$limit: options.limit});
-  }
+  console.log(findOptions);
 
-  let results;
+  let unknownSensors;
   try {
-    const response = await UnknownSensor.aggregate()
-    .facet({
-      data: dataStages,
-      total: [
-        {$match: where},
-        {$count: 'total'}
-      ]
-    })
-    .exec();
-    results = response[0]; // for some reason the response is in an array
+    unknownSensors = await UnknownSensor.find(where, null, findOptions); 
   } catch (err) {
     throw new GetUnknownSensorsFail(undefined, err.message);
   }
 
-  const unknownSensorsForApp = results.data.map(unknownSensorDbToApp);
+  const unknownSensorsForApp = unknownSensors.map(unknownSensorDbToApp);
 
+  const count = unknownSensors.length;
   let total;
-  if (results.total.length > 0) {
-    total = results.total[0].total;
+
+  if (limitAssigned) {
+    if (count < findOptions.limit && findOptions.skip === 0) {
+      total = count;
+    } else {
+      total = await UnknownSensor.countDocuments(where);
+    }
   } else {
-    total = 0;
+    total = count;
   }
 
   return {
     data: unknownSensorsForApp,
+    count,
     total
   };
 

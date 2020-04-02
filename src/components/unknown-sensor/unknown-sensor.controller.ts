@@ -7,7 +7,7 @@ import {BadRequest} from '../../errors/BadRequest';
 
 const getUnknownSensorsOptionSchema = joi.object({
   limit: joi.number().integer().positive().max(1000).default(100),
-  offset: joi.number().integer().positive().default(0),
+  offset: joi.number().integer().min(0).default(0),
   sortBy: joi.string().default('id'),
   sortOrder: joi.string().valid('asc', 'desc').default('asc')
 }).default({
@@ -22,12 +22,13 @@ export async function getUnknownSensors(options?: PaginationOptions): Promise<{d
   const {error: err, value: validOptions} = getUnknownSensorsOptionSchema.validate(options);
   if (err) throw new BadRequest(`Invalid options: ${err.message}`);
 
-  const results = await unknownSensorService.getUnknownSensors(validOptions);
-  const unknownSensorsForClient = results.data.map(unknownSensorService.unknownSensorAppToClient);
+  const found = await unknownSensorService.getUnknownSensors(validOptions);
+  const unknownSensorsForClient = found.data.map(unknownSensorService.unknownSensorAppToClient);
   return {
     data: unknownSensorsForClient,
     meta: {
-      total: results.total
+      count: found.count,
+      total: found.total
     }
   };
 
