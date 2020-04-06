@@ -7,6 +7,7 @@ export class PlatformApp {
   public inDeployments?: string[];
   public isHostedBy?: string;
   public hostedByPath?: string[];
+  public hosts?: any[];
   public initialisedFrom?: string;
   public static?: boolean;
   public location?: Location;

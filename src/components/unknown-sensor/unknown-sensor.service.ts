@@ -57,8 +57,6 @@ export async function getUnknownSensors(options: PaginationOptions = {}): Promis
     findOptions.limit = options.limit;
   }
 
-  console.log(findOptions);
-
   let unknownSensors;
   try {
     unknownSensors = await UnknownSensor.find(where, null, findOptions); 

@@ -146,13 +146,18 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
 }
 
 
-export async function getPlatform(id: string): Promise<PlatformClient> {
+export async function getPlatform(id: string, options: {nest?: boolean} = {}): Promise<PlatformClient> {
   
   const platform: PlatformApp = await platformService.getPlatform(id);
   const platformForClient = platformService.platformAppToClient(platform);
-  return platformForClient;
 
+  if (options.nest === true) {
+    platformForClient.hosts = await getNestedHostsArrayForClient(id);
+  } 
+
+  return platformForClient;
 }
+
 
 
 const getPlatformsWhereSchema = joi.object({
@@ -180,6 +185,48 @@ const getPlatformsWhereSchema = joi.object({
     })
   )
 });
+
+
+// Given a platformId this will find all the platforms and sensors hosted on this platfrom. It can then be used as the "hosts" array for the returned platform. It will have a nested structure, e.g. if this platform hosts another platform that then hosts some other sensors then the child platfrom will itself have a hosts array.
+export async function getNestedHostsArrayForApp(platformId: string): Promise<any[]> {
+
+  // First let's find an sub-platforms, direct or indirect.
+  const subPlatforms = await platformService.getPlatforms({hostedByPath: {includes: platformId}});
+
+  // Now we know all the possible platformIds that sensors could be hosted on.
+  const subPlatformIds = subPlatforms.map((platform) => platform.id);
+  const allPlatformIds = concat(platformId, subPlatformIds);
+  const sensors = await sensorService.getSensors({isHostedBy: {in: allPlatformIds}});
+
+  // Now to build the nested structure
+  const hostsArray = platformService.buildNestedHostsArray(platformId, subPlatforms, sensors);
+
+  return hostsArray;
+
+}
+
+
+// Here we format the platforms and sensors to their client friendly form before passing them to the nesting function as it's easier than trying to do it once they are already nested.
+export async function getNestedHostsArrayForClient(platformId: string): Promise<any[]> {
+
+  // First let's find an sub-platforms, direct or indirect.
+  const subPlatforms = await platformService.getPlatforms({hostedByPath: {includes: platformId}});
+  const subPlatformsForClient = subPlatforms.map(platformService.platformAppToClient);
+
+  // Now we know all the possible platformIds that sensors could be hosted on.
+  const subPlatformIds = subPlatforms.map((platform) => platform.id);
+  const allPlatformIds = concat(platformId, subPlatformIds);
+  const sensors = await sensorService.getSensors({isHostedBy: {in: allPlatformIds}});
+  const sensorsForClient = sensors.map(sensorService.sensorAppToClient);
+
+  // Now to build the nested structure
+  const hostsArray = platformService.buildNestedHostsArray(platformId, subPlatformsForClient, sensorsForClient);
+
+  return hostsArray;
+
+}
+
+
 
 export async function getPlatforms(where?: {inDeployment?: any; id?: object; isHostedBy: any}): Promise<PlatformClient[]> {
 

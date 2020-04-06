@@ -1,7 +1,7 @@
 import Platform from './platform.model';
 import {PlatformApp} from './platform-app.class';
 import {PlatformClient} from './platform-client.class';
-import {cloneDeep, concat} from 'lodash';
+import {cloneDeep, concat, pullAllBy} from 'lodash';
 import {PlatformAlreadyExists} from './errors/PlatformAlreadyExists';
 import {InvalidPlatform} from './errors/InvalidPlatform';
 import {CreatePlatformFail} from './errors/CreatePlatformFail';
@@ -34,6 +34,7 @@ import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-u
 import {RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail} from './errors/RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
+import {SensorApp} from '../sensor/sensor-app.class';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -688,6 +689,107 @@ export async function removeSensorFromAnyMatchingUpdateLocationWithSensor(sensor
   logger.debug(`Removed the sensor '${sensorId}' from the updateLocationWithSensor property of ${results.nModified} platforms`);
 
   return;
+
+}
+
+
+export function buildNestedHostsArray(topPlatformId: string, subPlatforms: PlatformApp[], sensors: SensorApp[]): any[] {
+
+  // Quick check to make sure the platforms provided are all in this ancestry
+  const subPlatformIds = subPlatforms.map((platform) => platform.id);
+  const allPlatformIds = concat(topPlatformId, subPlatformIds);
+  subPlatforms.forEach((subPlatform) => {
+    if (!subPlatform.isHostedBy || !allPlatformIds.includes(subPlatform.isHostedBy)) {
+      throw new Error(`The isHostedBy property of Platform '${subPlatform.id}' is '${subPlatform.isHostedBy}, which does not exist in this ancentry.'`);
+    }
+  });
+  // Also check this for the sensors
+  sensors.forEach((sensor) => {
+    if (!sensor.isHostedBy || !allPlatformIds.includes(sensor.isHostedBy)) {
+      throw new Error(`The isHostedBy property of Sensor '${sensor.id}' is '${sensor.isHostedBy}', which does not exist in this ancentry.'`);
+    }
+  });
+  // Also check that if a platform has a isHostedBy field, that it also has a hostedByPath array
+  subPlatforms.forEach((platform) => {
+    if (platform.isHostedBy) {
+      if (!platform.hostedByPath) {
+        throw new Error(`The platform '${platform.id}' has a isHostedBy property defined, but is missing a hostedByPath array.`);
+      }
+      const lastPlatformInHostedByPath = platform.hostedByPath[platform.hostedByPath.length - 1];
+      if (lastPlatformInHostedByPath !== platform.isHostedBy) {
+        throw Error(`Expected the final platform in the hostedByPath array of platform '${platform.id}' to be the same as its isHostedBy value of '${platform.isHostedBy}', but instead found '${lastPlatformInHostedByPath}'.`);
+      }
+    }
+  });
+
+  let hostsArray = [];
+
+  // Add any sensors directly bound to the top level platform
+  const remainingSensors: any[] = cloneDeep(sensors);
+  remainingSensors.forEach((sensor) => sensor.type = 'sensor');
+  const sensorsDirectlyOnTopPlatform = remainingSensors.filter((sensor) => sensor.isHostedBy === topPlatformId);
+  // The following mutates the remainingSensors array, removing these directly hosted sensors.
+  pullAllBy(remainingSensors, [{isHostedBy: topPlatformId}], 'isHostedBy'); 
+  hostsArray = concat(hostsArray, sensorsDirectlyOnTopPlatform);
+
+  // N.B. we need to add a type property, otherwise it's not clear what's a sensor and whats a platform.
+  const platformsWithType: any[] = cloneDeep(subPlatforms);
+  platformsWithType.forEach((platform) => platform.type = 'platform');
+
+  // Before we start nesting platforms, let's assigned any sensors they host to their hosts array
+  platformsWithType.forEach((platform) => {
+    const sensorsHostedByPlatform = remainingSensors.filter((sensor) => sensor.isHostedBy === platform.id);
+    if (sensorsHostedByPlatform.length > 0) {
+      platform.hosts = sensorsHostedByPlatform;
+    }
+  });
+
+  // For the platforms the number of elements in the hostedByPath tells you how deep it is in ancestry "tree".
+  const nLevels = subPlatforms.reduce((deepestSoFar, platform) => {
+    if (platform.hostedByPath) {
+      return Math.max(deepestSoFar, platform.hostedByPath.length);
+    } else {
+      return deepestSoFar;
+    }
+  }, 0);
+
+  // Let's organise our platforms by how deep they are
+  // e.g. [[{parent-1}, {parent-2}], [{child-1}, {child-2}, {child-3}]]
+  const platformsLevelled = [];
+  for (let i = 0; i < nLevels; i++) {
+    const hostedByPathLength = i + 1;
+    const thisLevelsPlatforms = platformsWithType.filter((platform) => {
+      return platform.hostedByPath && platform.hostedByPath.length === hostedByPathLength;
+    });
+    platformsLevelled.push(thisLevelsPlatforms);
+  }
+
+  let platformsNested = [];
+
+  if (platformsLevelled.length === 1) {
+    platformsNested = platformsLevelled[0];
+  }
+
+  if (platformsLevelled.length > 1) {
+    // We want to go through in reverse, adding platforms from the next level deeper as hosts to the current level, so that by the end platformsLevelled[0] contains the complete nested strucutre.
+    for (let i = platformsLevelled.length - 2; i >= 0; i--) {
+      platformsLevelled[i].forEach((hostPlatform) => {
+        const hosteePlatforms = platformsLevelled[i + 1].filter((hosteePlatform) => hosteePlatform.isHostedBy === hostPlatform.id);
+        if (hosteePlatforms.length > 0) {
+          if (hostPlatform.hosts) {
+            // This accounts for if the platform already has sensors hosted on it.
+            hostPlatform.hosts = concat(hostPlatform.hosts, hosteePlatforms);
+          } else {
+            hostPlatform.hosts = hosteePlatforms;
+          }
+        }
+      });
+    }
+    platformsNested = platformsLevelled[0];
+  }
+
+  hostsArray = concat(hostsArray, platformsNested);
+  return hostsArray;
 
 }
 

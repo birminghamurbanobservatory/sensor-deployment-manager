@@ -16,7 +16,7 @@ export function whereToMongoFind(where: any): any {
     lte: '$lte',
     lt: '$lt',
     begins: '$regex',
-    includes: '' // this one's a bit special
+    includes: '' // this one's a bit of a special case
   };
 
   Object.keys(where).forEach((propKey) => {

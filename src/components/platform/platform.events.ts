@@ -88,7 +88,8 @@ async function subscribeToPlatformGetRequests(): Promise<any> {
     where: joi.object({
       id: joi.string()
         .required()
-    })
+    }),
+    options: joi.object({}).unknown() // let the controller check this.
     .required()
   })
   .required();
@@ -101,7 +102,7 @@ async function subscribeToPlatformGetRequests(): Promise<any> {
     try {
       const {error: err, value: validatedMsg} = platformsGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      platforms = await getPlatform(validatedMsg.where.id);
+      platforms = await getPlatform(validatedMsg.where.id, validatedMsg.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }

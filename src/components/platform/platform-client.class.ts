@@ -7,6 +7,7 @@ export class PlatformClient {
   public inDeployments?: string[];
   public isHostedBy?: string;
   public hostedByPath?: string[];
+  public hosts?: any[];
   public static?: boolean;
   public location?: Location;
   public updateLocationWithSensor?: string;
