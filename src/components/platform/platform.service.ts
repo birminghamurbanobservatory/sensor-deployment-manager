@@ -35,6 +35,8 @@ import {RemoveSensorFromAnyMatchingUpdateLocationWithSensorFail} from './errors/
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
 import {SensorApp} from '../sensor/sensor-app.class';
+import {PaginationOptions} from '../common/pagination-options.class';
+import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -84,7 +86,10 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 }
 
 
-export async function getPlatforms(where: {inDeployment?: any; ownerDeployment?: string; isHostedBy?: any; updateLocationWithSensor?: any; id?: object; hostedByPath?: any} = {}): Promise<PlatformApp[]> {
+export async function getPlatforms(
+  where: {inDeployment?: any; ownerDeployment?: string; isHostedBy?: any; updateLocationWithSensor?: any; id?: object; hostedByPath?: any} = {}, 
+  options: PaginationOptions = {}
+): Promise<{data: PlatformApp[]; count: number; total: number}> {
 
   const findWhere = whereToMongoFind(where);
   findWhere.deletedAt = {$exists: false};
@@ -95,14 +100,37 @@ export async function getPlatforms(where: {inDeployment?: any; ownerDeployment?:
     delete findWhere.inDeployment;
   }
 
-  let foundPlatforms;
+  const findOptions = paginationOptionsToMongoFindOptions(options);
+  const limitAssigned = check.assigned(options.limit);
+
+  let platforms;
   try {
-    foundPlatforms = await Platform.find(findWhere).exec();
+    platforms = await Platform.find(findWhere, null, findOptions).exec();
   } catch (err) {
     throw new GetPlatformsFail(undefined, err.message);
   }
 
-  return (foundPlatforms.map(platformDbToApp));
+  const count = platforms.length;
+  let total;
+
+  if (limitAssigned) {
+    if (count < findOptions.limit && findOptions.skip === 0) {
+      total = count;
+    } else {
+      total = await Platform.countDocuments(findWhere);
+    }
+  } else {
+    total = count;
+  }
+
+  const platformsForApp = platforms.map(platformDbToApp);
+
+  return {
+    data: platformsForApp,
+    count,
+    total
+  };
+
 }
 
 

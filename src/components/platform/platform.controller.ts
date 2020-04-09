@@ -21,6 +21,7 @@ import {v4 as uuid} from 'uuid';
 import {SensorNotFound} from '../sensor/errors/SensorNotFound';
 import * as permanentHostService from '../permanent-host/permanent-host.service';
 import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
+import {PaginationOptions} from '../common/pagination-options.class';
 
 
 const newPlatformSchema = joi.object({
@@ -160,33 +161,6 @@ export async function getPlatform(id: string, options: {nest?: boolean} = {}): P
 
 
 
-const getPlatformsWhereSchema = joi.object({
-  inDeployment: joi.alternatives().try(
-    joi.string(),
-    joi.object({
-      in: joi.array().items(joi.string()).min(1),
-      exists: joi.boolean()
-    }).min(1)
-  ),
-  id: joi.object({
-    begins: joi.string()
-  }),
-  isHostedBy: joi.alternatives().try(
-    joi.string(),
-    joi.object({
-      in: joi.array().items(joi.string()).min(1),
-      exists: joi.boolean() 
-    }).min(1)
-  ),
-  hostedByPath: joi.alternatives().try(
-    // TODO: accept an array here for allowing an exact match, or lquery style query.
-    joi.object({
-      includes: joi.string()
-    })
-  )
-});
-
-
 // Given a platformId this will find all the platforms and sensors hosted on this platfrom. It can then be used as the "hosts" array for the returned platform. It will have a nested structure, e.g. if this platform hosts another platform that then hosts some other sensors then the child platfrom will itself have a hosts array.
 export async function getNestedHostsArrayForApp(platformId: string): Promise<any[]> {
 
@@ -227,22 +201,50 @@ export async function getNestedHostsArrayForClient(platformId: string): Promise<
 }
 
 
+const getPlatformsWhereSchema = joi.object({
+  inDeployment: joi.alternatives().try(
+    joi.string(),
+    joi.object({
+      in: joi.array().items(joi.string()).min(1),
+      exists: joi.boolean()
+    }).min(1)
+  ),
+  id: joi.object({
+    begins: joi.string()
+  }),
+  isHostedBy: joi.alternatives().try(
+    joi.string(),
+    joi.object({
+      in: joi.array().items(joi.string()).min(1),
+      exists: joi.boolean() 
+    }).min(1)
+  ),
+  hostedByPath: joi.alternatives().try(
+    // TODO: accept an array here for allowing an exact match, or lquery style query.
+    joi.object({
+      includes: joi.string()
+    })
+  )
+});
 
-export async function getPlatforms(where?: {inDeployment?: any; id?: object; isHostedBy: any}): Promise<PlatformClient[]> {
+export async function getPlatforms(where: {inDeployment?: any; id?: object; isHostedBy?: any} = {}, options: PaginationOptions): Promise<PlatformClient[]> {
 
   const {error: err, value: validatedWhere} = getPlatformsWhereSchema.validate(where);
   if (err) throw new BadRequest(`Invalid where object: ${err.message}`);
 
-  const platforms: PlatformApp[] = await platformService.getPlatforms(validatedWhere);
+  const {data: platforms, count, total} = await platformService.getPlatforms(validatedWhere, options);
   logger.debug('Platforms found', platforms);
 
   // Now to make the platforms client friendly
-  const platformsForClient = platforms.map((platform): PlatformClient => {
-    const platformForClient = platformService.platformAppToClient(platform);
-    return platformForClient;
-  });
-
-  return platformsForClient;
+  const platformsForClient = platforms.map(platformService.platformAppToClient);
+  
+  return {
+    data: platformsForClient,
+    meta: {
+      count,
+      total
+    }
+  };
 
 }
 

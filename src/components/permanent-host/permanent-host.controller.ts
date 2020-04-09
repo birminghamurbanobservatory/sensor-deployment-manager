@@ -13,6 +13,7 @@ import {BadRequest} from '../../errors/BadRequest';
 import {InvalidPermanentHost} from './errors/InvalidPermanentHost';
 import {Forbidden} from '../../errors/Forbidden';
 import {SensorsRemainOnPermanentHost} from './errors/SensorsRemainOnPermanentHost';
+import {PaginationOptions} from '../common/pagination-options.class';
 
 
 const newPermanentHostSchema = joi.object({
@@ -72,12 +73,28 @@ export async function getPermanentHost(id: string): Promise<PermanentHostClient>
 }
 
 
-export async function getPermanentHosts(where: any): Promise<PermanentHostClient[]> {
+const getPermanentHostWhereScema = joi.object({
+  id: joi.object({
+    begins: joi.string()
+  })
+});
 
-  const permanentHosts = await permanentHostService.getPermanentHosts(where);
+export async function getPermanentHosts(where: any, options: PaginationOptions): Promise<{data: PermanentHostClient[]; meta: any}> {
+
+  const {error: err, value: validWhere} = getPermanentHostWhereScema.validate(where);
+  if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
+
+  const {data: permanentHosts, count, total} = await permanentHostService.getPermanentHosts(validWhere, options);
   logger.debug(`${permanentHosts.length} permanent hosts found`);
   const permanentHostsForClient = permanentHosts.map(permanentHostService.permanentHostAppToClient);
-  return permanentHostsForClient;
+
+  return {
+    data: permanentHostsForClient,
+    meta: {
+      count,
+      total
+    }
+  };
 
 }
 

@@ -22,13 +22,13 @@ export async function getUnknownSensors(options?: PaginationOptions): Promise<{d
   const {error: err, value: validOptions} = getUnknownSensorsOptionSchema.validate(options);
   if (err) throw new BadRequest(`Invalid options: ${err.message}`);
 
-  const found = await unknownSensorService.getUnknownSensors(validOptions);
-  const unknownSensorsForClient = found.data.map(unknownSensorService.unknownSensorAppToClient);
+  const {data: unknownSensors, count, total} = await unknownSensorService.getUnknownSensors(validOptions);
+  const unknownSensorsForClient = unknownSensors.map(unknownSensorService.unknownSensorAppToClient);
   return {
     data: unknownSensorsForClient,
     meta: {
-      count: found.count,
-      total: found.total
+      count,
+      total
     }
   };
 

@@ -17,6 +17,9 @@ import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-u
 import {UnhostExternalSensorsFromDisappearingDeploymentFail} from './errors/UnhostExternalSensorsFromDisappearingDeploymentFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {DeleteSensorFail} from './errors/DeleteSensorFail';
+import {PaginationOptions} from '../common/pagination-options.class';
+import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
+import * as check from 'check-types'; 
 
 
 
@@ -66,7 +69,7 @@ export async function getSensor(id): Promise<SensorApp> {
 
 
 
-export async function getSensors(where: {isHostedBy?: any; permanentHost?: any; inDeployment?: any}): Promise<SensorApp[]> {
+export async function getSensors(where: {isHostedBy?: any; permanentHost?: any; inDeployment?: any}, options: PaginationOptions = {}): Promise<{data: SensorApp[]; count: number; total: number}> {
 
   // TODO: Might we worth having some validation on the where object here?
 
@@ -78,14 +81,36 @@ export async function getSensors(where: {isHostedBy?: any; permanentHost?: any; 
     }
   );
 
+  const findOptions = paginationOptionsToMongoFindOptions(options);
+  const limitAssigned = check.assigned(options.limit);
+
   let sensors;
   try {
-    sensors = await Sensor.find(findWhere).exec();
+    sensors = await Sensor.find(findWhere, null, findOptions).exec();
   } catch (err) {
     throw new GetSensorsFail(undefined, err.message);
   }
 
-  return sensors.map(sensorDbToApp);
+  const count = sensors.length;
+  let total;
+
+  if (limitAssigned) {
+    if (count < findOptions.limit && findOptions.skip === 0) {
+      total = count;
+    } else {
+      total = await Sensor.countDocuments(findWhere);
+    }
+  } else {
+    total = count;
+  }
+
+  const sensorsForApp = sensors.map(sensorDbToApp);
+
+  return {
+    data: sensorsForApp,
+    count,
+    total
+  };
 
 }
 

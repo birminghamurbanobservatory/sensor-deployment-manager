@@ -10,6 +10,7 @@ import {BadRequest} from '../../errors/BadRequest';
 import * as platformService from '../platform/platform.service';
 import * as contextService from '../context/context.service';
 import * as sensorService from '../sensor/sensor.service';
+import {GetDeploymentsOptions} from './get-deployments-options.class';
 
 
 
@@ -57,12 +58,31 @@ export async function getDeployment(id: string): Promise<DeploymentClient> {
 }
 
 
-export async function getDeployments(where: {user?: string; public?: boolean; id: object}): Promise<DeploymentClient[]> {
+const getDeploymentsWhereSchema = joi.object({
+  user: joi.string(),
+  public: joi.boolean(),
+  id: joi.object({
+    begins: joi.string()
+  })
+}).required();
 
-  const deployments: DeploymentApp[] = await deploymentService.getDeployments(where);
+export async function getDeployments(where: {user?: string; public?: boolean; id: object}, options: GetDeploymentsOptions): Promise<{data: DeploymentClient[]; meta: any}> {
+
+  const {error: err, value: validWhere} = getDeploymentsWhereSchema.validate(where);
+  if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
+
+  const {data: deployments, count, total} = await deploymentService.getDeployments(validWhere, options);
   
   logger.debug(`${deployments.length} deployments found`);
-  return deployments.map(deploymentService.deploymentAppToClient);
+  const deploymentsForClient = deployments.map(deploymentService.deploymentAppToClient);
+
+  return {
+    data: deploymentsForClient,
+    meta: {
+      count,
+      total
+    }
+  };
 
 }
 

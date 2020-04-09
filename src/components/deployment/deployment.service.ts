@@ -12,6 +12,9 @@ import {DeploymentNotFound} from './errors/DeploymentNotFound';
 import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
 import {DeleteDeploymentFail} from './errors/DeleteDeploymentFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
+import {PaginationOptions} from '../common/pagination-options.class';
+import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
+import {GetDeploymentsOptions} from './get-deployments-options.class';
 
 
 export async function createDeployment(deployment: DeploymentApp): Promise<DeploymentApp> {
@@ -62,14 +65,24 @@ export async function getDeployment(id: string): Promise<DeploymentApp> {
 
 
 
-export async function getDeployments(where: {user?: string; public?: boolean; id: object}): Promise<DeploymentApp[]> {
+export async function getDeployments(
+  where: {user?: string; public?: boolean; id: object}, 
+  options: GetDeploymentsOptions = {}
+): Promise<{data: DeploymentApp[]; count: number; total: number}> {
 
   const keysToPick = ['public', 'id'];
   const wherePart = whereToMongoFind(pick(where, keysToPick));
+
+  const findOptions = paginationOptionsToMongoFindOptions(options);
+  const limitAssigned = check.assigned(options.limit);
   
-  const userPart = {};
+  const userPart: any = {};
   if (check.assigned(where.user)) {
-    userPart['users._id'] = where.user;
+    if (options.includeAllPublic) {
+      userPart.$or = [{'users._id': where.user}, {public: true}];
+    } else {
+      userPart['users._id'] = where.user;
+    }
   }
 
   const findWhere = Object.assign(
@@ -80,12 +93,31 @@ export async function getDeployments(where: {user?: string; public?: boolean; id
 
   let deployments;
   try {
-    deployments = await Deployment.find(findWhere).exec();
+    deployments = await Deployment.find(findWhere, null, findOptions).exec();
   } catch (err) {
     throw new GetDeploymentsFail(undefined, err.message);
   }
 
-  return deployments.map(deploymentDbToApp);
+  const count = deployments.length;
+  let total;
+
+  if (limitAssigned) {
+    if (count < findOptions.limit && findOptions.skip === 0) {
+      total = count;
+    } else {
+      total = await Deployment.countDocuments(findWhere);
+    }
+  } else {
+    total = count;
+  }
+
+  const deploymentsForApp = deployments.map(deploymentDbToApp);
+
+  return {
+    data: deploymentsForApp,
+    count,
+    total
+  };
 
 }
 

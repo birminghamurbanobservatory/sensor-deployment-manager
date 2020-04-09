@@ -84,7 +84,7 @@ async function subscribeToPlatformGetRequests(): Promise<any> {
 
   const eventName = 'platform.get.request';
 
-  const platformsGetRequestSchema = joi.object({
+  const platformGetRequestSchema = joi.object({
     where: joi.object({
       id: joi.string()
         .required()
@@ -98,16 +98,16 @@ async function subscribeToPlatformGetRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let platforms: PlatformClient[];
+    let platform: PlatformClient;
     try {
-      const {error: err, value: validatedMsg} = platformsGetRequestSchema.validate(message);
+      const {error: err, value: validatedMsg} = platformGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      platforms = await getPlatform(validatedMsg.where.id, validatedMsg.options);
+      platform = await getPlatform(validatedMsg.where.id, validatedMsg.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return platforms;
+    return platform;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);
@@ -125,7 +125,8 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
   const eventName = 'platforms.get.request';
 
   const platformsGetRequestSchema = joi.object({
-    where: joi.object({}).unknown() // let the controller check this
+    where: joi.object({}).unknown(), // let the controller check this,
+    options: joi.object({}).unknown() // let the controller check this.
   })
   .required();
 
@@ -133,16 +134,16 @@ async function subscribeToPlatformsGetRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let platforms: PlatformClient[];
+    let response;
     try {
       const {error: err, value: validatedMsg} = platformsGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      platforms = await getPlatforms(validatedMsg.where);
+      response = await getPlatforms(validatedMsg.where, validatedMsg.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return platforms;
+    return response;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

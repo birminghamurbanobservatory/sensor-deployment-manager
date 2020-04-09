@@ -81,27 +81,24 @@ async function subscribeToPermanentHostsGetRequests(): Promise<any> {
   const eventName = 'permanent-hosts.get.request';
 
   const permanentHostGetRequestSchema = joi.object({
-    where: joi.object({
-      id: joi.object({
-        begins: joi.string()
-      })
-    })
+    where: joi.object({}).unknown(), // let the controller check this
+    options: joi.object({}).unknown() // let the controller check this
   }).required();
 
   await event.subscribe(eventName, async (message): Promise<void> => {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let permanentHosts: PermanentHostClient[];
+    let response;
     try {
       const {error: err} = permanentHostGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
-      permanentHosts = await getPermanentHosts(message.where || {});
+      response = await getPermanentHosts(message.where || {}, message.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return permanentHosts;
+    return response;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

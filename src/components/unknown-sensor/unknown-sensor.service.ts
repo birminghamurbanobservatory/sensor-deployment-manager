@@ -8,6 +8,7 @@ import {UnknownSensorNotFound} from './errors/UnknownSensorNotFound';
 import {DeleteUnknownSensorFail} from './errors/DeleteUnknownSensorFail';
 import {PaginationOptions} from '../common/pagination-options.class';
 import * as check from 'check-types';
+import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 
 
 export async function upsertUnknownSensor(unknownSensor: UnknownSensorApp): Promise<UnknownSensorApp> {
@@ -42,20 +43,8 @@ export async function getUnknownSensors(options: PaginationOptions = {}): Promis
 
   const where = {};
 
-  const sortObj = {};
-  const sortOrderNumeric = options.sortOrder === 'desc' ? -1 : 1;
-  const sortKey = (!options.sortBy || options.sortBy === 'id') ? '_id' : options.sortBy;
-  sortObj[sortKey] = sortOrderNumeric;
-
-  const findOptions: any = {
-    sort: sortObj,
-    skip: check.assigned(options.offset) ? options.offset : 0
-  };
-
+  const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);
-  if (limitAssigned) {
-    findOptions.limit = options.limit;
-  }
 
   let unknownSensors;
   try {
@@ -63,8 +52,6 @@ export async function getUnknownSensors(options: PaginationOptions = {}): Promis
   } catch (err) {
     throw new GetUnknownSensorsFail(undefined, err.message);
   }
-
-  const unknownSensorsForApp = unknownSensors.map(unknownSensorDbToApp);
 
   const count = unknownSensors.length;
   let total;
@@ -78,6 +65,8 @@ export async function getUnknownSensors(options: PaginationOptions = {}): Promis
   } else {
     total = count;
   }
+
+  const unknownSensorsForApp = unknownSensors.map(unknownSensorDbToApp);
 
   return {
     data: unknownSensorsForApp,

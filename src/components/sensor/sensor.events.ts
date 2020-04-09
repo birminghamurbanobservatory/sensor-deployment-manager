@@ -120,7 +120,8 @@ async function subscribeToSensorsGetRequests(): Promise<any> {
   const eventName = 'sensors.get.request';
 
   const sensorsGetRequestSchema = joi.object({
-    where: joi.object({}).unknown() // the controller checks this
+    where: joi.object({}).unknown(), // the controller checks this,
+    options: joi.object({}).unknown() // let the controller check this
   })
   .required();
 
@@ -128,16 +129,16 @@ async function subscribeToSensorsGetRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let sensors: SensorClient[];
+    let response;
     try {
       const {error: err} = sensorsGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      sensors = await getSensors(message.where);
+      response = await getSensors(message.where, message.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return sensors;
+    return response;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

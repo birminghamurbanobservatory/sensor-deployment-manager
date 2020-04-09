@@ -16,6 +16,9 @@ import {DeletePermanentHostFail} from './errors/DeletePermanentHostFail';
 import {DeregisterPermanentHostFail} from './errors/DeregisterPermanentHostFail';
 import {PermanentHostAlreadyRegistered} from './errors/PermanentHostAlreadyRegistered';
 import {UpdatePermanentHostRegisteredAsFail} from './errors/UpdatePermanentHostRegisteredAsFail';
+import {PaginationOptions} from '../common/pagination-options.class';
+import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
+import * as check from 'check-types';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -41,7 +44,7 @@ export async function createPermanentHost(permanentHost: PermanentHostApp): Prom
 
 
 // TODO: Might be worth adding a 'where' argument to filter the results
-export async function getPermanentHosts(where): Promise<PermanentHostApp[]> {
+export async function getPermanentHosts(where, options: PaginationOptions = {}): Promise<{data: PermanentHostApp[]; count: number; total: number}> {
 
   const findWhere = Object.assign(
     {}, 
@@ -50,15 +53,37 @@ export async function getPermanentHosts(where): Promise<PermanentHostApp[]> {
       deletedAt: {$exists: false}
     }
   );
+
+  const findOptions = paginationOptionsToMongoFindOptions(options);
+  const limitAssigned = check.assigned(options.limit);
   
   let permanentHosts;
   try {
-    permanentHosts = await PermanentHost.find(findWhere).exec();
+    permanentHosts = await PermanentHost.find(findWhere, null, findOptions).exec();
   } catch (err) {
     throw new GetPermanentHostsFail(undefined, err.message);
   }
 
-  return permanentHosts.map(permanentHostDbToApp);
+  const count = permanentHosts.length;
+  let total;
+
+  if (limitAssigned) {
+    if (count < findOptions.limit && findOptions.skip === 0) {
+      total = count;
+    } else {
+      total = await PermanentHost.countDocuments(findWhere);
+    }
+  } else {
+    total = count;
+  }
+
+  const permanentHostsForApp = permanentHosts.map(permanentHostDbToApp);
+
+  return {
+    data: permanentHostsForApp,
+    count,
+    total
+  };
 
 }
 

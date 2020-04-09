@@ -19,6 +19,7 @@ import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWi
 import {generateSensorId, prefixForGeneratedIds} from '../../utils/generate-sensor-id';
 import {CannotHostSensorOnPermanentHost} from './errors/CannotHostSensorOnPermanentHost';
 import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
+import {PaginationOptions} from '../common/pagination-options.class';
 
 
 const configSchema = joi.object({
@@ -159,17 +160,26 @@ const getSensorsWhereSchema = joi.object({
   })
 });
 
-export async function getSensors(where: any): Promise<SensorClient[]> {
+
+export async function getSensors(where: any, options?: PaginationOptions): Promise<{data: SensorClient[]; meta: any}> {
 
   const {error: err, value: validWhere} = getSensorsWhereSchema.validate(where);
   if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
 
-  const sensors: SensorApp[] = await sensorService.getSensors(validWhere);
+  const {data: sensors, count, total} = await sensorService.getSensors(validWhere, options);
   logger.debug('Sensors found', sensors);
-  return sensors.map(sensorService.sensorAppToClient);
+
+  const sensorsForClient = sensors.map(sensorService.sensorAppToClient);
+  
+  return {
+    data: sensorsForClient,
+    meta: {
+      count,
+      total
+    }
+  };
 
 }
-
 
 
 const sensorUpdatesSchema = joi.object({

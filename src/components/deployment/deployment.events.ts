@@ -117,13 +117,8 @@ async function subscribeToDeploymentsGetRequests(): Promise<any> {
   const eventName = 'deployments.get.request';
 
   const deploymentsGetRequestSchema = joi.object({
-    where: joi.object({
-      user: joi.string(),
-      public: joi.boolean(),
-      id: joi.object({
-        begins: joi.string()
-      })
-    })
+    where: joi.object({}).unknown(), // let the controller check this
+    options: joi.object({}).unknown() // let the controller check this
   })
   .required();
 
@@ -131,16 +126,16 @@ async function subscribeToDeploymentsGetRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let deployments: DeploymentClient[];
+    let response;
     try {
       const {error: err} = deploymentsGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      deployments = await getDeployments(message.where);
+      response = await getDeployments(message.where, message.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return deployments;
+    return response;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);
