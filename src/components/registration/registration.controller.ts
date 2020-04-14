@@ -29,7 +29,7 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   await deploymentService.getDeployment(deploymentId);
 
   // Get all the sensors with this permanent host
-  const sensors = await sensorsService.getSensors({permanentHost: permanentHost.id});
+  const {data: sensors} = await sensorsService.getSensors({permanentHost: permanentHost.id});
   // If any of these sensors are already bound to another deployment then the user is not allowed to move them to their own deployment.
   sensors.forEach((sensor) => {
     if (sensor.inDeployment) {

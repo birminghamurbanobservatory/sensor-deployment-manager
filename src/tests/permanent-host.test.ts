@@ -76,7 +76,7 @@ describe('Permanent host testing', () => {
     //------------------------
     // Read multiple
     //------------------------
-    const permanentHosts = await permanentHostController.getPermanentHosts({});
+    const {data: permanentHosts} = await permanentHostController.getPermanentHosts({});
     expect(permanentHosts.length).toBe(1);
     expect(permanentHosts).toEqual([permanentHost]);
     
@@ -99,7 +99,7 @@ describe('Permanent host testing', () => {
     await expect(permanentHostController.getPermanentHost(permanentHost.id)).rejects.toThrow(PermanentHostNotFound);
 
     // Try getting all the permanentHosts
-    const permanentHostsAfterDelete = await permanentHostController.getPermanentHosts({});
+    const {data: permanentHostsAfterDelete} = await permanentHostController.getPermanentHosts({});
     expect(permanentHostsAfterDelete.length).toBe(0);
 
 

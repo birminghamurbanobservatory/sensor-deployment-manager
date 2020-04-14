@@ -107,7 +107,7 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
   // If a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them (unless they were shared with the deployment).
   if (updates.public === false) {
 
-    const deploymentPlatforms = await platformService.getPlatforms({ownerDeployment: id});
+    const {data: deploymentPlatforms} = await platformService.getPlatforms({ownerDeployment: id});
     const deploymentPlatformIds = deploymentPlatforms.map((platform) => platform.id);
 
     // Unhost the decendent platforms from non-shared deployments
@@ -134,7 +134,7 @@ export async function deleteDeployment(id: string): Promise<void> {
   logger.debug(`Deployment '${id}' deleted.`);
 
   // Get a list of the platforms owned by this platform before deleting them
-  const deploymentPlatforms = await platformService.getPlatforms({ownerDeployment: id});
+  const {data: deploymentPlatforms} = await platformService.getPlatforms({ownerDeployment: id});
   const deploymentPlatformIds = deploymentPlatforms.map((platform) => platform.id);
 
   // Delete its platforms

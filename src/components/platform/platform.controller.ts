@@ -165,7 +165,7 @@ export async function getPlatform(id: string, options: {nest?: boolean} = {}): P
 export async function getNestedHostsArrayForApp(platformId: string): Promise<any[]> {
 
   // First let's find an sub-platforms, direct or indirect.
-  const subPlatforms = await platformService.getPlatforms({hostedByPath: {includes: platformId}});
+  const {data: subPlatforms} = await platformService.getPlatforms({hostedByPath: {includes: platformId}});
 
   // Now we know all the possible platformIds that sensors could be hosted on.
   const subPlatformIds = subPlatforms.map((platform) => platform.id);
@@ -184,13 +184,13 @@ export async function getNestedHostsArrayForApp(platformId: string): Promise<any
 export async function getNestedHostsArrayForClient(platformId: string): Promise<any[]> {
 
   // First let's find an sub-platforms, direct or indirect.
-  const subPlatforms = await platformService.getPlatforms({hostedByPath: {includes: platformId}});
+  const {data: subPlatforms} = await platformService.getPlatforms({hostedByPath: {includes: platformId}});
   const subPlatformsForClient = subPlatforms.map(platformService.platformAppToClient);
 
   // Now we know all the possible platformIds that sensors could be hosted on.
   const subPlatformIds = subPlatforms.map((platform) => platform.id);
   const allPlatformIds = concat(platformId, subPlatformIds);
-  const sensors = await sensorService.getSensors({isHostedBy: {in: allPlatformIds}});
+  const {data: sensors} = await sensorService.getSensors({isHostedBy: {in: allPlatformIds}});
   const sensorsForClient = sensors.map(sensorService.sensorAppToClient);
 
   // Now to build the nested structure
@@ -334,11 +334,11 @@ export async function unhostPlatform(id: string): Promise<PlatformApp> {
 
   // Get a list of all the sensors on the platform and its descendents
   const unhostedPlatformIds = concat([id], descendentIds);
-  const sensors = await sensorService.getSensors({isHostedBy: {in: unhostedPlatformIds}});
+  const {data: sensors} = await sensorService.getSensors({isHostedBy: {in: unhostedPlatformIds}});
   const sensorIds = sensors.map((sensor) => sensor.id);
 
   // Find all the platforms (i.e. including old relatives) that use these sensors to update their location
-  const platformsUsingSensors = await platformService.getPlatforms({updateLocationWithSensor: {in: sensorIds}});
+  const {data: platformsUsingSensors} = await platformService.getPlatforms({updateLocationWithSensor: {in: sensorIds}});
   const platformsUsingSensorsIds = platformsUsingSensors.map((platformUsingSensor) => platformUsingSensor.id);
 
   // Select those that were old relatives (N.B. I can't just use the oldAncestorsIds as there may be platforms down other branches of the platform tree using these sensors).
@@ -498,7 +498,7 @@ export async function deletePlatform(id: string): Promise<void> {
   await platformService.deletePlatform(id);
   
   // Get all the sensors hosted on this platform
-  const sensors: SensorApp[] = await sensorService.getSensors({isHostedBy: id});
+  const {data: sensors} = await sensorService.getSensors({isHostedBy: id});
 
   // Loop through each sensor
   await Promise.map(sensors, async (sensor) => {
@@ -537,7 +537,7 @@ export async function releasePlatformSensors(id: string): Promise<void> {
   const platform = await platformService.getPlatform(id); 
   
   // Get all the sensors directly hosted on this platform
-  const sensors: SensorApp[] = await sensorService.getSensors({isHostedBy: id});
+  const {data: sensors} = await sensorService.getSensors({isHostedBy: id});
 
   // Loop through each sensor
   await Promise.map(sensors, async (sensor) => {

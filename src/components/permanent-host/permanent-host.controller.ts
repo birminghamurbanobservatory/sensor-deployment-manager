@@ -79,7 +79,7 @@ const getPermanentHostWhereScema = joi.object({
   })
 });
 
-export async function getPermanentHosts(where: any, options: PaginationOptions): Promise<{data: PermanentHostClient[]; meta: any}> {
+export async function getPermanentHosts(where: any, options: PaginationOptions = {}): Promise<{data: PermanentHostClient[]; meta: any}> {
 
   const {error: err, value: validWhere} = getPermanentHostWhereScema.validate(where);
   if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
