@@ -30,11 +30,9 @@
     "cls-hooked": "^4.2.2",
     "dotenv": "^8.2.0",
     "event-stream": "github:birminghamurbanobservatory/event-stream#semver:^1.0.0",
-    "knex": "^0.20.4",
     "mongoose": "^5.7.7",
     "node-logger": "github:birminghamurbanobservatory/node-logger#semver:^1.0.0",
     "password-generator": "^2.2.0",
-    "pg": "^7.15.1",
     "shortid": "^2.2.15",
     "snakecase-keys": "^3.1.0",
     "uuid": "^3.4.0"
