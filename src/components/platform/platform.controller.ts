@@ -7,7 +7,7 @@ import {PlatformApp} from './platform-app.class';
 import {PlatformNotFound} from './errors/PlatformNotFound';
 import * as logger from 'node-logger';
 import {nameToClientId} from '../../utils/name-to-client-id';
-import {cloneDeep, concat, difference} from 'lodash';
+import {cloneDeep, concat, difference, sortBy} from 'lodash';
 import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
 import * as sensorService from '../sensor/sensor.service';
 import * as Promise from 'bluebird';
@@ -201,7 +201,11 @@ export async function getNestedHostsArrayForClient(platformId: string): Promise<
 }
 
 
+//-------------------------------------------------
+// Get Platforms
+//-------------------------------------------------
 const getPlatformsWhereSchema = joi.object({
+  // Here it make sense to me to allow both inDeployment and inDeployments so that I don't end up having support weird inDeployments.includes.in objects
   inDeployment: joi.alternatives().try(
     joi.string(),
     joi.object({
@@ -209,6 +213,9 @@ const getPlatformsWhereSchema = joi.object({
       exists: joi.boolean()
     }).min(1)
   ),
+  inDeployments: joi.object({
+    includes: joi.string()
+  }),
   id: joi.object({
     begins: joi.string()
   }),
@@ -227,24 +234,82 @@ const getPlatformsWhereSchema = joi.object({
   )
 });
 
-export async function getPlatforms(where: {inDeployment?: any; id?: object; isHostedBy?: any} = {}, options: PaginationOptions): Promise<PlatformClient[]> {
+class GetPlatformsOptions extends PaginationOptions {
+  public nest: boolean;
+}
+
+export async function getPlatforms(where: any = {}, options: GetPlatformsOptions): Promise<{data: PlatformClient[]; meta: {count: number; total: number}}> {
 
   const {error: err, value: validatedWhere} = getPlatformsWhereSchema.validate(where);
   if (err) throw new BadRequest(`Invalid where object: ${err.message}`);
 
-  const {data: platforms, count, total} = await platformService.getPlatforms(validatedWhere, options);
-  logger.debug('Platforms found', platforms);
+  //------------------------
+  // With Nesting
+  //------------------------
+  if (options.nest) {
 
-  // Now to make the platforms client friendly
-  const platformsForClient = platforms.map(platformService.platformAppToClient);
-  
-  return {
-    data: platformsForClient,
-    meta: {
-      count,
-      total
+    // When nesting the limit will be applied to the number of platform "trees", so first we'll get the list of distinct topPlatforms that match the "where" criteria. The topPlatform is essentially an id for each "tree".
+    const topPlatformIds = await platformService.getDistinctTopPlatformIds(validatedWhere);
+    if (options.sortOrder === 'desc') {
+      topPlatformIds.reverse(); // mutates
     }
-  };
+    const total = topPlatformIds.length;
+
+    const offset = check.assigned(options.offset) ? options.offset : 0;
+    const limit = check.assigned(options.limit) ? options.limit : 100;
+    const selectedTopPlatformIds = topPlatformIds.slice(offset, limit);
+    console.log(selectedTopPlatformIds);
+
+    // Get all the platforms in the "trees" we've selected
+    const {data: platforms} = await platformService.getPlatforms({topPlatform: {in: selectedTopPlatformIds}});
+    const platformIds = platforms.map((platform) => platform.id);
+    
+    // Get all the sensors hosted on these platforms
+    const {data: sensors} = await sensorService.getSensors({isHostedBy: {in: platformIds}});
+
+    // It's easier to format the platforms and sensors for the client before nesting them
+    const platformsForClient = platforms.map(platformService.platformAppToClient);
+    const sensorsForClient = sensors.map(sensorService.sensorAppToClient);
+
+    const nestedPlatformsForClient = platformService.buildNestedPlatformsArray(platformsForClient, sensorsForClient);
+    const count = nestedPlatformsForClient.length;
+
+    const nestedPlatformsForClientSorted = sortBy(nestedPlatformsForClient, 'id');
+    if (options.sortOrder === 'desc') {
+      nestedPlatformsForClientSorted.reverse();
+    }
+
+    return {
+      data: nestedPlatformsForClientSorted,
+      meta: {
+        count,
+        total
+      }
+    };
+
+  }
+
+  //------------------------
+  // Without Nesting
+  //------------------------
+  if (!options.nest) {
+
+    const {data: platforms, count, total} = await platformService.getPlatforms(validatedWhere, options);
+    logger.debug('Platforms found', platforms);
+
+    // Now to make the platforms client friendly
+    const platformsForClient = platforms.map(platformService.platformAppToClient);
+    
+    return {
+      data: platformsForClient,
+      meta: {
+        count,
+        total
+      }
+    };
+
+  }
+
 
 }
 

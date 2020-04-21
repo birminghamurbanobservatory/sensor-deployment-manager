@@ -7,6 +7,7 @@ export class PlatformApp {
   public inDeployments?: string[];
   public isHostedBy?: string;
   public hostedByPath?: string[];
+  public topPlatform?: string;
   public hosts?: any[];
   public initialisedFrom?: string;
   public static?: boolean;
@@ -15,6 +16,7 @@ export class PlatformApp {
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;
+  public type?: string; // for when in a platform's 'hosts' array
 }
 
 

@@ -160,7 +160,6 @@ const getSensorsWhereSchema = joi.object({
   })
 });
 
-
 export async function getSensors(where: any, options?: PaginationOptions): Promise<{data: SensorClient[]; meta: any}> {
 
   const {error: err, value: validWhere} = getSensorsWhereSchema.validate(where);

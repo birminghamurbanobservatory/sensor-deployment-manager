@@ -89,6 +89,11 @@ const schema = new mongoose.Schema({
     type: [String],
     default: undefined
   },
+  // If the platform isn't hosted on any others, e.g. because it's a standalone platform or the first platfrom in the platform "tree" then this topPlatform will be the id of the platform itself, alternatively if this platform IS hosted on another then this topPlatform will be the first platformId in the hostedByPath. This required field essentially acts as an id each platform "tree", and comes in handy for returning multiple platforms in a nested format whilst handling pagination.
+  topPlatform: {
+    type: String,
+    required: true
+  },
   static: {
     type: Boolean,
     required: true
@@ -116,6 +121,7 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 schema.index({inDeployments: 1});
 schema.index({hostedByPath: 1});
+schema.index({topPlatform: 1});
 schema.index({updateLocationWithSensor: 1});
 
 

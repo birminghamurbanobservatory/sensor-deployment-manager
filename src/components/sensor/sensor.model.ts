@@ -90,6 +90,8 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 schema.index({permanentHost: 1});
 schema.index({inDeployment: 1, isHostedBy: 1});
+schema.index({isHostedBy: 1}); // comes in handy when getting nested platforms including the sensors
+
 
 
 //-------------------------------------------------

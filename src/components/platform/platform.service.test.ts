@@ -1,4 +1,4 @@
-import {buildNestedHostsArray} from './platform.service';
+import {buildNestedHostsArray, buildNestedPlatformsArray} from './platform.service';
 
 describe('Testing buildNestedHostsArray function', () => {
 
@@ -11,19 +11,22 @@ describe('Testing buildNestedHostsArray function', () => {
         id: 'parent-platform-1',
         name: 'Parent Platform 1',
         isHostedBy: 'grand-parent-platform',
-        hostedByPath: ['grand-parent-platform']
+        hostedByPath: ['grand-parent-platform'],
+        topPlatform: 'grand-parent-platform'
       },
       {
         id: 'parent-platform-2',
         name: 'Parent Platform 2',
         isHostedBy: 'grand-parent-platform',
-        hostedByPath: ['grand-parent-platform']
+        hostedByPath: ['grand-parent-platform'],
+        topPlatform: 'grand-parent-platform'
       },
       {
         id: 'child-platform-1',
         name: 'Child Platform 1',
         isHostedBy: 'parent-platform-2',
-        hostedByPath: ['grand-parent-platform', 'parent-platform-2']
+        hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
+        topPlatform: 'grand-parent-platform'
       }
     ];
 
@@ -57,6 +60,7 @@ describe('Testing buildNestedHostsArray function', () => {
         name: 'Parent Platform 1',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
+        topPlatform: 'grand-parent-platform',
         type: 'platform',
         hosts: [
           {
@@ -76,6 +80,7 @@ describe('Testing buildNestedHostsArray function', () => {
         name: 'Parent Platform 2',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
+        topPlatform: 'grand-parent-platform',
         type: 'platform',
         hosts: [
           {
@@ -83,6 +88,7 @@ describe('Testing buildNestedHostsArray function', () => {
             name: 'Child Platform 1',
             isHostedBy: 'parent-platform-2',
             hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
+            topPlatform: 'grand-parent-platform',
             type: 'platform',
             hosts: [
               {
@@ -149,6 +155,140 @@ describe('Testing buildNestedHostsArray function', () => {
 
   });
 
+
+
+});
+
+
+
+
+describe('Testing buildNestedPlatformsArray function', () => {
+
+  test('Can process a normal set of platforms and sensors', () => {
+    
+    const allPlatforms = [
+      {
+        id: 'grand-parent-platform',
+        name: 'GrandParent Platform',
+        topPlatform: 'grand-parent-platform'
+      },
+      {
+        id: 'parent-platform-1',
+        name: 'Parent Platform 1',
+        isHostedBy: 'grand-parent-platform',
+        hostedByPath: ['grand-parent-platform'],
+        topPlatform: 'grand-parent-platform'
+      },
+      {
+        id: 'parent-platform-2',
+        name: 'Parent Platform 2',
+        isHostedBy: 'grand-parent-platform',
+        hostedByPath: ['grand-parent-platform'],
+        topPlatform: 'grand-parent-platform'
+      },
+      {
+        id: 'child-platform-1',
+        name: 'Child Platform 1',
+        isHostedBy: 'parent-platform-2',
+        hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
+        topPlatform: 'grand-parent-platform'
+      }
+    ];
+
+    const allSensors = [
+      {
+        id: 'sensor-1',
+        isHostedBy: 'grand-parent-platform'
+      },
+      {
+        id: 'sensor-2',
+        isHostedBy: 'parent-platform-1'
+      },
+      {
+        id: 'sensor-3',
+        isHostedBy: 'parent-platform-1'
+      },
+      {
+        id: 'sensor-4',
+        isHostedBy: 'child-platform-1'
+      }
+    ];
+
+    const expected = [
+      {
+        id: 'grand-parent-platform',
+        name: 'GrandParent Platform',
+        topPlatform: 'grand-parent-platform',
+        hosts: [
+          {
+            id: 'sensor-1',
+            isHostedBy: 'grand-parent-platform',
+            type: 'sensor'
+          },
+          {
+            id: 'parent-platform-1',
+            name: 'Parent Platform 1',
+            isHostedBy: 'grand-parent-platform',
+            hostedByPath: ['grand-parent-platform'],
+            topPlatform: 'grand-parent-platform',
+            type: 'platform',
+            hosts: [
+              {
+                id: 'sensor-2',
+                isHostedBy: 'parent-platform-1',
+                type: 'sensor'
+              },
+              {
+                id: 'sensor-3',
+                isHostedBy: 'parent-platform-1',
+                type: 'sensor'
+              },
+            ]
+          },
+          {
+            id: 'parent-platform-2',
+            name: 'Parent Platform 2',
+            isHostedBy: 'grand-parent-platform',
+            hostedByPath: ['grand-parent-platform'],
+            topPlatform: 'grand-parent-platform',
+            type: 'platform',
+            hosts: [
+              {
+                id: 'child-platform-1',
+                name: 'Child Platform 1',
+                isHostedBy: 'parent-platform-2',
+                hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
+                topPlatform: 'grand-parent-platform',
+                type: 'platform',
+                hosts: [
+                  {
+                    id: 'sensor-4',
+                    isHostedBy: 'child-platform-1',
+                    type: 'sensor'
+                  }
+                ]
+              }
+            ]
+          }
+        ]  
+      }  
+    ];
+
+    const nestedPlatformsArray = buildNestedPlatformsArray(allPlatforms, allSensors);
+    expect(nestedPlatformsArray).toEqual(expected);
+
+  });
+
+
+  test('Can handle a situation when there are no sub-platforms and no sensors', () => {
+
+    const allPlatforms = [];
+    const allSensors = [];
+    const expected = [];
+    const nestedPlatformsArray = buildNestedPlatformsArray(allPlatforms, allSensors);
+    expect(nestedPlatformsArray).toEqual(expected);
+
+  });
 
 
 });

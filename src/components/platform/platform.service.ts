@@ -1,7 +1,7 @@
 import Platform from './platform.model';
 import {PlatformApp} from './platform-app.class';
 import {PlatformClient} from './platform-client.class';
-import {cloneDeep, concat, pullAllBy} from 'lodash';
+import {cloneDeep, concat, pullAllBy, sortBy, groupBy} from 'lodash';
 import {PlatformAlreadyExists} from './errors/PlatformAlreadyExists';
 import {InvalidPlatform} from './errors/InvalidPlatform';
 import {CreatePlatformFail} from './errors/CreatePlatformFail';
@@ -37,11 +37,15 @@ import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
 import {SensorApp} from '../sensor/sensor-app.class';
 import {PaginationOptions} from '../common/pagination-options.class';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
+import {GetDistinctTopPlatformsFail} from './errors/GetDistinctTopPlatformsFail';
+import {SensorClient} from '../sensor/sensor-client.class';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
 
-  const platformDb = platformAppToDb(platform);
+  const platformToCreate = cloneDeep(platform);
+  platformToCreate.topPlatform = deriveTopPlatformFromPlatform(platformToCreate);
+  const platformDb = platformAppToDb(platformToCreate);
 
   let createdPlatform;
   try {
@@ -58,6 +62,27 @@ export async function createPlatform(platform: PlatformApp): Promise<PlatformApp
   }
 
   return platformDbToApp(createdPlatform);
+
+}
+
+
+function deriveTopPlatformFromPlatform(platform: PlatformApp): string {
+
+  let topPlatformId;
+
+  if (!platform.isHostedBy) {
+    topPlatformId =  platform.id;
+  }
+
+  if (platform.isHostedBy && check.nonEmptyArray(platform.hostedByPath)) {
+    topPlatformId = platform.hostedByPath[0];
+  }
+
+  if (!topPlatformId) {
+    throw new Error('Unable to derive a topPlatform from the platform');
+  }
+
+  return topPlatformId;
 
 }
 
@@ -86,8 +111,17 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 }
 
 
+
 export async function getPlatforms(
-  where: {inDeployment?: any; ownerDeployment?: string; isHostedBy?: any; updateLocationWithSensor?: any; id?: object; hostedByPath?: any} = {}, 
+  where: {
+    inDeployment?: any; 
+    ownerDeployment?: string; 
+    isHostedBy?: any; 
+    updateLocationWithSensor?: any; 
+    id?: object; 
+    hostedByPath?: any; 
+    topPlatform?: any
+  } = {}, 
   options: PaginationOptions = {}
 ): Promise<{data: PlatformApp[]; count: number; total: number}> {
 
@@ -130,6 +164,32 @@ export async function getPlatforms(
     count,
     total
   };
+
+}
+
+
+export async function getDistinctTopPlatformIds(where = {}): Promise<string[]> {
+
+  const findWhere = whereToMongoFind(where);
+  findWhere.deletedAt = {$exists: false};
+
+  // The db property is actually inDeployments not inDeployment
+  if (findWhere.inDeployment) {
+    findWhere.inDeployments = findWhere.inDeployment;
+    delete findWhere.inDeployment;
+  }
+
+  let distinctTopPlatformIds;
+  try {
+    distinctTopPlatformIds = await Platform.distinct('topPlatform', where).exec();
+  } catch (err) {
+    throw new GetDistinctTopPlatformsFail(undefined, err.message);
+  }
+
+  // Worth returning them in sorted order
+  const sortedDistinctTopPlatformIds = sortBy(distinctTopPlatformIds);
+
+  return sortedDistinctTopPlatformIds;
 
 }
 
@@ -204,7 +264,7 @@ export async function rehostPlatform(id: string, hostId?: string): Promise<{plat
   const hostPlatform = await getPlatform(hostId);
   let newAncestors = [hostPlatform.id];
   if (hostPlatform.hostedByPath) {
-    newAncestors = concat(newAncestors, hostPlatform.hostedByPath);
+    newAncestors = concat(hostPlatform.hostedByPath, newAncestors);
   }
 
   logger.debug(`New ancestors for platform ${id}`, newAncestors);
@@ -235,6 +295,7 @@ export async function rehostPlatform(id: string, hostId?: string): Promise<{plat
         hostedByPath: id
       },
       {
+        topPlatform: newAncestors[0],
         $push: {
           hostedByPath: {
             $each: newAncestors,
@@ -250,7 +311,8 @@ export async function rehostPlatform(id: string, hostId?: string): Promise<{plat
   // Now to update the platform itself
   const updates: any = {
     isHostedBy: hostId,
-    hostedByPath: newAncestors      
+    hostedByPath: newAncestors,
+    topPlatform: newAncestors[0]      
   };
 
   let updatedPlatform;
@@ -296,8 +358,9 @@ export async function unhostPlatform(id): Promise<{platform: PlatformApp; oldAnc
   const updates = {
     $unset: {
       isHostedBy: '',
-      hostedByPath: ''      
-    }
+      hostedByPath: ''     
+    },
+    topPlatform: id
   };
 
   let updatedPlatform;
@@ -326,6 +389,7 @@ export async function unhostPlatform(id): Promise<{platform: PlatformApp; oldAnc
         hostedByPath: id
       },
       {
+        topPlatform: id,
         $pull: {hostedByPath: {$in: oldAncestors}}
       }
     );    
@@ -764,7 +828,7 @@ export function buildNestedHostsArray(topPlatformId: string, subPlatforms: Platf
   const platformsWithType: any[] = cloneDeep(subPlatforms);
   platformsWithType.forEach((platform) => platform.type = 'platform');
 
-  // Before we start nesting platforms, let's assigned any sensors they host to their hosts array
+  // Before we start nesting platforms, let's assign any sensors they host to their hosts array
   platformsWithType.forEach((platform) => {
     const sensorsHostedByPlatform = remainingSensors.filter((sensor) => sensor.isHostedBy === platform.id);
     if (sensorsHostedByPlatform.length > 0) {
@@ -772,8 +836,17 @@ export function buildNestedHostsArray(topPlatformId: string, subPlatforms: Platf
     }
   });
 
+  const platformsNested = organiseSubLevelPlatforms(platformsWithType);
+  hostsArray = concat(hostsArray, platformsNested);
+  return hostsArray;
+
+}
+
+
+export function organiseSubLevelPlatforms(platforms: PlatformClient[]): any[] {
+
   // For the platforms the number of elements in the hostedByPath tells you how deep it is in ancestry "tree".
-  const nLevels = subPlatforms.reduce((deepestSoFar, platform) => {
+  const nLevels = platforms.reduce((deepestSoFar, platform) => {
     if (platform.hostedByPath) {
       return Math.max(deepestSoFar, platform.hostedByPath.length);
     } else {
@@ -786,7 +859,7 @@ export function buildNestedHostsArray(topPlatformId: string, subPlatforms: Platf
   const platformsLevelled = [];
   for (let i = 0; i < nLevels; i++) {
     const hostedByPathLength = i + 1;
-    const thisLevelsPlatforms = platformsWithType.filter((platform) => {
+    const thisLevelsPlatforms = platforms.filter((platform) => {
       return platform.hostedByPath && platform.hostedByPath.length === hostedByPathLength;
     });
     platformsLevelled.push(thisLevelsPlatforms);
@@ -799,7 +872,7 @@ export function buildNestedHostsArray(topPlatformId: string, subPlatforms: Platf
   }
 
   if (platformsLevelled.length > 1) {
-    // We want to go through in reverse, adding platforms from the next level deeper as hosts to the current level, so that by the end platformsLevelled[0] contains the complete nested strucutre.
+    // We want to go through in reverse, adding platforms from the next level deeper as hosts to the current level, so that by the end platformsLevelled[0] contains the complete nested structure.
     for (let i = platformsLevelled.length - 2; i >= 0; i--) {
       platformsLevelled[i].forEach((hostPlatform) => {
         const hosteePlatforms = platformsLevelled[i + 1].filter((hosteePlatform) => hosteePlatform.isHostedBy === hostPlatform.id);
@@ -816,14 +889,62 @@ export function buildNestedHostsArray(topPlatformId: string, subPlatforms: Platf
     platformsNested = platformsLevelled[0];
   }
 
-  hostsArray = concat(hostsArray, platformsNested);
-  return hostsArray;
+  return platformsNested;
+
+}
+
+
+export function buildNestedPlatformsArray(allPlatforms: PlatformClient[], allSensors: SensorClient[]): any {
+
+  // Assign a type property so we can distinguish sensors from platforms in the hosts arrays
+  const sensorsWithType = allSensors.map((sensor) => {
+    const sensorWithType = cloneDeep(sensor);
+    sensorWithType.type = 'sensor';
+    return sensorWithType;
+  });
+
+  // Before we start nesting platforms, let's assign any sensors they host to their hosts array
+  const sensorsGrouped = groupBy(sensorsWithType, 'isHostedBy');
+  const platformsWithSensors = allPlatforms.map((platform) => {
+    const platformWithSensor = cloneDeep(platform);
+    platformWithSensor.hosts = sensorsGrouped[platform.id] || [];
+    return platformWithSensor;
+  });
+
+  // Get all the top level platforms
+  const topLevelPlatforms = platformsWithSensors.filter((platform) => {
+    return check.not.assigned(platform.isHostedBy);
+  });
+  // Get all the sub level platforms (and add a type field)
+  const subLevelPlatforms = platformsWithSensors.filter((platform) => {
+    return check.assigned(platform.isHostedBy);
+  }).map((platform) => {
+    platform.type = 'platform';
+    return platform;
+  });
+
+  // this creates an object with the topPlatform ids as the keys.
+  const subPlatformsGrouped = groupBy(subLevelPlatforms, 'topPlatform'); 
+
+  const nestedPlatformsArray = topLevelPlatforms.map((topLevelPlatform) => {
+
+    if (subPlatformsGrouped[topLevelPlatform.id]) {
+      const organisedSubPlatforms = organiseSubLevelPlatforms(subPlatformsGrouped[topLevelPlatform.id]);
+      // Account for the fact the top level platform might already have some sensors in its hosts array.
+      topLevelPlatform.hosts = concat(topLevelPlatform.hosts, organisedSubPlatforms);
+    }
+
+    return topLevelPlatform;
+
+  });
+
+  return nestedPlatformsArray;
 
 }
 
 
 
-function platformAppToDb(platformApp: PlatformApp): object {
+function platformAppToDb(platformApp: PlatformApp): any {
   const platformDb: any = cloneDeep(platformApp);
   platformDb._id = platformApp.id;
   delete platformDb.id;
@@ -849,8 +970,12 @@ export function platformAppToClient(platformApp: PlatformApp): PlatformClient {
   if (platformClient.location && platformClient.location.validAt) {
     platformClient.location.validAt = platformClient.location.validAt.toISOString();
   }  
-  platformClient.createdAt = platformClient.createdAt.toISOString();
-  platformClient.updatedAt = platformClient.updatedAt.toISOString();
+  if (check.assigned(platformClient.createdAt)) {
+    platformClient.createdAt = platformClient.createdAt.toISOString();
+  }
+  if (check.assigned(platformClient.updatedAt)) {
+    platformClient.updatedAt = platformClient.updatedAt.toISOString();
+  }
   return platformClient;
 } 
 

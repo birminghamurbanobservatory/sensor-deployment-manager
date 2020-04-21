@@ -7,6 +7,7 @@ export class PlatformClient {
   public inDeployments?: string[];
   public isHostedBy?: string;
   public hostedByPath?: string[];
+  public topPlatform?: string;
   public hosts?: any[];
   public static?: boolean;
   public location?: Location;
@@ -14,6 +15,7 @@ export class PlatformClient {
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;
+  public type?: string; // for when in a platform's 'hosts' array
 }
 
 
