@@ -260,7 +260,7 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
     const offset = check.assigned(options.offset) ? options.offset : 0;
     const limit = check.assigned(options.limit) ? options.limit : 100;
     logger.debug(`offset: ${offset}, limit: ${limit}.`);
-    const selectedTopPlatformIds = topPlatformIds.slice(offset, limit);
+    const selectedTopPlatformIds = topPlatformIds.slice(offset, limit + offset);
     logger.debug('selected top platform ids (i.e. those in this pagination page)', selectedTopPlatformIds);
 
     // Get all the platforms in the "trees" we've selected
