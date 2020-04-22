@@ -250,15 +250,18 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
 
     // When nesting the limit will be applied to the number of platform "trees", so first we'll get the list of distinct topPlatforms that match the "where" criteria. The topPlatform is essentially an id for each "tree".
     const topPlatformIds = await platformService.getDistinctTopPlatformIds(validatedWhere);
+    logger.debug('All distinct top platform ids that match where criteria', topPlatformIds);
     if (options.sortOrder === 'desc') {
       topPlatformIds.reverse(); // mutates
     }
     const total = topPlatformIds.length;
+    logger.debug(`total: ${total}`);
 
     const offset = check.assigned(options.offset) ? options.offset : 0;
     const limit = check.assigned(options.limit) ? options.limit : 100;
+    logger.debug(`offset: ${offset}, limit: ${limit}.`);
     const selectedTopPlatformIds = topPlatformIds.slice(offset, limit);
-    console.log(selectedTopPlatformIds);
+    logger.debug('selected top platform ids (i.e. those in this pagination page)', selectedTopPlatformIds);
 
     // Get all the platforms in the "trees" we've selected
     const {data: platforms} = await platformService.getPlatforms({topPlatform: {in: selectedTopPlatformIds}});
