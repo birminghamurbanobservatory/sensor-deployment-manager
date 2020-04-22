@@ -181,7 +181,7 @@ export async function getDistinctTopPlatformIds(where = {}): Promise<string[]> {
 
   let distinctTopPlatformIds;
   try {
-    distinctTopPlatformIds = await Platform.distinct('topPlatform', where).exec();
+    distinctTopPlatformIds = await Platform.distinct('topPlatform', findWhere).exec();
   } catch (err) {
     throw new GetDistinctTopPlatformsFail(undefined, err.message);
   }
