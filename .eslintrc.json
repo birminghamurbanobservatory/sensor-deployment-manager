@@ -51,6 +51,9 @@
       "error",
       "always"
     ],
+    "no-console": [
+        "error"
+    ],
     "no-new-object": [
       "error"
     ],
