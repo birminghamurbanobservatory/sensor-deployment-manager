@@ -167,7 +167,7 @@ export async function getSensors(where: any, options?: PaginationOptions): Promi
   if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
 
   const {data: sensors, count, total} = await sensorService.getSensors(validWhere, options);
-  logger.debug('Sensors found', sensors);
+  logger.debug(`${sensors.length} sensors found`);
 
   const sensorsForClient = sensors.map(sensorService.sensorAppToClient);
   

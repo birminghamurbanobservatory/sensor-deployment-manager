@@ -67,12 +67,27 @@ const getDeploymentsWhereSchema = joi.object({
   search: joi.string()
 }).required();
 
-export async function getDeployments(where: {user?: string; public?: boolean; id: object}, options: GetDeploymentsOptions): Promise<{data: DeploymentClient[]; meta: any}> {
+const getDeploymentsOptionsSchema = joi.object({
+  mineOnly: joi.boolean(),
+  limit: joi.number().integer().positive(),
+  offset: joi.number().integer().min(0),
+  sortBy: joi.string().valid('id'),
+  sortOrder: joi.string().valid('asc', 'desc')
+}).required();
 
-  const {error: err, value: validWhere} = getDeploymentsWhereSchema.validate(where);
-  if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
+export async function getDeployments(where: {user?: string; public?: boolean; id?: object; search?: string} = {}, options: GetDeploymentsOptions = {}): Promise<{data: DeploymentClient[]; meta: any}> {
 
-  const {data: deployments, count, total} = await deploymentService.getDeployments(validWhere, options);
+  const {error: whereErr, value: validWhere} = getDeploymentsWhereSchema.validate(where);
+  if (whereErr) throw new BadRequest(`Invalid 'where' object: ${whereErr.message}`);
+
+  const {error: optionsErr, value: validOptions} = getDeploymentsOptionsSchema.validate(options);
+  if (optionsErr) throw new BadRequest(`Invalid 'options' object: ${optionsErr.message}`);
+
+  if (validOptions.mineOnly === true && check.not.assigned(validWhere.user)) {
+    throw new BadRequest(`It is not possible to set the option 'mineOnly' without the user id being provided in the where object.`);
+  }
+
+  const {data: deployments, count, total} = await deploymentService.getDeployments(validWhere, validOptions);
   
   logger.debug(`${deployments.length} deployments found`);
   const deploymentsForClient = deployments.map(deploymentService.deploymentAppToClient);

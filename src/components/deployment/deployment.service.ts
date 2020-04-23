@@ -75,13 +75,21 @@ export async function getDeployments(
 
   const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);
+
+  // I'm a little paranoid that I'll come to use this at some point to get a user's deployments and not expect other public deployments to be included, so I'll default mineOnly to true.
+  if (check.not.assigned(options.mineOnly)) {
+    options.mineOnly = true;
+  }
   
+  // - So superusers wanting everything wouldn't provide a user property in the where object or mineOnly in the options.
+  // - A standard authenticated user wanting their deployments and public deployments would provide their user id, and would set mineOnly to false.
+  // A standard user want just theirs would provide their user id and also set mineOnly to true 
   const userPart: any = {};
   if (check.assigned(where.user)) {
-    if (options.includeAllPublic) {
-      userPart.$or = [{'users._id': where.user}, {public: true}];
-    } else {
+    if (options.mineOnly === true) {
       userPart['users._id'] = where.user;
+    } else {
+      userPart.$or = [{'users._id': where.user}, {public: true}];
     }
   }
 
