@@ -3,7 +3,7 @@ import {InvalidDeployment} from './errors/InvalidDeployment';
 import {CreateDeploymentFail} from './errors/CreateDeploymentFail';
 import {DeploymentAlreadyExists} from './errors/DeploymentAlreadyExists';
 import Deployment from './deployment.model';
-import {cloneDeep, difference, pick} from 'lodash';
+import {cloneDeep, difference, pick, omit} from 'lodash';
 import {DeploymentApp} from './deployment-app.class';
 import {GetDeploymentsFail} from './errors/GetDeploymentsFail';
 import {GetDeploymentFail} from './errors/GetDeploymentFail';
@@ -66,12 +66,12 @@ export async function getDeployment(id: string): Promise<DeploymentApp> {
 
 
 export async function getDeployments(
-  where: {user?: string; public?: boolean; id: object}, 
+  where: {user?: string; public?: boolean; id: object; search?: string}, 
   options: GetDeploymentsOptions = {}
 ): Promise<{data: DeploymentApp[]; count: number; total: number}> {
 
-  const keysToPick = ['public', 'id'];
-  const wherePart = whereToMongoFind(pick(where, keysToPick));
+  const whereWithUserProperty = omit(where, 'user');
+  const wherePart = whereToMongoFind(whereWithUserProperty);
 
   const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);

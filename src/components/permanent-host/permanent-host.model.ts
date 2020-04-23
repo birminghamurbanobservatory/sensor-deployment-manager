@@ -67,7 +67,7 @@ const schema = new mongoose.Schema({
 // Indexes
 //-------------------------------------------------
 schema.index({registrationKey: 1}, {unique: true});
-
+schema.index({_id: 'text', name: 'text'});
 
 //-------------------------------------------------
 // Create Model (and expose it to our app)

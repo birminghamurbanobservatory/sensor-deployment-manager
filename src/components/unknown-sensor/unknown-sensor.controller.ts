@@ -5,6 +5,10 @@ import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 
 
+const getUnknownSensorsWhereSchema = joi.object({
+  search: joi.string()
+});
+
 const getUnknownSensorsOptionSchema = joi.object({
   limit: joi.number().integer().positive().max(1000).default(100),
   offset: joi.number().integer().min(0).default(0),
@@ -17,12 +21,15 @@ const getUnknownSensorsOptionSchema = joi.object({
   sortOrder: 'asc'
 });
 
-export async function getUnknownSensors(options?: PaginationOptions): Promise<{data: UnknownSensorClient[]; meta: any}> {
+export async function getUnknownSensors(where = {}, options?: PaginationOptions): Promise<{data: UnknownSensorClient[]; meta: any}> {
 
-  const {error: err, value: validOptions} = getUnknownSensorsOptionSchema.validate(options);
-  if (err) throw new BadRequest(`Invalid options: ${err.message}`);
+  const {error: whereErr, value: validatedWhere} = getUnknownSensorsWhereSchema.validate(where);
+  if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
 
-  const {data: unknownSensors, count, total} = await unknownSensorService.getUnknownSensors(validOptions);
+  const {error: optionsErr, value: validOptions} = getUnknownSensorsOptionSchema.validate(options);
+  if (optionsErr) throw new BadRequest(`Invalid options: ${optionsErr.message}`);
+
+  const {data: unknownSensors, count, total} = await unknownSensorService.getUnknownSensors(validatedWhere, validOptions);
   const unknownSensorsForClient = unknownSensors.map(unknownSensorService.unknownSensorAppToClient);
   return {
     data: unknownSensorsForClient,

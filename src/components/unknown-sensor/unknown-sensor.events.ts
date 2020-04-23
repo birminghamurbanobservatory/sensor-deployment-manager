@@ -41,6 +41,7 @@ async function subscribeToUnknownSensorsGetRequests(): Promise<any> {
   const eventName = 'unknown-sensors.get.request';
 
   const unknownSensorGetRequestSchema = joi.object({
+    where: joi.object({}).unknown(), // let the controller check this
     options: joi.object({}).unknown() // let the controller check this
   }).required();
 
@@ -51,8 +52,8 @@ async function subscribeToUnknownSensorsGetRequests(): Promise<any> {
     let response;
     try {
       const {error: err} = unknownSensorGetRequestSchema.validate(message);
-      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);   
-      response = await getUnknownSensors(message.options);
+      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
+      response = await getUnknownSensors(message.where, message.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }

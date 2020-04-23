@@ -69,7 +69,7 @@ export async function getSensor(id): Promise<SensorApp> {
 
 
 
-export async function getSensors(where: {isHostedBy?: any; permanentHost?: any; inDeployment?: any}, options: PaginationOptions = {}): Promise<{data: SensorApp[]; count: number; total: number}> {
+export async function getSensors(where: {id?: any; isHostedBy?: any; permanentHost?: any; inDeployment?: any; search?: string}, options: PaginationOptions = {}): Promise<{data: SensorApp[]; count: number; total: number}> {
 
   // TODO: Might we worth having some validation on the where object here?
 

@@ -231,7 +231,8 @@ const getPlatformsWhereSchema = joi.object({
     joi.object({
       includes: joi.string()
     })
-  )
+  ),
+  search: joi.string()
 });
 
 class GetPlatformsOptions extends PaginationOptions {

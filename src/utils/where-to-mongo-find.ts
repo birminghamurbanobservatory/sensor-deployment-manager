@@ -21,7 +21,10 @@ export function whereToMongoFind(where: any): any {
 
   Object.keys(where).forEach((propKey) => {
 
-    if (check.object(where[propKey])) {
+    if (propKey === 'search') {
+      // search is a special case because it's not the name of resource field (unlike resultTime, description, etc), instead it applies to multiple fields, i.e. those defined in the index in the relevant .model.ts file.
+      find.$text = {$search: where[propKey]}; // docs: https://docs.mongodb.com/manual/text-search/
+    } else if (check.object(where[propKey])) {
 
       const propObj = where[propKey];
       Object.keys(propObj).forEach((opKey) => {

@@ -63,7 +63,8 @@ const getDeploymentsWhereSchema = joi.object({
   public: joi.boolean(),
   id: joi.object({
     begins: joi.string()
-  })
+  }),
+  search: joi.string()
 }).required();
 
 export async function getDeployments(where: {user?: string; public?: boolean; id: object}, options: GetDeploymentsOptions): Promise<{data: DeploymentClient[]; meta: any}> {

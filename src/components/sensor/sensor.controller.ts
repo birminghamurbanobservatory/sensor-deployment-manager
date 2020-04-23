@@ -157,7 +157,8 @@ const getSensorsWhereSchema = joi.object({
   permanentHost: joi.string(),
   id: joi.object({
     begins: joi.string()
-  })
+  }),
+  search: joi.string()
 });
 
 export async function getSensors(where: any, options?: PaginationOptions): Promise<{data: SensorClient[]; meta: any}> {

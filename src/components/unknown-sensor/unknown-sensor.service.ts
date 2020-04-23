@@ -9,6 +9,7 @@ import {DeleteUnknownSensorFail} from './errors/DeleteUnknownSensorFail';
 import {PaginationOptions} from '../common/pagination-options.class';
 import * as check from 'check-types';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
+import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 
 
 export async function upsertUnknownSensor(unknownSensor: UnknownSensorApp): Promise<UnknownSensorApp> {
@@ -39,16 +40,16 @@ export async function upsertUnknownSensor(unknownSensor: UnknownSensorApp): Prom
 }
 
 
-export async function getUnknownSensors(options: PaginationOptions = {}): Promise<{data: UnknownSensorApp[]; count: number; total: number}> {
+export async function getUnknownSensors(where = {}, options: PaginationOptions = {}): Promise<{data: UnknownSensorApp[]; count: number; total: number}> {
 
-  const where = {};
+  const findWhere = whereToMongoFind(where);
 
   const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);
 
   let unknownSensors;
   try {
-    unknownSensors = await UnknownSensor.find(where, null, findOptions); 
+    unknownSensors = await UnknownSensor.find(findWhere, null, findOptions); 
   } catch (err) {
     throw new GetUnknownSensorsFail(undefined, err.message);
   }

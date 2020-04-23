@@ -76,7 +76,8 @@ export async function getPermanentHost(id: string): Promise<PermanentHostClient>
 const getPermanentHostWhereScema = joi.object({
   id: joi.object({
     begins: joi.string()
-  })
+  }),
+  search: joi.string()
 });
 
 export async function getPermanentHosts(where: any, options: PaginationOptions = {}): Promise<{data: PermanentHostClient[]; meta: any}> {

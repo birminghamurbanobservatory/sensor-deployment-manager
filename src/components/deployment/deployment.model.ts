@@ -71,6 +71,7 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 schema.index({'users.id': 1});
 schema.index({public: 1});
+schema.index({_id: 'text', name: 'text'});
 
 
 //-------------------------------------------------
