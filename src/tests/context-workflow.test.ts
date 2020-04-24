@@ -230,7 +230,7 @@ describe('Context documents are created and updated correctly', () => {
     const exampleHasFeatureOfInterest = 'weather';
     const sensorClient = {
       name: 'Bobs Mercury Thermometer',
-      inDeployment: deployment.id,
+      hasDeployment: deployment.id,
       initialConfig: [
         {
           hasPriority: true,

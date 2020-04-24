@@ -57,8 +57,8 @@ const schema = new mongoose.Schema({
     maxlength: [1000, 'Sensor description is too long'],
     default: ''
   },
-  // A sensor can only ever belong to a single deployment at a time.
-  inDeployment: {
+  // A sensor can only ever belong to a single deployment at a time. Note it's hasDeployment rather inDeployment. This is a dintinction that SSN makes.
+  hasDeployment: {
     type: String
   },
   // A sensor can only ever be hosted on a single platform, however this platform can be hosted on further platforms, and platforms can be shared between deployments.
@@ -89,7 +89,7 @@ const schema = new mongoose.Schema({
 // Indexes
 //-------------------------------------------------
 schema.index({permanentHost: 1});
-schema.index({inDeployment: 1, isHostedBy: 1});
+schema.index({hasDeployment: 1, isHostedBy: 1});
 schema.index({isHostedBy: 1}); // comes in handy when getting nested platforms including the sensors
 schema.index({_id: 'text', name: 'text'});
 

@@ -69,7 +69,7 @@ export async function getSensor(id): Promise<SensorApp> {
 
 
 
-export async function getSensors(where: {id?: any; isHostedBy?: any; permanentHost?: any; inDeployment?: any; search?: string}, options: PaginationOptions = {}): Promise<{data: SensorApp[]; count: number; total: number}> {
+export async function getSensors(where: {id?: any; isHostedBy?: any; permanentHost?: any; hasDeployment?: any; search?: string}, options: PaginationOptions = {}): Promise<{data: SensorApp[]; count: number; total: number}> {
 
   // TODO: Might we worth having some validation on the where object here?
 
@@ -142,7 +142,7 @@ export async function removeSensorFromDeployment(id: string): Promise<void> {
 
   try {
     // Because the platform belongs to the deployment we'll need to remove it from the platform too.
-    const updates = {$unset: {isHostedBy: '', inDeployment: ''}};
+    const updates = {$unset: {isHostedBy: '', hasDeployment: ''}};
     await Sensor.findOneAndUpdate(
       {
         _id: id,
@@ -166,10 +166,10 @@ export async function removeSensorsFromDeployment(deploymentId: string): Promise
 
   try {
     // Because the platform belongs to the deployment we'll need to remove it from the platform too.
-    const updates = {$unset: {isHostedBy: '', inDeployment: ''}};
+    const updates = {$unset: {isHostedBy: '', hasDeployment: ''}};
     await Sensor.updateMany(
       {
-        inDeployment: deploymentId
+        hasDeployment: deploymentId
       },
       updates
     ).exec();
@@ -186,7 +186,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorApp>
 
   // N.B. for simplicity we won't let users update individual objects in the initialConfig or currentConfig arrays. Theyt'll have to update the whole thing in one go. 
 
-  // If there's any properties such as inDeployment or isHostedBy that you want to remove completely, e.g. because a sensor has been removed from a deployment then pass in a value of null to have the property unset, e.g. {inDeployment: null}.
+  // If there's any properties such as hasDeployment or isHostedBy that you want to remove completely, e.g. because a sensor has been removed from a deployment then pass in a value of null to have the property unset, e.g. {hasDeployment: null}.
   const modifiedUpdates = replaceNullUpdatesWithUnset(updates);
 
   let updatedSensor;
@@ -222,7 +222,7 @@ export async function deleteSensor(id: string): Promise<void> {
     deletedAt: new Date(),
     $unset: {
       // Can always look at the context documents if you need to remember which deployment/platform this sensor was in/on.
-      inDeployment: '',
+      hasDeployment: '',
       isHostedBy: '',
     }
   };
@@ -260,7 +260,7 @@ export async function unhostExternalSensorsFromDisappearingDeployment(deployment
   try {
     await Sensor.updateMany(
       {
-        inDeployment: {$ne: deploymentId},
+        hasDeployment: {$ne: deploymentId},
         isHostedBy: {$in: deploymentPlatformIds}
       },
       {

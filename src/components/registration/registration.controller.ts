@@ -32,8 +32,8 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   const {data: sensors} = await sensorsService.getSensors({permanentHost: permanentHost.id});
   // If any of these sensors are already bound to another deployment then the user is not allowed to move them to their own deployment.
   sensors.forEach((sensor) => {
-    if (sensor.inDeployment) {
-      throw new SensorAlreadyRegistered(`Sensor(s) are already registered to the '${sensor.inDeployment}' deployment.`);
+    if (sensor.hasDeployment) {
+      throw new SensorAlreadyRegistered(`Sensor(s) are already registered to the '${sensor.hasDeployment}' deployment.`);
     }
   });
 
@@ -57,7 +57,7 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   // Update all these sensors so that they're now in this deployment and on this new platform.
   const updatedSensors = await Promise.map(sensors, async (sensor) => {
     return await sensorsService.updateSensor(sensor.id, {
-      inDeployment: deploymentId,
+      hasDeployment: deploymentId,
       isHostedBy: platform.id
     });
   });
@@ -72,7 +72,7 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
     const newContext: ContextApp = {
       sensor: sensor.id,
       startDate: transitionDate,
-      inDeployments: [sensor.inDeployment], 
+      inDeployments: [sensor.hasDeployment],
       hostedByPath: [sensor.isHostedBy],
       config: sensor.initialConfig || []
     };

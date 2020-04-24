@@ -93,7 +93,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Add a sensor to this platform
     const nonsharedPlatformSensorClient = {
-      inDeployment: originalDeployment.id
+      hasDeployment: originalDeployment.id
     };
     let nonsharedPlatformSensor = await sensorController.createSensor(nonsharedPlatformSensorClient);
     nonsharedPlatformSensor = await sensorController.hostSensorOnPlatform(nonsharedPlatformSensor.id, nonSharedPlatform.id);
@@ -108,7 +108,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Add a sensor to this platform
     const sharedPlatformSensorClient = {
-      inDeployment: originalDeployment.id
+      hasDeployment: originalDeployment.id
     };
     let sharedPlatformSensor = await sensorController.createSensor(sharedPlatformSensorClient);
     sharedPlatformSensor = await sensorController.hostSensorOnPlatform(sharedPlatformSensor.id, sharedPlatform.id);    
@@ -144,7 +144,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Create a sensor hosted on this platform
     const externalPlatformSensorClient = {
       name: 'Mercury Thermometer',
-      inDeployment: nonShareeDeployment.id
+      hasDeployment: nonShareeDeployment.id
     };
     let externalPlatformSensor = await sensorController.createSensor(externalPlatformSensorClient);
 
@@ -159,7 +159,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Create a standalone sensor
     const standaloneSensorClient = {
-      inDeployment: nonShareeDeployment.id
+      hasDeployment: nonShareeDeployment.id
     };
     const standaloneSensor = await sensorController.createSensor(standaloneSensorClient);
 

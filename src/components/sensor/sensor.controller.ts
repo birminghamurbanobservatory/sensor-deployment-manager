@@ -36,14 +36,14 @@ const newSensorSchema = joi.object({
   name: joi.string(),
   description: joi.string(),
   permanentHost: joi.string(),
-  inDeployment: joi.string(),
+  hasDeployment: joi.string(),
   // N.B. isHostedBy is not allow here. Hosting a sensor on a platform is a separate step and depends on whether the sensor has a permanentHost or not. 
   initialConfig: joi.array().items(configSchema)
 })
-.or('id', 'inDeployment')
-// If an ID isn't provided, then inDeployment must be, as this indicates that a deployment sensor is being created.
-.without('inDeployment', 'permanentHost')
-// I don't want inDeployment and permanentHost to be set at the same time. Is the sensor has a permanentHost then the mechanism for adding the sensor to a deployment is via a registration key.
+.or('id', 'hasDeployment')
+// If an ID isn't provided, then hasDeployment must be, as this indicates that a deployment sensor is being created.
+.without('hasDeployment', 'permanentHost')
+// I don't want hasDeployment and permanentHost to be set at the same time. If the sensor has a permanentHost then the mechanism for adding the sensor to a deployment is via a registration key.
 .required();
 
 
@@ -85,13 +85,13 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
   };
 
   // Check the deployment exists if provided
-  if (sensor.inDeployment) {
-    await deploymentService.getDeployment(sensor.inDeployment);
+  if (sensor.hasDeployment) {
+    await deploymentService.getDeployment(sensor.hasDeployment);
   }
 
   // Is the sensor being created already in a deployment
-  if (sensor.inDeployment) {
-    context.inDeployments = [sensor.inDeployment];
+  if (sensor.hasDeployment) {
+    context.inDeployments = [sensor.hasDeployment];
   }
 
   // Has any config been set for the sensor that should be used in the context.
@@ -140,7 +140,7 @@ export async function getSensor(id: string): Promise<SensorClient> {
 
 
 const getSensorsWhereSchema = joi.object({
-  inDeployment: joi.alternatives().try(
+  hasDeployment: joi.alternatives().try(
     joi.string(),
     joi.object({
       in: joi.array().items(joi.string()).min(1),
@@ -186,7 +186,7 @@ const sensorUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   name: joi.string(),
   description: joi.string(),
-  inDeployment: joi.string().allow(null),
+  hasDeployment: joi.string().allow(null),
   permanentHost: joi.string().allow(null),
   initialConfig: joi.array().items(configSchema),
   currentConfig: joi.array().items(configSchema)
@@ -205,9 +205,9 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   const {error: validationErr, value: validUpdates} = sensorUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
-  // If the sensor will have a permanentHost, then inDeployment cannot be set here, the mechanism for adding the sensor to the deployment would be via the registrationKey of the permanentHost
-  if ((validUpdates.permanentHost || (oldSensor.permanentHost && validUpdates.permanentHost !== null)) && updates.inDeployment) {
-    throw new BadRequest(`It is not possible to set 'inDeployment' when the sensor will have a permanent host.`);
+  // If the sensor will have a permanentHost, then hasDeployment cannot be set here, the mechanism for adding the sensor to the deployment would be via the registrationKey of the permanentHost
+  if ((validUpdates.permanentHost || (oldSensor.permanentHost && validUpdates.permanentHost !== null)) && updates.hasDeployment) {
+    throw new BadRequest(`It is not possible to set 'hasDeployment' when the sensor will have a permanent host.`);
   }
 
   // Make sure no more than 1 initialConfig object has hasPriority set to true.
@@ -229,11 +229,11 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
     oldSensor.permanentHost !== validUpdates.permanentHost &&
     !(!oldSensor.permanentHost && validUpdates.permanentHost === null);
 
-  const inDeploymentChange = check.containsKey(validUpdates, 'inDeployment') && 
-    oldSensor.inDeployment !== validUpdates.inDeployment &&
-    !(!oldSensor.inDeployment && validUpdates.inDeployment === null);
+  const hasDeploymentChange = check.containsKey(validUpdates, 'hasDeployment') && 
+    oldSensor.hasDeployment !== validUpdates.hasDeployment &&
+    !(!oldSensor.hasDeployment && validUpdates.hasDeployment === null);
 
-  if (inDeploymentChange && oldSensor.isHostedBy) {
+  if (hasDeploymentChange && oldSensor.isHostedBy) {
     throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. You cannot change its deployment until the sensor is removed from this platform.`);
     // If we didn't do this we might have issues with the platform the sensor was on was shared.
   }
@@ -243,7 +243,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   }
 
   // Only allow the user to set the permanentHost if the sensor won't be assigned to a deployment
-  if (permanentHostChange && validUpdates.permanentHost && oldSensor.inDeployment && validUpdates.inDeployment !== null) {
+  if (permanentHostChange && validUpdates.permanentHost && oldSensor.hasDeployment && validUpdates.hasDeployment !== null) {
     throw new BadRequest(`The sensor cannot be assigned a permanent host when it is, or will be, in a deployment.`);
   }
 
@@ -273,7 +273,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
     config: updatedSensor.currentConfig
   };
 
-  if (!inDeploymentChange) {
+  if (!hasDeploymentChange) {
     // We can inherit the hostedByPath from the previous context if the deployment isn't being changed
     if (existingContext.hostedByPath) {
       potentialNewContext.hostedByPath = existingContext.hostedByPath;
@@ -295,10 +295,10 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   }
 
   // A change to the deployment will also require a context update
-  if (inDeploymentChange) {
+  if (hasDeploymentChange) {
     contextUpdateRequired = true;
-    if (validUpdates.inDeployment) {
-      potentialNewContext.inDeployments = [validUpdates.inDeployment];
+    if (validUpdates.hasDeployment) {
+      potentialNewContext.inDeployments = [validUpdates.hasDeployment];
     }
   } else {
     // Inherit whatever it was before
@@ -348,7 +348,7 @@ export async function hostSensorOnPlatform(sensorId: string, platformId: string)
 
   // Check it's ok to add the sensor to this platform
   let hasAccessToPlatform;
-  if (platform.inDeployments.includes(sensor.inDeployment)) {
+  if (platform.inDeployments.includes(sensor.hasDeployment)) {
     hasAccessToPlatform = true;
   } else {
     // Is the platform's owner deployment public?
@@ -358,7 +358,7 @@ export async function hostSensorOnPlatform(sensorId: string, platformId: string)
     }
   }
   if (!hasAccessToPlatform) {
-    throw new InvalidSensor(`Platform '${platformId} is either not associated with the '${sensor.inDeployment}' deployment, or it is in a private deployment. Therefore sensor '${sensorId}' cannot be hosted on it.`);
+    throw new InvalidSensor(`Platform '${platformId} is either not associated with the '${sensor.hasDeployment}' deployment, or it is in a private deployment. Therefore sensor '${sensorId}' cannot be hosted on it.`);
   }
 
   // Update the sensor

@@ -2,7 +2,7 @@ export class SensorApp {
   public id: string;
   public name?: string;
   public description?: string;
-  public inDeployment?: string;
+  public hasDeployment?: string;
   public isHostedBy?: string;
   public permanentHost?: string;
   public initialConfig?: Config[];

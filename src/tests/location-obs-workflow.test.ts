@@ -57,7 +57,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // Create a sensor
     const sensorClient = {
-      inDeployment: primaryDeployment.id,
+      hasDeployment: primaryDeployment.id,
       initialConfig: [
         {
           hasPriority: true,
