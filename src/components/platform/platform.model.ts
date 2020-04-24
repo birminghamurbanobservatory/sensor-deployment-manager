@@ -8,47 +8,61 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
-const LocationSchema = new mongoose.Schema({
-  id: {
+const centroidSchema = new mongoose.Schema({
+  lat: {
+    type: Number, // WGS 84
+    required: true,
+    min: -90,
+    max: 90
+  },
+  lng: {
+    type: Number,
+    required: true,
+    min: -180,
+    max: 180
+  },
+  height: {
+    type: Number, // in meters
+    required: false
+  }
+}, {
+  _id: false, // stops this subdocument from having it's own _id
+});
+
+const geometrySchema = new mongoose.Schema({
+  type: {
     $type: String,
     required: true
   },
-  validAt: {
-    $type: Date,
+  coordinates: {
+    $type: [],
     required: true
-  },
-  geometry: {
-    type: {
-      $type: String,
-      required: true
-    },
-    coordinates: {
-      $type: [],
-      required: true
-    }
-  },
-  centroid: {
-    lat: {
-      $type: Number, // WGS 84
-      required: true,
-      min: -90,
-      max: 90
-    },
-    lng: {
-      $type: Number,
-      required: true,
-      min: -180,
-      max: 180
-    },
-    height: {
-      $type: Number, // in meters
-      required: false
-    }
   }
 }, {
+  _id: false, // stops this subdocument from having it's own _id
   typeKey: '$type' // need to do this so I can use the 'type' key for the geojson location
 });
 
+const locationSchema = new mongoose.Schema({
+  id: {
+    type: String,
+    required: true
+  },
+  validAt: {
+    type: Date,
+    required: true
+  },
+  geometry: {
+    type: geometrySchema,
+    required: true
+  },
+  centroid: {
+    type: centroidSchema,
+    required: true
+  }
+}, {
+  _id: false, // stops this subdocument from having it's own _id
+});
 
 const schema = new mongoose.Schema({
   _id: {
@@ -99,7 +113,7 @@ const schema = new mongoose.Schema({
     required: true
   },
   location: {
-    type: LocationSchema,
+    type: locationSchema,
     required: false
   },
   updateLocationWithSensor: String,

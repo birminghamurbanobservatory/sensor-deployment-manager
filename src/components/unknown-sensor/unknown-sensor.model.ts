@@ -35,7 +35,8 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 // Indexes
 //-------------------------------------------------
-schema.index({_id: 'text'});
+// You can end up with a mongo warning if you try to add an index for just the _id, as in MongoDB's mind it already has it's own index for _id, however it doesn't seem to recognise that we want a text index. For now I've add a random extra property to keep it happy.
+schema.index({_id: 'text', randomFieldToStopWarning: 'text'});
 
 
 //-------------------------------------------------

@@ -91,4 +91,3 @@ describe('Tests for validateGeometry function', () => {
 
 });
 
-
