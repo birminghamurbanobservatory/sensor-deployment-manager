@@ -158,7 +158,12 @@ const getSensorsWhereSchema = joi.object({
       exists: joi.boolean()
     }).min(1)
   ),
-  permanentHost: joi.string(),
+  permanentHost: joi.alternatives().try(
+    joi.string(),
+    joi.object({
+      exists: joi.boolean()
+    }).min(1)
+  ),
   search: joi.string()
 });
 
