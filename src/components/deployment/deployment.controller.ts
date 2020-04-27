@@ -62,7 +62,8 @@ const getDeploymentsWhereSchema = joi.object({
   user: joi.string(),
   public: joi.boolean(),
   id: joi.object({
-    begins: joi.string()
+    begins: joi.string(),
+    in: joi.array().items(joi.string()).min(1)
   }),
   search: joi.string()
 }).required();

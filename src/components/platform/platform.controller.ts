@@ -217,12 +217,13 @@ const getPlatformsWhereSchema = joi.object({
     includes: joi.string()
   }),
   id: joi.object({
-    begins: joi.string()
+    begins: joi.string(),
+    in: joi.array().items(joi.string().min(1))
   }),
   isHostedBy: joi.alternatives().try(
     joi.string(),
     joi.object({
-      in: joi.array().items(joi.string()).min(1),
+      in: joi.array().items(joi.string().min(1)),
       exists: joi.boolean() 
     }).min(1)
   ),

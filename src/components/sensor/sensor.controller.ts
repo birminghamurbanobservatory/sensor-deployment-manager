@@ -140,6 +140,10 @@ export async function getSensor(id: string): Promise<SensorClient> {
 
 
 const getSensorsWhereSchema = joi.object({
+  id: joi.object({
+    begins: joi.string(),
+    in: joi.array().items(joi.string()).min(1)
+  }),
   hasDeployment: joi.alternatives().try(
     joi.string(),
     joi.object({
@@ -155,9 +159,6 @@ const getSensorsWhereSchema = joi.object({
     }).min(1)
   ),
   permanentHost: joi.string(),
-  id: joi.object({
-    begins: joi.string()
-  }),
   search: joi.string()
 });
 
