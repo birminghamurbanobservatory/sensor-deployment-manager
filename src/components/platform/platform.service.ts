@@ -230,14 +230,16 @@ export function buildSpatialFindQueryForPlatforms(where: any): any {
     logger.debug('Using a $geoWithin bounding box');
     findWhere[geometryKey] = {
       $geoWithin: {
-        type: 'Polygon',
-        coordinates: [[
-          [where.longitude.gte, where.latitude.gte],
-          [where.longitude.gte, where.latitude.lte],
-          [where.longitude.lte, where.latitude.lte],
-          [where.longitude.lte, where.latitude.gte],
-          [where.longitude.gte, where.latitude.gte] // need to repeat the first point
-        ]]
+        $geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [where.longitude.gte, where.latitude.gte],
+            [where.longitude.gte, where.latitude.lte],
+            [where.longitude.lte, where.latitude.lte],
+            [where.longitude.lte, where.latitude.gte],
+            [where.longitude.gte, where.latitude.gte] // need to repeat the first point
+          ]]
+        }
       }
     };
   }
