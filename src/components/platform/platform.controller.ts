@@ -233,7 +233,33 @@ const getPlatformsWhereSchema = joi.object({
       includes: joi.string()
     })
   ),
-  search: joi.string()
+  search: joi.string(),
+  // Spatial queries
+  latitude: joi.object({
+    lt: joi.number().min(-90).max(90),
+    lte: joi.number().min(-90).max(90),
+    gt: joi.number().min(-90).max(90),
+    gte: joi.number().min(-90).max(90)
+  }),
+  longitude: joi.object({
+    lt: joi.number().min(-180).max(180),
+    lte: joi.number().min(-180).max(180),
+    gt: joi.number().min(-180).max(180),
+    gte: joi.number().min(-180).max(180)
+  }),
+  height: joi.object({
+    lt: joi.number(),
+    lte: joi.number(),
+    gt: joi.number(),
+    gte: joi.number()
+  }),
+  proximity: joi.object({
+    centre: joi.object({
+      latitude: joi.number().min(-90).max(90).required(),
+      longitude: joi.number().min(-180).max(180).required()
+    }).required(),
+    radius: joi.number().min(0).required() // in metres
+  })
 });
 
 class GetPlatformsOptions extends PaginationOptions {
@@ -300,7 +326,7 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
   if (!options.nest) {
 
     const {data: platforms, count, total} = await platformService.getPlatforms(validatedWhere, options);
-    logger.debug('Platforms found', platforms);
+    logger.debug(`${platforms.length} platforms found`);
 
     // Now to make the platforms client friendly
     const platformsForClient = platforms.map(platformService.platformAppToClient);

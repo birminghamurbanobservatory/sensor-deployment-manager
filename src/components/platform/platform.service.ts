@@ -1,7 +1,7 @@
 import Platform from './platform.model';
 import {PlatformApp} from './platform-app.class';
 import {PlatformClient} from './platform-client.class';
-import {cloneDeep, concat, pullAllBy, sortBy, groupBy} from 'lodash';
+import {cloneDeep, concat, pullAllBy, sortBy, groupBy, omit} from 'lodash';
 import {PlatformAlreadyExists} from './errors/PlatformAlreadyExists';
 import {InvalidPlatform} from './errors/InvalidPlatform';
 import {CreatePlatformFail} from './errors/CreatePlatformFail';
@@ -125,7 +125,11 @@ export async function getPlatforms(
   options: PaginationOptions = {}
 ): Promise<{data: PlatformApp[]; count: number; total: number}> {
 
-  const findWhere = whereToMongoFind(where);
+  const spatialKeys = ['latitude', 'longitude', 'height', 'proximity'];
+  const spatialPart: any = buildSpatialFindQueryForPlatforms(where);
+  const whereWithoutSpatialParts = omit(where, spatialKeys);
+  const normalPart = whereToMongoFind(whereWithoutSpatialParts);
+  const findWhere = Object.assign({}, normalPart, spatialPart);
   findWhere.deletedAt = {$exists: false};
 
   // The db property is actually inDeployments not inDeployment
@@ -136,6 +140,8 @@ export async function getPlatforms(
 
   const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);
+
+  logger.debug('Find object for getPlatforms', findWhere);
 
   let platforms;
   try {
@@ -170,7 +176,11 @@ export async function getPlatforms(
 
 export async function getDistinctTopPlatformIds(where = {}): Promise<string[]> {
 
-  const findWhere = whereToMongoFind(where);
+  const spatialKeys = ['latitude', 'longitude', 'height', 'proximity'];
+  const spatialPart: any = buildSpatialFindQueryForPlatforms(where);
+  const whereWithoutSpatialParts = omit(where, spatialKeys);
+  const normalPart = whereToMongoFind(whereWithoutSpatialParts);
+  const findWhere = Object.assign({}, normalPart, spatialPart);
   findWhere.deletedAt = {$exists: false};
 
   // The db property is actually inDeployments not inDeployment
@@ -190,6 +200,91 @@ export async function getDistinctTopPlatformIds(where = {}): Promise<string[]> {
   const sortedDistinctTopPlatformIds = sortBy(distinctTopPlatformIds);
 
   return sortedDistinctTopPlatformIds;
+
+}
+
+
+export function buildSpatialFindQueryForPlatforms(where: any): any {
+
+  // Platforms have a location, and therefore there's some spatial components to the where object that need converting to a mongodb find object that can't be handled by the whereToMongoFind function because they are specific to platforms.
+  const geometryKey = 'location.geometry';
+  const centroidKey = `location.centroid`;
+  const findWhere = {};
+
+  // First establish if we have enough latitude and longitude properties to make a bounding box.
+  // Given that mongodb is lenient with what it returns when using a $geoWithin bounding box, i.e. it will return locations just outside of the box, we'll just use the $geoWithin approach when gte and lte are used, rather than gt and lt.
+  let useGeoWithin;
+  if (
+    check.assigned(where.latitude) &&
+    check.assigned(where.longitude) &&
+    check.assigned(where.latitude.gte) &&
+    check.assigned(where.latitude.lte) &&
+    check.assigned(where.longitude.gte) &&
+    check.assigned(where.longitude.lte)
+  ) {
+    useGeoWithin = true;
+  }
+
+  // Create a bounding box and look for GeoJSON locations within it.
+  if (useGeoWithin) {
+    logger.debug('Using a $geoWithin bounding box');
+    findWhere[geometryKey] = {
+      $geoWithin: {
+        type: 'Polygon',
+        coordinates: [[
+          [where.longitude.gte, where.latitude.gte],
+          [where.longitude.gte, where.latitude.lte],
+          [where.longitude.lte, where.latitude.lte],
+          [where.longitude.lte, where.latitude.gte],
+          [where.longitude.gte, where.latitude.gte] // need to repeat the first point
+        ]]
+      }
+    };
+  }
+
+  // Just use the centroid (because it would be hard to create a bounding box to compare with the GeoJSON platform location when we don't know all the sides of the bounding box.)
+  if (!useGeoWithin) {
+    logger.debug('NOT using a $geoWithin bounding box');
+    
+    const coords = [
+      {whereKey: 'latitude', dbKey: `${centroidKey}.lat`},
+      {whereKey: 'longitude', dbKey: `${centroidKey}.lng`},
+    ];
+
+    coords.forEach((coord) => {
+      if (check.nonEmptyObject(where[coord.whereKey])) {
+        findWhere[coord.dbKey] = {};
+        Object.keys(where[coord.whereKey]).forEach((comparatorKey) => {
+          findWhere[coord.dbKey][`$${comparatorKey}`] = where[coord.whereKey][comparatorKey];
+        });
+      }
+    });
+
+  }
+
+  // Height
+  if (check.nonEmptyObject(where.height)) {
+    const heightKey = `${geometryKey}.height`;
+    findWhere[heightKey] = {};
+    Object.keys(where.height).forEach((comparatorKey) => {
+      findWhere[heightKey][`$${comparatorKey}`] = where.height[comparatorKey];
+    });
+  }
+
+  // Proximity
+  if (where.proximity) {
+    findWhere[geometryKey] = {
+      $nearSphere: {
+        $geometry: {
+          type: 'Point',
+          coordinates: [where.proximity.centre.longitude, where.proximity.centre.latitude]
+        },
+        $maxDistance: where.proximity.radius  // in metres
+      }
+    };
+  }
+
+  return findWhere;
 
 }
 

@@ -138,6 +138,7 @@ schema.index({hostedByPath: 1});
 schema.index({topPlatform: 1});
 schema.index({updateLocationWithSensor: 1});
 schema.index({_id: 'text', name: 'text'});
+schema.index({'location.geometry': '2dsphere'}); // for geospatial queries
 
 
 //-------------------------------------------------
