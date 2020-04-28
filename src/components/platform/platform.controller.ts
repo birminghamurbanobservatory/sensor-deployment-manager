@@ -271,6 +271,8 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
   const {error: err, value: validatedWhere} = getPlatformsWhereSchema.validate(where);
   if (err) throw new BadRequest(`Invalid where object: ${err.message}`);
 
+  // TODO: Could do with some extra checks to make sure that, for example, latitude.gte can't be less than or equal to latitude.lte.
+
   //------------------------
   // With Nesting
   //------------------------
