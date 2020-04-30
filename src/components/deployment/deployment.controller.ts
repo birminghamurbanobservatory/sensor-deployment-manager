@@ -121,14 +121,14 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
   const updatedDeployment = await deploymentService.updateDeployment(id, updates);
   logger.debug(`Deployment '${id}' updated.`);
 
-  // If a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them (unless they were shared with the deployment).
+  // If a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them.
   if (updates.public === false) {
 
-    const {data: deploymentPlatforms} = await platformService.getPlatforms({ownerDeployment: id});
+    const {data: deploymentPlatforms} = await platformService.getPlatforms({inDeployment: id});
     const deploymentPlatformIds = deploymentPlatforms.map((platform) => platform.id);
 
-    // Unhost the decendent platforms from non-shared deployments
-    await platformService.unhostDescendentPlatformsFromNonSharedDeployments(id, deploymentPlatformIds);
+    // Unhost the decendent platforms from other deployments
+    await platformService.unhostDescendentPlatformsFromOtherDeployments(id, deploymentPlatformIds);
 
     // If standalone sensors from other deployments have been hosted on platforms in this deployment then they will need to be unhosted.
     await sensorService.unhostExternalSensorsFromDisappearingDeployment(id, deploymentPlatformIds);
@@ -151,15 +151,11 @@ export async function deleteDeployment(id: string): Promise<void> {
   logger.debug(`Deployment '${id}' deleted.`);
 
   // Get a list of the platforms owned by this platform before deleting them
-  const {data: deploymentPlatforms} = await platformService.getPlatforms({ownerDeployment: id});
+  const {data: deploymentPlatforms} = await platformService.getPlatforms({inDeployment: id});
   const deploymentPlatformIds = deploymentPlatforms.map((platform) => platform.id);
 
   // Delete its platforms
-  // If a sharee deployment wants to still see this platform then the original deployment would need to have transferred ownership to the sharee deployment before deleting the deployment.
   await platformService.deleteDeploymentPlatforms(id);
-
-  // If any platforms from other deployments have be shared with this deployment then we'll want to unshare them.
-  await platformService.unsharePlatformsSharedWithDeployment(id);
 
   if (deploymentPlatformIds.length > 0) {
 

@@ -3,7 +3,7 @@ export class ObservationApp {
   public madeBySensor?: string;
   public hasResult?: Result;
   public hostedByPath?: string[];
-  public inDeployments?: string[];
+  public hasDeployment?: string;
   public resultTime?: Date;
   public location?: Location;
   public observedProperty?: string;

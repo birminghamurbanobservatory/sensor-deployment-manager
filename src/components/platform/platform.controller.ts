@@ -42,7 +42,7 @@ const newPlatformSchema = joi.object({
   }),
   // N.B. it doesn't make sense to allow updateLocationWithSensor to be defined here, because we've only just created the platform and therefore there won't be any sensors on it yet that we can choose from.
   isHostedBy: joi.string(),
-  ownerDeployment: joi.string().required()  
+  inDeployment: joi.string().required()
 })
 .required();
 
@@ -57,11 +57,9 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
   const idSpecified = check.assigned(platform.id);
 
   // Check the deployment exists
-  if (check.nonEmptyString(platform.ownerDeployment)) {
+  if (platform.inDeployment) {
     // These get functions will throw an error if the resource doesn't exists, which is what we want.
-    await deploymentService.getDeployment(platform.ownerDeployment);
-  } else {
-    throw new InvalidPlatform(`The platform property 'ownerDeployment' must be a non-empty string`);
+    await deploymentService.getDeployment(platform.inDeployment);
   }
 
   // Check the host platform exists
@@ -78,8 +76,8 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
     }
 
     // TODO: For now we'll just enforce that the new platform needs to be in the same deployment as the host platform. But in the future we might want to allow it to be hosted on a platform in a public network, or in a deployment that the user also has sufficient rights to.
-    if (!(hostPlatform.inDeployments.includes(platform.ownerDeployment))) {
-      throw new InvalidPlatform(`The platform you wish to create has the deployment ${platform.ownerDeployment}, however the platform you wish to host it on is not associated with this deployment.`);
+    if (!(hostPlatform.inDeployment === platform.inDeployment)) {
+      throw new InvalidPlatform(`The platform you wish to create has the deployment ${platform.inDeployment}, however the platform you wish to host it on is not associated with this deployment.`);
     }
   
     // Enforce the rule that a static platform can't be hosted a mobile platform
@@ -91,7 +89,6 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
   }
 
   const platformToCreate: any = cloneDeep(platform);
-  platformToCreate.inDeployments = [platformToCreate.ownerDeployment];
   if (!idSpecified) {
     platformToCreate.id = nameToClientId(platformToCreate.name);
     logger.debug(`The platform name: '${platform.name}' has been converted to an id of '${platformToCreate.id}'`);
@@ -205,7 +202,6 @@ export async function getNestedHostsArrayForClient(platformId: string): Promise<
 // Get Platforms
 //-------------------------------------------------
 const getPlatformsWhereSchema = joi.object({
-  // Here it make sense to me to allow both inDeployment and inDeployments so that I don't end up having support weird inDeployments.includes.in objects
   inDeployment: joi.alternatives().try(
     joi.string(),
     joi.object({
@@ -213,9 +209,6 @@ const getPlatformsWhereSchema = joi.object({
       exists: joi.boolean()
     }).min(1)
   ),
-  inDeployments: joi.object({
-    includes: joi.string()
-  }),
   id: joi.object({
     begins: joi.string(),
     in: joi.array().items(joi.string().min(1))
@@ -551,37 +544,6 @@ export async function rehostPlatform(id: string, hostId: string): Promise<Platfo
 
 }
 
-
-// They'll probably be a few steps carried out before this function is run, e.g. a user of the platform's original deployment will need to send an invite to users of the new deployment, which they will need to accept, at which point this can function can be run.
-export async function sharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformClient> {
-
-  // Get the deployment to check it exists
-  await deploymentService.getDeployment(deploymentId);
-
-  const updatedPlatform = await platformService.sharePlatformWithDeployment(platformId, deploymentId);
-
-  // Now to update the context of sensors on this platform
-  await contextService.processPlatformSharedWithDeployment(platformId, deploymentId);
-
-  // TODO: It might be worth firing off a event-stream event following this. For example the observations-manager may wish to find all the timeseries for this platform and it's original deployment and add the new deployment to the inDeployments array.
-
-  const platformForClient = platformService.platformAppToClient(updatedPlatform);
-  return platformForClient;
-
-}
-
-
-export async function unsharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformClient> {
-  
-  const updatedPlatform = await platformService.unsharePlatformWithDeployment(platformId, deploymentId);
-
-  // Now to update the context of sensors on this platform
-  await contextService.processPlatformUnsharedWithDeployment(platformId, deploymentId);
-
-  const platformForClient = platformService.platformAppToClient(updatedPlatform);
-  return platformForClient;
-
-}
 
 
 export async function deletePlatform(id: string): Promise<void> {

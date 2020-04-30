@@ -152,7 +152,7 @@ describe('Permanent host testing', () => {
 
     // Let's check the sensor context looks right
     const registeredSensorContext = await getLiveContextForSensor(sensor.id);
-    expect(registeredSensorContext.inDeployments).toEqual([deployment.id]);
+    expect(registeredSensorContext.hasDeployment).toEqual(deployment.id);
     expect(registeredSensorContext.hostedByPath).toEqual([platform.id]);
 
     // Completely remove the platform from the deployment
@@ -163,7 +163,7 @@ describe('Permanent host testing', () => {
 
     // Let's also check the sensor context looks right
     const deregisteredSensorContext = await getLiveContextForSensor(sensor.id);
-    expect(deregisteredSensorContext.inDeployments).toBe(undefined);
+    expect(deregisteredSensorContext.hasDeployment).toBe(undefined);
     expect(deregisteredSensorContext.hostedByPath).toBe(undefined);
 
   });

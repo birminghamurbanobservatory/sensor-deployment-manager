@@ -73,7 +73,7 @@ describe('Location observations are correctly processed by the addContextToObser
       id: 'van-123',
       name: 'Mobile van 123',
       static: false,
-      ownerDeployment: primaryDeployment.id
+      inDeployment: primaryDeployment.id
     };
 
     const platform = await platformController.createPlatform(platformClient);
@@ -108,7 +108,7 @@ describe('Location observations are correctly processed by the addContextToObser
       type: 'Point',
       coordinates: [-1.9, 52.5]
     });
-    expect(observation1).toHaveProperty('inDeployments');
+    expect(observation1).toHaveProperty('hasDeployment');
 
     // Check it has updated the location of the platform
     const platformAfterObs1 = await platformController.getPlatform(platform.id);
@@ -135,7 +135,7 @@ describe('Location observations are correctly processed by the addContextToObser
       type: 'Point',
       coordinates: [-1.94, 52.7]
     });  
-    expect(observation2).toHaveProperty('inDeployments');  
+    expect(observation2).toHaveProperty('hasDeployment');  
 
     // Check it has updated the location of the platform
     const platformAfterObs2 = await platformController.getPlatform(platform.id);
@@ -162,7 +162,7 @@ describe('Location observations are correctly processed by the addContextToObser
       type: 'Point',
       coordinates: [-1.95, 52.8]
     });     
-    expect(observation3).toHaveProperty('inDeployments');
+    expect(observation3).toHaveProperty('hasDeployment');
 
     const platformAfterObs3 = await platformController.getPlatform(platform.id);
     // We can't use .Equal here because the platform locatin will have a centroid object added.
@@ -184,8 +184,8 @@ describe('Location observations are correctly processed by the addContextToObser
     const observation4 = await addContextToObservation(observation4Client);
     // this observation won't have a location property, because we don't know for sure that this observation's observedProperty is location, because there will be no context tell us so, nor is it set in the original observation.
     expect(observation4).not.toHaveProperty('location');
-    // It should not have a inDeployments property, as no context should have been found.
-    expect(observation4).not.toHaveProperty('inDeployments');
+    // It should not have a hasDeployment property, as no context should have been found.
+    expect(observation4).not.toHaveProperty('hasDeployment');
 
     const platformAfterObs4 = await platformController.getPlatform(platform.id);
     // We can't use .Equal here because the platform locatin will have a centroid object added.
@@ -270,7 +270,7 @@ describe('Location observations are correctly processed by the addContextToObser
     expect(locObs1.location).toHaveProperty('id');
     const locObs1LocationId = locObs1.location.id;
     expect(locObs1).toEqual(Object.assign({}, locObs1Client, {
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [platform.id],
       observedProperty: exampleObservedPropertyForLocationSensor,
       location: {
@@ -296,7 +296,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
     const nonLocObs1 = await addContextToObservation(nonLocObs1Client);
     expect(nonLocObs1).toEqual(Object.assign({}, nonLocObs1Client, {
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [platform.id],
       observedProperty: exampleObservedPropertyForNonLocationSensor,
       location: locObs1.location // should match that of the location obs
@@ -328,7 +328,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
     const nonLocObs2 = await addContextToObservation(nonLocObs2Client);
     expect(nonLocObs2).toEqual(Object.assign({}, nonLocObs2Client, {
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [platform.id],
       observedProperty: exampleObservedPropertyForNonLocationSensor,
       location: locObs2.location // should match that of the second location obs

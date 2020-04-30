@@ -107,7 +107,7 @@ describe('Context documents are created and updated correctly', () => {
       id: context2Id,
       sensor: sensor.id,
       startDate: context2StartDate,
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [updatedSensor.isHostedBy],
       config: context2.config
     });
@@ -115,7 +115,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create another platform in the deployment
     const parentPlatform = await platformController.createPlatform({
       name: 'building-1',
-      ownerDeployment: createdDeployment.id,
+      inDeployment: createdDeployment.id,
       static: true
     });
 
@@ -134,7 +134,7 @@ describe('Context documents are created and updated correctly', () => {
       id: context3Id,
       sensor: sensor.id,
       startDate: context3StartDate,
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [parentPlatform.id, platformUpdate1.id],
       config: context3.config
     });    
@@ -142,7 +142,7 @@ describe('Context documents are created and updated correctly', () => {
     // Let's create another parent platform and move it over to that instead
     const secondParentPlatform = await platformController.createPlatform({
       name: 'building-2',
-      ownerDeployment: createdDeployment.id,
+      inDeployment: createdDeployment.id,
       static: true
     });
     const platformUpdate2 = await platformController.rehostPlatform(updatedSensor.isHostedBy, secondParentPlatform.id);
@@ -159,7 +159,7 @@ describe('Context documents are created and updated correctly', () => {
       id: context4Id,
       sensor: sensor.id,
       startDate: context4StartDate,
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [secondParentPlatform.id, platformUpdate2.id],
       config: context4.config
     });   
@@ -180,7 +180,7 @@ describe('Context documents are created and updated correctly', () => {
       id: context5Id,
       sensor: sensor.id,
       startDate: context5StartDate,
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [platformUpdate3.id],
       config: context5.config
     });      
@@ -257,7 +257,7 @@ describe('Context documents are created and updated correctly', () => {
       id: context1Id,
       sensor: sensor.id,
       startDate: context1StartDate,
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       config: context1.config
     });
 
@@ -265,7 +265,7 @@ describe('Context documents are created and updated correctly', () => {
     const platformClient = {
       name: 'Bobs back garden',
       static: true,
-      ownerDeployment: deployment.id,
+      inDeployment: deployment.id,
       location: {
         geometry: {
           type: 'Point',
@@ -302,7 +302,7 @@ describe('Context documents are created and updated correctly', () => {
       id: context2Id,
       sensor: sensor.id,
       startDate: context2StartDate,
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [platform.id],
       config: context2.config
     });
@@ -320,7 +320,7 @@ describe('Context documents are created and updated correctly', () => {
     const platformLocationWithoutCentroid = cloneDeep(platform.location);
     delete platformLocationWithoutCentroid.centroid;
     const expectedObservation = Object.assign({}, observationWithoutContext, {
-      inDeployments: [deployment.id],
+      hasDeployment: deployment.id,
       hostedByPath: [platform.id],
       observedProperty: exampleObservedProperty,
       hasFeatureOfInterest: exampleHasFeatureOfInterest,

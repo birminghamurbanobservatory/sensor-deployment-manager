@@ -129,7 +129,7 @@ export async function addContextToObservation(observation: ObservationClient): P
   } else {
 
     // Are there any platforms that have their location updated by this sensor
-    if (updatedObs.inDeployments && updatedObs.inDeployments.length > 0) {
+    if (updatedObs.hasDeployment) {
       await updatePlatformsWithLocationObservation(updatedObs);
     }
 

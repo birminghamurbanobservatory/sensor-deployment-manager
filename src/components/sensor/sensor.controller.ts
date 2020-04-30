@@ -91,7 +91,7 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
   // Is the sensor being created already in a deployment
   if (sensor.hasDeployment) {
-    context.inDeployments = [sensor.hasDeployment];
+    context.hasDeployment = sensor.hasDeployment;
   }
 
   // Has any config been set for the sensor that should be used in the context.
@@ -247,7 +247,6 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
   if (hasDeploymentChange && oldSensor.isHostedBy) {
     throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. You cannot change its deployment until the sensor is removed from this platform.`);
-    // If we didn't do this we might have issues with the platform the sensor was on was shared.
   }
 
   if (permanentHostChange && (oldSensor.isHostedBy)) {
@@ -310,12 +309,12 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   if (hasDeploymentChange) {
     contextUpdateRequired = true;
     if (validUpdates.hasDeployment) {
-      potentialNewContext.inDeployments = [validUpdates.hasDeployment];
+      potentialNewContext.hasDeployment = validUpdates.hasDeployment;
     }
   } else {
     // Inherit whatever it was before
-    if (existingContext.inDeployments) {
-      potentialNewContext.inDeployments = existingContext.inDeployments;
+    if (existingContext.hasDeployment) {
+      potentialNewContext.hasDeployment = existingContext.hasDeployment;
     }
   }
 
@@ -360,11 +359,11 @@ export async function hostSensorOnPlatform(sensorId: string, platformId: string)
 
   // Check it's ok to add the sensor to this platform
   let hasAccessToPlatform;
-  if (platform.inDeployments.includes(sensor.hasDeployment)) {
+  if (platform.inDeployment === sensor.hasDeployment) {
     hasAccessToPlatform = true;
   } else {
-    // Is the platform's owner deployment public?
-    const platformDeployment: DeploymentApp = await deploymentService.getDeployment(platform.ownerDeployment);
+    // Is the platform's deployment public?
+    const platformDeployment: DeploymentApp = await deploymentService.getDeployment(platform.inDeployment);
     if (platformDeployment.public) {
       hasAccessToPlatform = true;
     }

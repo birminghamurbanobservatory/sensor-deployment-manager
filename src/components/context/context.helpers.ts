@@ -8,7 +8,7 @@ export function giveObsContext(observation: ObservationApp, context: ContextApp)
 
   const merged = cloneDeep(observation);
 
-  const easyMergeKeys = ['inDeployments', 'hostedByPath'];
+  const easyMergeKeys = ['hasDeployment', 'hostedByPath'];
   easyMergeKeys.forEach((key) => {
     if (check.not.assigned(observation[key]) && check.assigned(context[key])) {
       merged[key] = context[key];

@@ -19,15 +19,9 @@ import {CutDescendantsOfPlatformFail} from './errors/CutDescendantsOfPlatformFai
 import * as joi from '@hapi/joi';
 import {PlatformAlreadyUnhosted} from './errors/PlatformAlreadyUnhosted';
 import * as logger from 'node-logger';
-import {UnhostDescendentPlatformsFromNonSharedDeploymentsFail} from './errors/UnhostDescendentPlatformsFromNonSharedDeploymentsFail';
+import {UnhostDescendentPlatformsFromOtherDeploymentsFail} from './errors/unhostDescendentPlatformsFromOtherDeploymentsFail';
 import {DeleteDeploymentPlatformsFail} from './errors/DeleteDeploymentPlatformsFail';
 import {UnhostPlatformsFromOtherDeploymentsFail} from './errors/UnhostPlatformsFromOtherDeploymentsFail';
-import {UnsharePlatformsSharedWithDeploymentFail} from './errors/UnsharePlatformsSharedWithDeploymentFail';
-import {PlatformAlreadyInDeployment} from './errors/PlatformAlreadyInDeployment';
-import {SharePlatformWithDeploymentFail} from './errors/SharePlatformWithDeploymentFail';
-import {UnsharePlatformWithDeploymentFail} from './errors/UnsharePlatformWithDeploymentFail';
-import {CannotUnshareFromOwnerDeployment} from './errors/CannotUnshareFromOwnerDeployment';
-import {PlatformNotSharedWithDeployment} from './errors/PlatformNotSharedWithDeployment';
 import {UpdatePlatformsWithLocationObservationFail} from './errors/UpdatePlatformsWithLocationObservationFail';
 import {ObservationApp} from '../observation/observation-app.class';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
@@ -114,13 +108,12 @@ export async function getPlatform(id: string): Promise<PlatformApp> {
 
 export async function getPlatforms(
   where: {
-    inDeployment?: any; 
-    ownerDeployment?: string; 
+    inDeployment?: any;
     isHostedBy?: any; 
     updateLocationWithSensor?: any; 
     id?: object; 
     hostedByPath?: any; 
-    topPlatform?: any
+    topPlatform?: any;
   } = {}, 
   options: PaginationOptions = {}
 ): Promise<{data: PlatformApp[]; count: number; total: number}> {
@@ -131,12 +124,6 @@ export async function getPlatforms(
   const normalPart = whereToMongoFind(whereWithoutSpatialParts);
   const findWhere = Object.assign({}, normalPart, spatialPart);
   findWhere.deletedAt = {$exists: false};
-
-  // The db property is actually inDeployments not inDeployment
-  if (findWhere.inDeployment) {
-    findWhere.inDeployments = findWhere.inDeployment;
-    delete findWhere.inDeployment;
-  }
 
   const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);
@@ -182,12 +169,6 @@ export async function getDistinctTopPlatformIds(where = {}): Promise<string[]> {
   const normalPart = whereToMongoFind(whereWithoutSpatialParts);
   const findWhere = Object.assign({}, normalPart, spatialPart);
   findWhere.deletedAt = {$exists: false};
-
-  // The db property is actually inDeployments not inDeployment
-  if (findWhere.inDeployment) {
-    findWhere.inDeployments = findWhere.inDeployment;
-    delete findWhere.inDeployment;
-  }
 
   let distinctTopPlatformIds;
   try {
@@ -502,21 +483,21 @@ export async function unhostPlatform(id): Promise<{platform: PlatformApp; oldAnc
 }
 
 
-// For example if a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them (unless they were shared with the deployment, in which case the deployment would be listed in the hostee platform's inDeployments array).
-export async function unhostDescendentPlatformsFromNonSharedDeployments(deploymentId: string, deploymentPlatformIds: string[]): Promise<void> {
+// For example if a deployment is switched from public to private, we would need to find all platforms in other deployments that were hosted on its platforms and unhost them.
+export async function unhostDescendentPlatformsFromOtherDeployments(deploymentId: string, deploymentPlatformIds: string[]): Promise<void> {
 
   await Promise.each(deploymentPlatformIds, async (deploymentPlatformId) => {
 
-    // Find all the direct decendents of this platform that are NOT owned by, or shared with, the deployment.
+    // Find all the direct decendents of this platform that are NOT owned by this deployment.
     let directDecendents;
     try {
       directDecendents = await Platform.find({
         isHostedBy: deploymentPlatformId,
-        inDeployments: {$nin: [deploymentId]}
+        inDeployment: {$nin: [deploymentId]}
       })
       .exec();
     } catch (err) {
-      throw new UnhostDescendentPlatformsFromNonSharedDeploymentsFail(undefined, err.message);
+      throw new UnhostDescendentPlatformsFromOtherDeploymentsFail(undefined, err.message);
     }
 
     // Now to unhost each of these direct descendents (also updates the hostedByPath of distant descendents)
@@ -538,7 +519,7 @@ export async function unhostPlatformsFromOtherDeployments(deploymentId: string, 
     try {
       directDecendents = await Platform.find({
         isHostedBy: deploymentPlatformId,
-        ownerDeployment: {$ne: deploymentId}
+        inDeployment: {$ne: deploymentId}
       })
       .exec();
     } catch (err) {
@@ -555,110 +536,16 @@ export async function unhostPlatformsFromOtherDeployments(deploymentId: string, 
 }
 
 
-// This comes in handy when a deployment is deleted and thus any platforms shared with it should no longer be shared with it because theres no deployment left to be shared with
-export async function unsharePlatformsSharedWithDeployment(deploymentId: string): Promise<void> {
-
-  // So basically all we're doing is finding all the platforms which have this deployment in their inDeployments array, but don't have this deployment as their ownerDeployment, and pulling this deployment from the inDeployments array.
-  try {
-    await Platform.updateMany(
-      {
-        ownerDeployment: {$ne: deploymentId},
-        inDeployments: deploymentId
-      },
-      {
-        $pull: {inDeployments: deploymentId}
-      }
-    );    
-  } catch (err) {
-    throw new UnsharePlatformsSharedWithDeploymentFail(`Failed to unshare platforms shared with the deployment '${deploymentId}'.`, err.message);
-  }  
-
-}
-
-
-export async function sharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformApp> {
-
-  logger.debug(`Sharing platform '${platformId}' with deployment '${deploymentId}'.`);
-
-  // Let's first get this platform so we can check a few things (and check it exists)
-  const platform = await getPlatform(platformId);
-
-  if (platform.inDeployments.includes(deploymentId)) {
-    throw new PlatformAlreadyInDeployment(`The platform '${platformId}' is already in the deployment '${deploymentId}' and therefore cannot be shared with it.`);
-  }
-
-  let updatedPlatform;
-  try {
-    updatedPlatform = await Platform.findByIdAndUpdate(
-      platformId,
-      {
-        $push: {inDeployments: deploymentId}
-      },
-      {
-        new: true,
-        runValidators: true
-      }
-    ).exec();
-  } catch (err) {
-    throw new SharePlatformWithDeploymentFail(`Failed to share platform '${platformId}' with deployment '${deploymentId}'.`, err.message);
-  }
-
-  if (!updatedPlatform) {
-    throw new PlatformNotFound(`A platform with id '${platformId}' could not be found`);
-  }
-
-  return platformDbToApp(updatedPlatform);
-
-}
-
-
-export async function unsharePlatformWithDeployment(platformId, deploymentId): Promise<PlatformApp> {
-  
-  // Let's first get this platform so we can check a few things (and check it exists)
-  const platform = await getPlatform(platformId);
-
-  if (platform.ownerDeployment === deploymentId) {
-    throw new CannotUnshareFromOwnerDeployment(`The deployment ${deploymentId} owns the platform ${platformId}, thus the platform cannot be unshared with it.`);
-  }
-
-  if (!platform.inDeployments.includes(deploymentId)) {
-    throw new PlatformNotSharedWithDeployment(`The platform '${platformId}' is not shared with the deployment '${deploymentId}' and therefore cannot be unshared from it.`);
-  }
-
-  let updatedPlatform;
-  try {
-    updatedPlatform = await Platform.findByIdAndUpdate(
-      platformId,
-      {
-        $pull: {inDeployments: deploymentId}
-      },
-      {
-        new: true,
-        runValidators: true
-      }
-    ).exec();
-  } catch (err) {
-    throw new UnsharePlatformWithDeploymentFail(`Failed to share platform '${platformId}' with deployment '${deploymentId}'.`, err.message);
-  }
-
-  if (!updatedPlatform) {
-    throw new PlatformNotFound(`A platform with id '${platformId}' could not be found`);
-  }
-
-  return platformDbToApp(updatedPlatform);
-
-}
-
 
 // A soft delete
 export async function deletePlatform(id: string): Promise<void> {
 
   const updates = {
-    inDeployments: [],
     deletedAt: new Date(),
     $unset: {
       isHostedBy: '',
-      hostedByPath: ''
+      hostedByPath: '',
+      inDeployment: ''
     }
   };
 
@@ -692,18 +579,18 @@ export async function deletePlatform(id: string): Promise<void> {
 export async function deleteDeploymentPlatforms(deploymentId: string): Promise<void> {
 
   const updates = {
-    inDeployments: [],
     deletedAt: new Date(),
     $unset: {
       isHostedBy: '',
-      hostedByPath: ''
+      hostedByPath: '',
+      inDeployment: ''
     }
   };
 
   try {
     await Platform.updateMany(
       {
-        ownerDeployment: deploymentId
+        inDeployment: deploymentId
       },
       updates
     ).exec();
@@ -805,8 +692,8 @@ export async function cutDescendantsOfPlatform(id: string): Promise<void> {
 export async function updatePlatformsWithLocationObservation(observation: ObservationApp): Promise<void> {
 
   // It's important that the observation's deployments form part of the query otherwise a platform's location could end up being updated by a sensor which was/is in a deployment that the users of the platform's deployment don't have access to.
-  if (check.not.nonEmptyArray(observation.inDeployments)) {
-    throw new Error('The observation must have an inDeployments array in order to update platform locations');
+  if (check.not.nonEmptyString(observation.hasDeployment)) {
+    throw new Error('The observation must have hasDeployment defined in order to update platform locations');
   }
 
   if (check.not.nonEmptyString(observation.madeBySensor)) {
@@ -842,7 +729,7 @@ export async function updatePlatformsWithLocationObservation(observation: Observ
   try {
     results = await Platform.updateMany({
       updateLocationWithSensor: observation.madeBySensor,
-      inDeployments: {$in: observation.inDeployments},
+      inDeployment: observation.hasDeployment,
       $or: [
         {location: {$exists: false}},
         {'location.validAt': {$lt: observation.location.validAt}},

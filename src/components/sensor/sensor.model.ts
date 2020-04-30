@@ -61,7 +61,6 @@ const schema = new mongoose.Schema({
   hasDeployment: {
     type: String
   },
-  // A sensor can only ever be hosted on a single platform, however this platform can be hosted on further platforms, and platforms can be shared between deployments.
   isHostedBy: {
     type: String
   },

@@ -45,10 +45,8 @@ const schema = new mongoose.Schema({
   endDate: {
     type: Date
   },
-  // Although a sensor can only ever be bound to a single deployment, the platform its on might be shared between other deployments and thus inDeployments needs to be an array.
-  inDeployments: {
-    type: [String],
-    default: undefined // this stops the default from being an empty array
+  hasDeployment: {
+    type: String,
   },
   hostedByPath: {
     // came to the conclusion that an Array of Ancestors is easier than a materialized path.

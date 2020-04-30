@@ -89,12 +89,9 @@ const schema = new mongoose.Schema({
     maxlength: [1000, 'Platform description is too long'],
     default: ''
   },
-  ownerDeployment: {
+  inDeployment: {
     type: String,
-    required: true
-  },
-  inDeployments: {
-    type: [String]
+    // I've set this as not being required in order to be able to unset it when a platform is deleted.
   },
   isHostedBy: {
     type: String
@@ -133,7 +130,7 @@ const schema = new mongoose.Schema({
 //-------------------------------------------------
 // Indexes
 //-------------------------------------------------
-schema.index({inDeployments: 1});
+schema.index({inDeployment: 1});
 schema.index({hostedByPath: 1});
 schema.index({topPlatform: 1});
 schema.index({updateLocationWithSensor: 1});

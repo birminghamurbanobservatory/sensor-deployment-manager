@@ -42,8 +42,7 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
     id: `${permanentHost.id}-${generateClientIdSuffix()}`,
     name: permanentHost.name,
     description: permanentHost.description,
-    ownerDeployment: deploymentId,
-    inDeployments: [deploymentId],
+    inDeployment: deploymentId,
     static: permanentHost.static,
     initialisedFrom: permanentHost.id,
     updateLocationWithSensor: permanentHost.updateLocationWithSensor
@@ -72,7 +71,7 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
     const newContext: ContextApp = {
       sensor: sensor.id,
       startDate: transitionDate,
-      inDeployments: [sensor.hasDeployment],
+      hasDeployment: sensor.hasDeployment,
       hostedByPath: [sensor.isHostedBy],
       config: sensor.initialConfig || []
     };

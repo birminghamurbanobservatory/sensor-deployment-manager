@@ -15,8 +15,6 @@ import * as Promise from 'bluebird';
 import {GetContextFail} from './errors/GetContextFail';
 import {ProcessDeploymentMadePrivateFail} from './errors/ProcessDeploymentMadePrivateFail';
 import {ProcessDeploymentDeletedFail} from './errors/ProcessDeploymentDeletedFail';
-import {ProcessPlatformSharedWithDeploymentFail} from './errors/ProcessPlatformSharedWithDeploymentFail';
-import {ProcessPlatformUnsharedWithDeploymentFail} from './errors/ProcessPlatformUnsharedWithDeploymentFail';
 import {GetContextForSensorAtTimeFail} from './errors/GetContextForSensorAtTimeFail';
 
 
@@ -292,17 +290,17 @@ export async function processPlatformHostChange(platformId: string, oldAncestors
 }
 
 
-// When a platform is made private, any sensors hosted on this deployment's platforms that are not from this deployment, nor are they hosted on a platform shared with this deployment, will need their context updating. Specially they need new contexts where the platforms being made private are removed from the hostedByPath
+// When a platform is made private, any sensors hosted on this deployment's platforms that are not from this deployment will need their context updating.
 export async function processDeploymentMadePrivate(deploymentId: string, deploymentPlatformIds: string[]): Promise<void> {
 
   const transitionDate = new Date();
   let oldContexts;
 
-  // - Find any live contexts who have these platforms in their hostedByPath AND do NOT have this deployment listed in their inDeployments array.
+  // - Find any live contexts who have these platforms in their hostedByPath AND do NOT have this deployment listed as their hasDeployment.
   try {
     const oldContextsDb = await Context.find({
       hostedByPath: {$in: deploymentPlatformIds},
-      inDeployments: {$nin: [deploymentId]},
+      hasDeployment: {$ne: deploymentId},
       endDate: {$exists: false}
     })
     .exec();
@@ -358,7 +356,7 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
   // - Find any live contexts with this deploymentId
   try {
     const oldContextsDb = await Context.find({
-      inDeployments: deploymentId,
+      hasDeployment: deploymentId,
       endDate: {$exists: false}
     })
     .exec();
@@ -393,10 +391,7 @@ export async function processDeploymentDeleted(deploymentId: string, deploymentP
           delete newContext.hostedByPath;
         }
       }
-      pull(newContext.inDeployments, deploymentId);
-      if (newContext.inDeployments.length === 0) {
-        delete newContext.inDeployments;
-      }
+      delete newContext.hasDeployment;
     });
 
     const newContextsDb = newContexts.map(contextAppToDb);
@@ -444,113 +439,6 @@ export async function removeSensorsHostedByPath(sensorId: string): Promise<Conte
   const createdContext = await createContext(newContext);
   return createdContext;
 
-}
-
-
-export async function processPlatformSharedWithDeployment(platformId: string, deploymentId: string): Promise<void> {
-
-  const transitionDate = new Date();
-  let oldContexts;
-
-  // Get all the existing contexts for this platform so we can copy them
-  try {
-    const oldContextsDb = await Context.find({
-      hostedByPath: platformId,
-      endDate: {$exists: false}
-    })
-    .exec();
-    oldContexts = oldContextsDb.map(contextDbToApp);
-  } catch (err) {
-    throw new ProcessPlatformSharedWithDeploymentFail(undefined, err.message);
-  }
-
-  if (oldContexts.length) {
-
-    // We need to end these contexts
-    try {
-      await Context.updateMany(
-        {
-          _id: {$in: oldContexts.map((context) => context.id)}
-        },
-        {
-          endDate: transitionDate
-        }
-      ).exec();    
-    } catch (err) {
-      throw new ProcessPlatformSharedWithDeploymentFail(undefined, err.message);
-    }
-
-    const newContexts: ContextApp[] = cloneDeep(oldContexts);
-    newContexts.forEach((newContext) => {
-      delete newContext.endDate;
-      delete newContext.id;
-      newContext.inDeployments = uniq(concat(newContext.inDeployments, deploymentId));
-    });
-
-    const newContextsDb = newContexts.map(contextAppToDb);
-
-    try {
-      await Context.create(newContextsDb);
-    } catch (err) {
-      throw new ProcessPlatformSharedWithDeploymentFail(undefined, err.message);
-    }
-
-  }
-
-}
-
-
-export async function processPlatformUnsharedWithDeployment(platformId: string, deploymentId: string): Promise<void> {
-
-  const transitionDate = new Date();
-  let oldContexts;
-
-  // Get all the existing contexts for this platform so we can copy them
-  try {
-    const oldContextsDb = await Context.find({
-      hostedByPath: platformId,
-      inDeployment: deploymentId,
-      endDate: {$exists: false}
-    })
-    .exec();
-    oldContexts = oldContextsDb.map(contextDbToApp);
-  } catch (err) {
-    throw new ProcessPlatformUnsharedWithDeploymentFail(undefined, err.message);
-  }
-
-  if (oldContexts.length) {
-
-    // We need to end these contexts
-    try {
-      await Context.updateMany(
-        {
-          _id: {$in: oldContexts.map((context) => context.id)}
-        },
-        {
-          endDate: transitionDate
-        }
-      ).exec();    
-    } catch (err) {
-      throw new ProcessPlatformUnsharedWithDeploymentFail(undefined, err.message);
-    }
-
-    const newContexts: ContextApp[] = cloneDeep(oldContexts);
-    newContexts.forEach((newContext) => {
-      delete newContext.endDate;
-      delete newContext.id;
-      pull(newContext.inDeployments, deploymentId);
-    });
-
-    const newContextsDb = newContexts.map(contextAppToDb);
-
-    try {
-      await Context.create(newContextsDb);
-    } catch (err) {
-      throw new ProcessPlatformUnsharedWithDeploymentFail(undefined, err.message);
-    }
-
-  }
-  
 }
 
 

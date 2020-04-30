@@ -78,7 +78,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create a host platform
     const hostPlatformClient = {
       name: 'Lighting Column no. 16',
-      ownerDeployment: deployment.id,
+      inDeployment: deployment.id,
       static: true,
       location: {
         geometry: {
@@ -177,7 +177,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create a host platform
     const hostPlatformClient = {
       name: 'AQ Van No. 1',
-      ownerDeployment: deployment.id,
+      inDeployment: deployment.id,
       static: false
     };
 

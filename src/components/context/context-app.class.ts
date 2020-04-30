@@ -3,7 +3,7 @@ export class ContextApp {
   public sensor?: string;
   public startDate?: Date;
   public endDate?: Date;
-  public inDeployments?: string[];
+  public hasDeployment?: string;
   public hostedByPath?: string[];
   public config?: Config[];
 }

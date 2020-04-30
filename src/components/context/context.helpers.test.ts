@@ -17,7 +17,7 @@ describe('mergeObsWithContext function tests', () => {
     const context: ContextApp = { 
       sensor: 'sensor123',
       startDate: new Date('2019-12-02T15:00:12.775Z'),
-      inDeployments: ['deployment-1'],
+      hasDeployment: 'deployment-1',
       hostedByPath: ['platform-parent', 'platform-child'],
       config: [
         { 
@@ -40,7 +40,7 @@ describe('mergeObsWithContext function tests', () => {
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'AirTemperature',
       hasFeatureOfInterest: 'EarthAtmosphere',   
-      inDeployments: ['deployment-1'],
+      hasDeployment: 'deployment-1',
       hostedByPath: ['platform-parent', 'platform-child'],     
       usedProcedures: ['point-sample'],
       disciplines: ['Meteorology'],
@@ -66,7 +66,7 @@ describe('mergeObsWithContext function tests', () => {
     const context: ContextApp = { 
       sensor: 'solar-panel-123',
       startDate: new Date('2019-12-02T15:00:12.775Z'),      
-      inDeployments: ['deployment-1'],
+      hasDeployment: 'deployment-1',
       hostedByPath: ['platform-parent', 'platform-child'],
       config: [
         {
@@ -93,7 +93,7 @@ describe('mergeObsWithContext function tests', () => {
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'SolarRadiation',
       disciplines: ['Meteorology'],    
-      inDeployments: ['deployment-1'],
+      hasDeployment: 'deployment-1',
       hostedByPath: ['platform-parent', 'platform-child'],         
     };
 
@@ -117,7 +117,7 @@ describe('mergeObsWithContext function tests', () => {
     const context: ContextApp = { 
       sensor: 'solar-panel-123',
       startDate: new Date('2019-12-02T15:00:12.775Z'),      
-      inDeployments: ['deployment-1'],
+      hasDeployment: 'deployment-1',
       hostedByPath: ['platform-parent', 'platform-child'],
       config: [
         {
@@ -144,7 +144,7 @@ describe('mergeObsWithContext function tests', () => {
       resultTime: new Date('2019-12-04T13:00:19.665Z'),
       observedProperty: 'Voltage',
       disciplines: ['Energy'],    
-      inDeployments: ['deployment-1'],
+      hasDeployment: 'deployment-1',
       hostedByPath: ['platform-parent', 'platform-child'],         
     };
 
