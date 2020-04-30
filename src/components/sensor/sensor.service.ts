@@ -47,14 +47,17 @@ export async function createSensor(sensor: SensorApp): Promise<SensorApp> {
 
 
 
-export async function getSensor(id): Promise<SensorApp> {
+export async function getSensor(id, options: {includeDeleted?: boolean} = {}): Promise<SensorApp> {
+
+  const findWhere: any = {_id: id};
+  
+  if (!options.includeDeleted) {
+    findWhere.deletedAt = {$exists: false};
+  }
 
   let sensor;
   try {
-    sensor = await Sensor.findOne({
-      _id: id,
-      deletedAt: {$exists: false}
-    }).exec();
+    sensor = await Sensor.findOne(findWhere).exec();
   } catch (err) {
     throw new GetSensorFail(undefined, err.message);
   }

@@ -129,10 +129,16 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 }
 
 
+const getSensorOptions = joi.object({
+  includeDeleted: joi.boolean()
+});
 
-export async function getSensor(id: string): Promise<SensorClient> {
+export async function getSensor(id: string, options = {}): Promise<SensorClient> {
 
-  const sensor: SensorApp = await sensorService.getSensor(id);
+  const {error: err, value: validOptions} = getSensorOptions.validate(options);
+  if (err) throw new BadRequest(`Invalid 'options' object: ${err.message}`);
+
+  const sensor: SensorApp = await sensorService.getSensor(id, validOptions);
   logger.debug('Sensor found', sensor);
   return sensorService.sensorAppToClient(sensor);
 

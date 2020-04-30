@@ -85,7 +85,10 @@ async function subscribeToSensorGetRequests(): Promise<any> {
   const sensorsGetRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
-    })
+    }),
+    options: joi.object({
+      // let the controller check this
+    }).unknown()
   })
   .required();
 
@@ -97,7 +100,7 @@ async function subscribeToSensorGetRequests(): Promise<any> {
     try {
       const {error: err} = sensorsGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      sensor = await getSensor(message.where.id);
+      sensor = await getSensor(message.where.id, message.where.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
