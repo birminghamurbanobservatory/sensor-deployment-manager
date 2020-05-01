@@ -1,5 +1,5 @@
-import {PaginationOptions} from '../common/pagination-options.class';
+import {CollectionOptions} from '../common/collection-options.class';
 
-export class GetDeploymentsOptions extends PaginationOptions {
+export class GetDeploymentsOptions extends CollectionOptions {
   public mineOnly?: boolean;
 }

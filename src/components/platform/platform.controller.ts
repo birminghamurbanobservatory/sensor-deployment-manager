@@ -271,10 +271,10 @@ class GetPlatformsOptions extends CollectionOptions {
 
 export async function getPlatforms(where: any = {}, options: GetPlatformsOptions): Promise<{data: PlatformClient[]; meta: {count: number; total: number}}> {
 
-  const {error: whereErr, value: validatedWhere} = getPlatformsWhereSchema.validate(where);
+  const {error: whereErr, value: validWhere} = getPlatformsWhereSchema.validate(where);
   if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
 
-  const {error: optionsErr, value: validatedOptions} = getPlatformsOptionsSchema.validate(options);
+  const {error: optionsErr, value: validOptions} = getPlatformsOptionsSchema.validate(options);
   if (optionsErr) throw new BadRequest(`Invalid options object: ${optionsErr.message}`);
   
   // TODO: Could do with some extra checks to make sure that, for example, latitude.gte can't be less than or equal to latitude.lte.
@@ -283,19 +283,19 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
   //------------------------
   // With Nesting
   //------------------------
-  if (validatedOptions.nest) {
+  if (validOptions.nest) {
 
     // When nesting the limit will be applied to the number of platform "trees", so first we'll get the list of distinct topPlatforms that match the "where" criteria. The topPlatform is essentially an id for each "tree".
-    const topPlatformIds = await platformService.getDistinctTopPlatformIds(validatedWhere);
+    const topPlatformIds = await platformService.getDistinctTopPlatformIds(validWhere);
     logger.debug('All distinct top platform ids that match where criteria', topPlatformIds);
-    if (validatedOptions.sortOrder === 'desc') {
+    if (validOptions.sortOrder === 'desc') {
       topPlatformIds.reverse(); // mutates
     }
     const total = topPlatformIds.length;
     logger.debug(`total: ${total}`);
 
-    const offset = check.assigned(validatedOptions.offset) ? validatedOptions.offset : 0;
-    const limit = check.assigned(validatedOptions.limit) ? validatedOptions.limit : 100;
+    const offset = check.assigned(validOptions.offset) ? validOptions.offset : 0;
+    const limit = check.assigned(validOptions.limit) ? validOptions.limit : 100;
     logger.debug(`offset: ${offset}, limit: ${limit}.`);
     const selectedTopPlatformIds = topPlatformIds.slice(offset, limit + offset);
     logger.debug('selected top platform ids (i.e. those in this pagination page)', selectedTopPlatformIds);
@@ -315,7 +315,7 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
     const count = nestedPlatformsForClient.length;
 
     const nestedPlatformsForClientSorted = sortBy(nestedPlatformsForClient, 'id');
-    if (validatedOptions.sortOrder === 'desc') {
+    if (validOptions.sortOrder === 'desc') {
       nestedPlatformsForClientSorted.reverse();
     }
 
@@ -332,9 +332,9 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
   //------------------------
   // Without Nesting
   //------------------------
-  if (!validatedOptions.nest) {
+  if (!validOptions.nest) {
 
-    const {data: platforms, count, total} = await platformService.getPlatforms(validatedWhere, validatedOptions);
+    const {data: platforms, count, total} = await platformService.getPlatforms(validWhere, validOptions);
     logger.debug(`${platforms.length} platforms found`);
 
     // Now to make the platforms client friendly

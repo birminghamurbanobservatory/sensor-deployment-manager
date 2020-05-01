@@ -20,6 +20,7 @@ import {DeleteSensorFail} from './errors/DeleteSensorFail';
 import {PaginationOptions} from '../common/pagination-options.class';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types'; 
+import {CollectionOptions} from '../common/collection-options.class';
 
 
 
@@ -72,17 +73,24 @@ export async function getSensor(id, options: {includeDeleted?: boolean} = {}): P
 
 
 
-export async function getSensors(where: {id?: any; isHostedBy?: any; permanentHost?: any; hasDeployment?: any; search?: string}, options: PaginationOptions = {}): Promise<{data: SensorApp[]; count: number; total: number}> {
+export async function getSensors(
+  where: {
+    id?: any; 
+    isHostedBy?: any; 
+    permanentHost?: any; 
+    hasDeployment?: any; 
+    search?: string;
+  }, 
+  options: CollectionOptions = {}
+): Promise<{data: SensorApp[]; count: number; total: number}> {
 
   // TODO: Might we worth having some validation on the where object here?
 
-  const findWhere = Object.assign(
-    {}, 
-    whereToMongoFind(where), 
-    {
-      deletedAt: {$exists: false}
-    }
-  );
+  const findWhere = whereToMongoFind(where);
+
+  if (!options.includeDeleted) {
+    findWhere.deletedAt = {$exists: false};
+  }
 
   const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);

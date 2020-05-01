@@ -49,6 +49,9 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
 }
 
 
+//-------------------------------------------------
+// Get Deployment
+//-------------------------------------------------
 export async function getDeployment(id: string): Promise<DeploymentClient> {
 
   const deployment: DeploymentApp = await deploymentService.getDeployment(id);
@@ -58,6 +61,9 @@ export async function getDeployment(id: string): Promise<DeploymentClient> {
 }
 
 
+//-------------------------------------------------
+// Get Deployments
+//-------------------------------------------------
 const getDeploymentsWhereSchema = joi.object({
   user: joi.string(),
   public: joi.boolean(),
@@ -73,7 +79,8 @@ const getDeploymentsOptionsSchema = joi.object({
   limit: joi.number().integer().positive(),
   offset: joi.number().integer().min(0),
   sortBy: joi.string().valid('id'),
-  sortOrder: joi.string().valid('asc', 'desc')
+  sortOrder: joi.string().valid('asc', 'desc'),
+  includeDeleted: joi.boolean()
 }).required();
 
 export async function getDeployments(where: {user?: string; public?: boolean; id?: object; search?: string} = {}, options: GetDeploymentsOptions = {}): Promise<{data: DeploymentClient[]; meta: any}> {

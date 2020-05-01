@@ -95,9 +95,12 @@ export async function getDeployments(
 
   const findWhere = Object.assign(
     wherePart,
-    userPart,
-    {deletedAt: {$exists: false}}
+    userPart
   );
+
+  if (!options.includeDeleted) {
+    findWhere.deletedAt = {$exists: false};
+  }
 
   let deployments;
   try {

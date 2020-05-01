@@ -20,8 +20,12 @@ import {generateSensorId, prefixForGeneratedIds} from '../../utils/generate-sens
 import {CannotHostSensorOnPermanentHost} from './errors/CannotHostSensorOnPermanentHost';
 import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
 import {PaginationOptions} from '../common/pagination-options.class';
+import {CollectionOptions} from '../common/collection-options.class';
 
 
+//-------------------------------------------------
+// Create Sensor
+//-------------------------------------------------
 const configSchema = joi.object({
   hasPriority: joi.boolean().required(),
   observedProperty: joi.string().required(),
@@ -129,6 +133,9 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 }
 
 
+//-------------------------------------------------
+// Get Sensor
+//-------------------------------------------------
 const getSensorOptions = joi.object({
   includeDeleted: joi.boolean()
 });
@@ -145,6 +152,9 @@ export async function getSensor(id: string, options = {}): Promise<SensorClient>
 }
 
 
+//-------------------------------------------------
+// Get Sensors
+//-------------------------------------------------
 const getSensorsWhereSchema = joi.object({
   id: joi.object({
     begins: joi.string(),
@@ -173,12 +183,23 @@ const getSensorsWhereSchema = joi.object({
   search: joi.string()
 });
 
-export async function getSensors(where: any, options?: PaginationOptions): Promise<{data: SensorClient[]; meta: any}> {
+const getSensorsOptionsSchema = joi.object({
+  limit: joi.number().integer().positive(),
+  offset: joi.number().integer().min(0),
+  sortBy: joi.string().valid('id'),
+  sortOrder: joi.string().valid('asc', 'desc'),
+  includeDeleted: joi.boolean(),
+}).required();
 
-  const {error: err, value: validWhere} = getSensorsWhereSchema.validate(where);
-  if (err) throw new BadRequest(`Invalid 'where' object: ${err.message}`);
+export async function getSensors(where: any, options?: CollectionOptions): Promise<{data: SensorClient[]; meta: any}> {
 
-  const {data: sensors, count, total} = await sensorService.getSensors(validWhere, options);
+  const {error: whereErr, value: validWhere} = getSensorsWhereSchema.validate(where);
+  if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
+
+  const {error: optionsErr, value: validOptions} = getSensorsOptionsSchema.validate(options);
+  if (optionsErr) throw new BadRequest(`Invalid options object: ${optionsErr.message}`);
+
+  const {data: sensors, count, total} = await sensorService.getSensors(validWhere, validOptions);
   logger.debug(`${sensors.length} sensors found`);
 
   const sensorsForClient = sensors.map(sensorService.sensorAppToClient);
@@ -194,6 +215,9 @@ export async function getSensors(where: any, options?: PaginationOptions): Promi
 }
 
 
+//-------------------------------------------------
+// Update Sensor
+//-------------------------------------------------
 const sensorUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   name: joi.string(),
@@ -337,7 +361,9 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 }
 
 
-
+//-------------------------------------------------
+// Host sensor on platform
+//-------------------------------------------------
 // IMPORTANT: This is not the procedure by which sensors on permanentHosts are hosted on a platfrom. This is done via a registration key.
 export async function hostSensorOnPlatform(sensorId: string, platformId: string): Promise<SensorClient> {
 
@@ -389,7 +415,9 @@ export async function hostSensorOnPlatform(sensorId: string, platformId: string)
 }
 
 
-
+//-------------------------------------------------
+// Unhost sensor
+//-------------------------------------------------
 export async function unhostSensorFromPlatform(sensorId: string): Promise<SensorClient> {
   
   // First let's get the sensor
@@ -416,6 +444,9 @@ export async function unhostSensorFromPlatform(sensorId: string): Promise<Sensor
 }
 
 
+//-------------------------------------------------
+// Delete sensor
+//-------------------------------------------------
 export async function deleteSensor(id: string): Promise<void> {
 
   // If this sensor is hosted on a permanentHost then we'll need to make sure this permanentHost isn't using this sensor to update it's location, if so we need to change this.
