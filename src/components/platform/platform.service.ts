@@ -33,6 +33,7 @@ import {PaginationOptions} from '../common/pagination-options.class';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import {GetDistinctTopPlatformsFail} from './errors/GetDistinctTopPlatformsFail';
 import {SensorClient} from '../sensor/sensor-client.class';
+import {CollectionOptions} from '../common/collection-options.class';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -82,16 +83,17 @@ function deriveTopPlatformFromPlatform(platform: PlatformApp): string {
 
 
 
-export async function getPlatform(id: string): Promise<PlatformApp> {
+export async function getPlatform(id: string, options: {includeDeleted?: boolean} = {}): Promise<PlatformApp> {
+
+  const findWhere: any = {_id: id};
+  
+  if (!options.includeDeleted) {
+    findWhere.deletedAt = {$exists: false};
+  }
 
   let foundPlatform;
   try {
-    foundPlatform = await Platform.findOne(
-      {
-        _id: id,
-        deletedAt: {$exists: false}
-      }
-    ).exec();
+    foundPlatform = await Platform.findOne(findWhere).exec();
   } catch (err) {
     throw new GetPlatformFail(undefined, err.message);
   }
@@ -115,7 +117,7 @@ export async function getPlatforms(
     hostedByPath?: any; 
     topPlatform?: any;
   } = {}, 
-  options: PaginationOptions = {}
+  options: CollectionOptions = {}
 ): Promise<{data: PlatformApp[]; count: number; total: number}> {
 
   const spatialKeys = ['latitude', 'longitude', 'height', 'proximity'];
@@ -123,7 +125,9 @@ export async function getPlatforms(
   const whereWithoutSpatialParts = omit(where, spatialKeys);
   const normalPart = whereToMongoFind(whereWithoutSpatialParts);
   const findWhere = Object.assign({}, normalPart, spatialPart);
-  findWhere.deletedAt = {$exists: false};
+  if (!options.includeDeleted) {
+    findWhere.deletedAt = {$exists: false};
+  }
 
   const findOptions = paginationOptionsToMongoFindOptions(options);
   const limitAssigned = check.assigned(options.limit);
@@ -161,14 +165,16 @@ export async function getPlatforms(
 }
 
 
-export async function getDistinctTopPlatformIds(where = {}): Promise<string[]> {
+export async function getDistinctTopPlatformIds(where = {}, options: {includeDeleted?: boolean} = {}): Promise<string[]> {
 
   const spatialKeys = ['latitude', 'longitude', 'height', 'proximity'];
   const spatialPart: any = buildSpatialFindQueryForPlatforms(where);
   const whereWithoutSpatialParts = omit(where, spatialKeys);
   const normalPart = whereToMongoFind(whereWithoutSpatialParts);
   const findWhere = Object.assign({}, normalPart, spatialPart);
-  findWhere.deletedAt = {$exists: false};
+  if (!options.includeDeleted) {
+    findWhere.deletedAt = {$exists: false};
+  }
 
   let distinctTopPlatformIds;
   try {
@@ -272,14 +278,19 @@ export function buildSpatialFindQueryForPlatforms(where: any): any {
 }
 
 
-export async function getPlatformsWithIds(ids: string[]): Promise<PlatformApp> {
+export async function getPlatformsWithIds(ids: string[], options: {includeDeleted?: boolean} = {}): Promise<PlatformApp> {
+
+  const findWhere: any = {
+    _id: {$in: ids}
+  };
+
+  if (!options.includeDeleted) {
+    findWhere.deletedAt = {$exists: false};
+  }
 
   let foundPlatforms;
   try {
-    foundPlatforms = await Platform.find({
-      _id: {$in: ids},
-      deletedAt: {$exists: false}
-    }).exec();
+    foundPlatforms = await Platform.find(findWhere).exec();
   } catch (err) {
     throw new GetPlatformsFail(undefined, err.message);
   }

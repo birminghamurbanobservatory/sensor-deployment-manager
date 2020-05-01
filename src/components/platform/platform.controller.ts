@@ -22,6 +22,7 @@ import {SensorNotFound} from '../sensor/errors/SensorNotFound';
 import * as permanentHostService from '../permanent-host/permanent-host.service';
 import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
 import {PaginationOptions} from '../common/pagination-options.class';
+import {CollectionOptions} from '../common/collection-options.class';
 
 
 const newPlatformSchema = joi.object({
@@ -255,33 +256,46 @@ const getPlatformsWhereSchema = joi.object({
   })
 });
 
-class GetPlatformsOptions extends PaginationOptions {
+const getPlatformsOptionsSchema = joi.object({
+  limit: joi.number().integer().positive(),
+  offset: joi.number().integer().min(0),
+  sortBy: joi.string().valid('id'),
+  sortOrder: joi.string().valid('asc', 'desc'),
+  includeDeleted: joi.boolean(),
+  nest: joi.boolean()
+}).required();
+
+class GetPlatformsOptions extends CollectionOptions {
   public nest: boolean;
 }
 
 export async function getPlatforms(where: any = {}, options: GetPlatformsOptions): Promise<{data: PlatformClient[]; meta: {count: number; total: number}}> {
 
-  const {error: err, value: validatedWhere} = getPlatformsWhereSchema.validate(where);
-  if (err) throw new BadRequest(`Invalid where object: ${err.message}`);
+  const {error: whereErr, value: validatedWhere} = getPlatformsWhereSchema.validate(where);
+  if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
 
+  const {error: optionsErr, value: validatedOptions} = getPlatformsOptionsSchema.validate(options);
+  if (optionsErr) throw new BadRequest(`Invalid options object: ${optionsErr.message}`);
+  
   // TODO: Could do with some extra checks to make sure that, for example, latitude.gte can't be less than or equal to latitude.lte.
+
 
   //------------------------
   // With Nesting
   //------------------------
-  if (options.nest) {
+  if (validatedOptions.nest) {
 
     // When nesting the limit will be applied to the number of platform "trees", so first we'll get the list of distinct topPlatforms that match the "where" criteria. The topPlatform is essentially an id for each "tree".
     const topPlatformIds = await platformService.getDistinctTopPlatformIds(validatedWhere);
     logger.debug('All distinct top platform ids that match where criteria', topPlatformIds);
-    if (options.sortOrder === 'desc') {
+    if (validatedOptions.sortOrder === 'desc') {
       topPlatformIds.reverse(); // mutates
     }
     const total = topPlatformIds.length;
     logger.debug(`total: ${total}`);
 
-    const offset = check.assigned(options.offset) ? options.offset : 0;
-    const limit = check.assigned(options.limit) ? options.limit : 100;
+    const offset = check.assigned(validatedOptions.offset) ? validatedOptions.offset : 0;
+    const limit = check.assigned(validatedOptions.limit) ? validatedOptions.limit : 100;
     logger.debug(`offset: ${offset}, limit: ${limit}.`);
     const selectedTopPlatformIds = topPlatformIds.slice(offset, limit + offset);
     logger.debug('selected top platform ids (i.e. those in this pagination page)', selectedTopPlatformIds);
@@ -301,7 +315,7 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
     const count = nestedPlatformsForClient.length;
 
     const nestedPlatformsForClientSorted = sortBy(nestedPlatformsForClient, 'id');
-    if (options.sortOrder === 'desc') {
+    if (validatedOptions.sortOrder === 'desc') {
       nestedPlatformsForClientSorted.reverse();
     }
 
@@ -318,9 +332,9 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
   //------------------------
   // Without Nesting
   //------------------------
-  if (!options.nest) {
+  if (!validatedOptions.nest) {
 
-    const {data: platforms, count, total} = await platformService.getPlatforms(validatedWhere, options);
+    const {data: platforms, count, total} = await platformService.getPlatforms(validatedWhere, validatedOptions);
     logger.debug(`${platforms.length} platforms found`);
 
     // Now to make the platforms client friendly
