@@ -168,7 +168,7 @@ export async function getNestedHostsArrayForApp(platformId: string): Promise<any
   // Now we know all the possible platformIds that sensors could be hosted on.
   const subPlatformIds = subPlatforms.map((platform) => platform.id);
   const allPlatformIds = concat(platformId, subPlatformIds);
-  const sensors = await sensorService.getSensors({isHostedBy: {in: allPlatformIds}});
+  const {data: sensors} = await sensorService.getSensors({isHostedBy: {in: allPlatformIds}});
 
   // Now to build the nested structure
   const hostsArray = platformService.buildNestedHostsArray(platformId, subPlatforms, sensors);

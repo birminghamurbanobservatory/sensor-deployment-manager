@@ -159,7 +159,7 @@ export async function updatePermanentHost(id: string, updates: {name?: string; d
 export async function deletePermanentHost(id: string): Promise<void> {
 
   // Don't allow it to be deleted if there are still sensors bound to it.
-  const hostedSensors = await getSensors({permanentHost: id});
+  const {data: hostedSensors} = await getSensors({permanentHost: id});
   if (hostedSensors.length > 0) {
     const sensorIds = hostedSensors.map((sensor) => sensor.id);
     throw new SensorsRemainOnPermanentHost(`Cannot be deleted until the following sensors have been removed from this permanent host: ${sensorIds.join(',')}.`);

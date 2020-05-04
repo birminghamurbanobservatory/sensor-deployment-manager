@@ -10,6 +10,7 @@ import * as sensorController from '../components/sensor/sensor.controller';
 import * as platformController from '../components/platform/platform.controller';
 import {register} from '../components/registration/registration.controller';
 import {getLiveContextForSensor} from '../components/context/context.service';
+import {SensorsRemainOnPermanentHost} from '../components/permanent-host/errors/SensorsRemainOnPermanentHost';
 
 describe('Permanent host testing', () => {
 
@@ -187,6 +188,40 @@ describe('Permanent host testing', () => {
 
   });
 
+
+
+  test('Should not be allowed to delete a permanent host if there are still sensors hosted on it', async () => {
+
+    expect.assertions(1);
+
+    // Create the permanent host
+    const permanentHostClient = {
+      name: 'Weather Station 5'
+    };
+    const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
+
+    // Create a sensor on this permanent host
+    const sensorClient = {
+      id: 'sensor-123',
+      permanentHost: permanentHost.id,
+      initialConfig: [
+        {
+          hasPriority: true,
+          observedProperty: 'temperature',
+          hasFeatureOfInterest: 'EarthAtmosphere'
+        }
+      ]
+    };
+    const sensor = await sensorController.createSensor(sensorClient);
+
+    // Now try to delete the permanent host, it should error.
+    try {
+      await permanentHostController.deletePermanentHost(permanentHost.id);
+    } catch (err) {
+      expect(err).toBeInstanceOf(SensorsRemainOnPermanentHost);      
+    }
+
+  });
 
 
 });
