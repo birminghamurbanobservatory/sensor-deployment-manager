@@ -38,7 +38,7 @@ const configSchema = joi.object({
 const newSensorSchema = joi.object({
   id: joi.string(), // we'll leave the model schema to check the length
   name: joi.string(),
-  description: joi.string(),
+  description: joi.string().allow(''),
   permanentHost: joi.string(),
   hasDeployment: joi.string(),
   // N.B. isHostedBy is not allow here. Hosting a sensor on a platform is a separate step and depends on whether the sensor has a permanentHost or not. 
@@ -226,7 +226,7 @@ export async function getSensors(where: any, options?: CollectionOptions): Promi
 const sensorUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   name: joi.string(),
-  description: joi.string(),
+  description: joi.string().allow(''),
   hasDeployment: joi.string().allow(null),
   permanentHost: joi.string().allow(null),
   initialConfig: joi.array().items(configSchema),

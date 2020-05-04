@@ -29,14 +29,8 @@ export function giveObsContext(observation: ObservationApp, context: ContextApp)
 
       if (matchingConfig) {
         configToMerge = matchingConfig;
-
-      } else {
-        // Get the config with priority instead
-        const priorityConfig = context.config.find((config) => {
-          return config.hasPriority;
-        });
-        configToMerge = priorityConfig;
-      }
+      } 
+      // Crucially if the observation does have an observedProperty set, but there is no matching config, we DON'T want to apply the default config here, as you risk adding completely the wrong units, procedures, etc.... 
 
     } else {
 

@@ -304,7 +304,7 @@ export async function getPlatformsWithIds(ids: string[], options: {includeDelete
 // I only want this function updating certain fields, i.e. not the isHostedBy property.
 const updatesSchema = joi.object({
   name: joi.string(),
-  description: joi.string(),
+  description: joi.string().allow(''),
   static: joi.boolean(),
   location: joi.any(),
   updateLocationWithSensor: joi.string().allow(null)

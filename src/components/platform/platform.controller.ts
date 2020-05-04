@@ -28,7 +28,7 @@ import {CollectionOptions} from '../common/collection-options.class';
 const newPlatformSchema = joi.object({
   id: joi.string(),
   name: joi.string().required(),
-  description: joi.string(),
+  description: joi.string().allow(''),
   static: joi.boolean().default(true),
   location: joi.object({
     geometry: joi.object({
@@ -359,7 +359,7 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
 //-------------------------------------------------
 const platformUpdatesSchema = joi.object({
   name: joi.string(),
-  description: joi.string(),
+  description: joi.string().allow(''),
   static: joi.boolean().valid(false), // for now I'll only allow static to be changed to mobile.
   location: joi.object({
     geometry: joi.object({
