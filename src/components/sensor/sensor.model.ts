@@ -50,6 +50,7 @@ const schema = new mongoose.Schema({
   },
   name: {
     type: String,
+    required: true,
     maxlength: [44, 'Sensor name is too long']
   },
   description: {

@@ -82,6 +82,11 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
     sensor.id = generateSensorId(sensor.name);
   } 
 
+  // If the sensor does not have a name yet then simply use the id.
+  if (!sensor.name) {
+    sensor.name = sensor.id;
+  }
+
   // Begin to create the context for this sensor.
   const context: ContextApp = {
     sensor: sensor.id,
