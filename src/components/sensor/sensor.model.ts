@@ -38,7 +38,7 @@ const schema = new mongoose.Schema({
     type: String,
     required: true,
     immutable: true, // prevents this from being updated
-    maxlength: [44, 'Sensor id is too long'],
+    maxlength: [48, 'Sensor id is too long'],
     validate: {
       validator: (value): boolean => {
         return kebabCaseRegex.test(value);
@@ -50,7 +50,7 @@ const schema = new mongoose.Schema({
   },
   name: {
     type: String,
-    maxlength: [40, 'Sensor name is too long']
+    maxlength: [44, 'Sensor name is too long']
   },
   description: {
     type: String,

@@ -29,7 +29,7 @@ describe('generateSensorId function', () => {
 
   test('Handles long names', () => {
     const sensorId = generateSensorId('some name that is really long and such!');
-    expect(sensorId.length < 44).toBe(true);
+    expect(sensorId.length < 48).toBe(true);
   });
 
   test('Generated ID contains some of the name', () => {
