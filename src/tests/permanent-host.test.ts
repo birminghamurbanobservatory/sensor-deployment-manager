@@ -169,4 +169,26 @@ describe('Permanent host testing', () => {
   });
 
 
+
+  test('Can create a permanent host with just an ID', async () => {
+
+    const permanentHostClient = {
+      id: 'netatmo-1234-outdoor-module'
+    };
+
+    const createdPermanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
+    
+    expect(createdPermanentHost.id).toBe(permanentHostClient.id);
+    expect(createdPermanentHost.name).toBe(permanentHostClient.id); // uses the id as the name
+    expect(createdPermanentHost.static).toBe(false); // should default to being mobile
+    expect(check.nonEmptyString(createdPermanentHost.createdAt)).toBe(true);
+    expect(check.nonEmptyString(createdPermanentHost.updatedAt)).toBe(true);
+    expect(check.nonEmptyString(createdPermanentHost.registrationKey)).toBe(true);
+
+  });
+
+
+
 });
+
+

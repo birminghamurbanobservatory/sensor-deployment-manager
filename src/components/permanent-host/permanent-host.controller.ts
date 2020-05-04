@@ -18,12 +18,12 @@ import {PaginationOptions} from '../common/pagination-options.class';
 
 const newPermanentHostSchema = joi.object({
   id: joi.string(),
-  name: joi.string()
-    .required(),
+  name: joi.string(),
   description: joi.string(),
   static: joi.boolean()
   // N.B. updateLocationWithSensor is not allow here, as the client first has to create this permanent host in order to add locational sensors to it and then it can be updated to use one of these sensors for location.
 })
+.or('id', 'name')
 .required();
 
 export async function createPermanentHost(permanentHost: PermanentHostClient): Promise<PermanentHostClient> {
@@ -42,6 +42,13 @@ export async function createPermanentHost(permanentHost: PermanentHostClient): P
     logger.debug(`The permanent host name: '${permanentHostToCreate.name}' has been converted to an id of '${permanentHostToCreate.id}'`);
   }
 
+  // If it doesn't yet have a name then we'll just use the id as the name
+  const nameSpecified = check.assigned(permanentHost.name);
+  if (!nameSpecified) {
+    // Use slice just in case the id is too long to use as the name.
+    permanentHostToCreate.name = permanentHost.id.slice(0, 44);
+  }
+
   // Generate a registration key
   permanentHostToCreate.registrationKey = generateRegistrationKey();
 
@@ -58,7 +65,8 @@ export async function createPermanentHost(permanentHost: PermanentHostClient): P
     }
   }
 
-  return createdPermanentHost;
+  const permanentHostForClient = permanentHostService.permanentHostAppToClient(createdPermanentHost);
+  return permanentHostForClient;
 
 }
 
