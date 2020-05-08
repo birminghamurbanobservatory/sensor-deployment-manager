@@ -3,16 +3,16 @@ import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
 import {CollectionOptions} from '../common/collection-options.class';
-import {ProcedureClient} from './procedure-client.class';
-import {InvalidProcedure} from './errors/InvalidProcedure';
+import {DisciplineClient} from './discipline-client.class';
+import {InvalidDiscipline} from './errors/InvalidDiscipline';
 import {getDeployment} from '../deployment/deployment.service';
-import * as procedureService from './procedure.service';
+import * as disciplineService from './discipline.service';
 
 
 //-------------------------------------------------
-// Create Procedure
+// Create Discipline
 //-------------------------------------------------
-const newProcedureSchema = joi.object({
+const newDisciplineSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
   comment: joi.string().allow(''),
@@ -24,65 +24,65 @@ const newProcedureSchema = joi.object({
 .or('id', 'label')
 .required();
 
-export async function createProcedure(procedure: ProcedureClient): Promise<ProcedureClient> {
+export async function createDiscipline(discipline: DisciplineClient): Promise<DisciplineClient> {
 
-  logger.debug('Creating new procedure');
+  logger.debug('Creating new discipline');
 
-  const {error: err} = newProcedureSchema.validate(procedure);
+  const {error: err} = newDisciplineSchema.validate(discipline);
   if (err) {
-    throw new InvalidProcedure(err.message);
+    throw new InvalidDiscipline(err.message);
   }
 
   // If an id is given, then check it won't clash with any auto-generated IDs. 
-  if (procedure.id && hasIdBeenGenerated(procedure.id)) {
-    throw new InvalidProcedure(`Procedure ID cannot end '${suffixForGeneratedIds}'`);
+  if (discipline.id && hasIdBeenGenerated(discipline.id)) {
+    throw new InvalidDiscipline(`Discipline ID cannot end '${suffixForGeneratedIds}'`);
   }
 
   // If it doesn't have an id then assign one
-  if (!procedure.id) {
-    procedure.id = generateId(procedure.label);
+  if (!discipline.id) {
+    discipline.id = generateId(discipline.label);
   } 
 
   // If it does not have a label yet then simply use the id.
-  if (!procedure.label) {
-    procedure.label = procedure.id;
+  if (!discipline.label) {
+    discipline.label = discipline.id;
   }
 
   // Check the deployment exists if provided
-  if (procedure.belongsToDeployment) {
-    await getDeployment(procedure.belongsToDeployment);
+  if (discipline.belongsToDeployment) {
+    await getDeployment(discipline.belongsToDeployment);
   }
 
-  const created = await procedureService.createProcedure(procedure);
+  const created = await disciplineService.createDiscipline(discipline);
 
-  return procedureService.procedureAppToClient(created);
+  return disciplineService.disciplineAppToClient(created);
 
 }
 
 
 //-------------------------------------------------
-// Get Procedure
+// Get Discipline
 //-------------------------------------------------
-const getProcedureOptions = joi.object({
+const getDisciplineOptions = joi.object({
   includeDeleted: joi.boolean()
 });
 
-export async function getProcedure(id: string, options = {}): Promise<ProcedureClient> {
+export async function getDiscipline(id: string, options = {}): Promise<DisciplineClient> {
 
-  const {error: err, value: validOptions} = getProcedureOptions.validate(options);
+  const {error: err, value: validOptions} = getDisciplineOptions.validate(options);
   if (err) throw new BadRequest(`Invalid 'options' object: ${err.message}`);
 
-  const procedure = await procedureService.getProcedure(id, validOptions);
-  logger.debug('Procedure found', procedure);
-  return procedureService.procedureAppToClient(procedure);
+  const discipline = await disciplineService.getDiscipline(id, validOptions);
+  logger.debug('Discipline found', discipline);
+  return disciplineService.disciplineAppToClient(discipline);
 
 }
 
 
 //-------------------------------------------------
-// Get Procedures
+// Get Disciplines
 //-------------------------------------------------
-const getProceduresWhereSchema = joi.object({
+const getDisciplinesWhereSchema = joi.object({
   id: joi.object({
     begins: joi.string(),
     in: joi.array().items(joi.string()).min(1)
@@ -106,7 +106,7 @@ const getProceduresWhereSchema = joi.object({
   search: joi.string()
 });
 
-const getProceduresOptionsSchema = joi.object({
+const getDisciplinesOptionsSchema = joi.object({
   limit: joi.number().integer().positive(),
   offset: joi.number().integer().min(0),
   sortBy: joi.string().valid('id'),
@@ -114,21 +114,21 @@ const getProceduresOptionsSchema = joi.object({
   includeDeleted: joi.boolean(),
 }).required();
 
-export async function getProcedures(where: any, options?: CollectionOptions): Promise<{data: ProcedureClient[]; meta: any}> {
+export async function getDisciplines(where: any, options?: CollectionOptions): Promise<{data: DisciplineClient[]; meta: any}> {
 
-  const {error: whereErr, value: validWhere} = getProceduresWhereSchema.validate(where);
+  const {error: whereErr, value: validWhere} = getDisciplinesWhereSchema.validate(where);
   if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
 
-  const {error: optionsErr, value: validOptions} = getProceduresOptionsSchema.validate(options);
+  const {error: optionsErr, value: validOptions} = getDisciplinesOptionsSchema.validate(options);
   if (optionsErr) throw new BadRequest(`Invalid options object: ${optionsErr.message}`);
 
-  const {data: procedures, count, total} = await procedureService.getProcedures(validWhere, validOptions);
-  logger.debug(`${procedures.length} procedures found`);
+  const {data: disciplines, count, total} = await disciplineService.getDisciplines(validWhere, validOptions);
+  logger.debug(`${disciplines.length} disciplines found`);
 
-  const proceduresForClient = procedures.map(procedureService.procedureAppToClient);
+  const disciplinesForClient = disciplines.map(disciplineService.disciplineAppToClient);
   
   return {
-    data: proceduresForClient,
+    data: disciplinesForClient,
     meta: {
       count,
       total
@@ -139,9 +139,9 @@ export async function getProcedures(where: any, options?: CollectionOptions): Pr
 
 
 //-------------------------------------------------
-// Update Procedure
+// Update Discipline
 //-------------------------------------------------
-const procedureUpdatesSchema = joi.object({
+const disciplineUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
   comment: joi.string().allow(''),
@@ -152,11 +152,11 @@ const procedureUpdatesSchema = joi.object({
 .min(1)
 .required(); 
 
-export async function updateProcedure(id: string, updates: any): Promise<ProcedureClient> {
+export async function updateDiscipline(id: string, updates: any): Promise<DisciplineClient> {
 
-  logger.debug(`Updating used procedure '${id}'`);
+  logger.debug(`Updating used discipline '${id}'`);
 
-  const {error: validationErr, value: validUpdates} = procedureUpdatesSchema.validate(updates);
+  const {error: validationErr, value: validUpdates} = disciplineUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
   // Check the deployment exists if provided
@@ -164,21 +164,21 @@ export async function updateProcedure(id: string, updates: any): Promise<Procedu
     await getDeployment(updates.belongsToDeployment);
   }
 
-  const updatedProcedure = await procedureService.updateProcedure(id, validUpdates);
-  logger.debug(`Procedure '${id}' updated.`);
+  const updatedDiscipline = await disciplineService.updateDiscipline(id, validUpdates);
+  logger.debug(`Discipline '${id}' updated.`);
 
-  return procedureService.procedureAppToClient(updatedProcedure);
+  return disciplineService.disciplineAppToClient(updatedDiscipline);
 
 }
 
 
 
 //-------------------------------------------------
-// Delete Procedure
+// Delete Discipline
 //-------------------------------------------------
-export async function deleteProcedure(id: string): Promise<void> {
-  await procedureService.deleteProcedure(id);
-  logger.debug(`Procedure with id: '${id}' has been deleted.`);
+export async function deleteDiscipline(id: string): Promise<void> {
+  await disciplineService.deleteDiscipline(id);
+  logger.debug(`Discipline with id: '${id}' has been deleted.`);
   return;
 }
 

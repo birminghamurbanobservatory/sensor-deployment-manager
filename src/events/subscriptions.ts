@@ -7,6 +7,11 @@ import {subscribeToContextEvents} from '../components/context/context.events';
 import {subscribeToDeploymentUserEvents} from '../components/deployment-user/deployment-user.events';
 import {subscribeToUnknownSensorEvents} from '../components/unknown-sensor/unknown-sensor.events';
 import {subscribeToProcedureEvents} from '../components/procedure/procedure.events';
+import {subscribeToDisciplineEvents} from '../components/discipline/discipline.events';
+import {subscribeToAggregationEvents} from '../components/aggregation/aggregation.events';
+import {subscribeToObservablePropertyEvents} from '../components/observable-property/observable-property.events';
+import {subscribeToUnitEvents} from '../components/unit/unit.events';
+import {subscribeToFeatureOfInterestEvents} from '../components/feature-of-interest/feature-of-interest.events';
 
 
 
@@ -21,6 +26,11 @@ export async function invokeAllSubscriptions(): Promise<void> {
   await subscribeToContextEvents();
   await subscribeToUnknownSensorEvents();
   await subscribeToProcedureEvents();
+  await subscribeToDisciplineEvents();
+  await subscribeToObservablePropertyEvents();
+  await subscribeToAggregationEvents();
+  await subscribeToUnitEvents();
+  await subscribeToFeatureOfInterestEvents();
 
 }
 

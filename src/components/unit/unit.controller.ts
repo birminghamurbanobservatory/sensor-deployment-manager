@@ -3,16 +3,16 @@ import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
 import {CollectionOptions} from '../common/collection-options.class';
-import {ProcedureClient} from './procedure-client.class';
-import {InvalidProcedure} from './errors/InvalidProcedure';
+import {UnitClient} from './unit-client.class';
+import {InvalidUnit} from './errors/InvalidUnit';
 import {getDeployment} from '../deployment/deployment.service';
-import * as procedureService from './procedure.service';
+import * as unitService from './unit.service';
 
 
 //-------------------------------------------------
-// Create Procedure
+// Create Unit
 //-------------------------------------------------
-const newProcedureSchema = joi.object({
+const newUnitSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
   comment: joi.string().allow(''),
@@ -24,65 +24,65 @@ const newProcedureSchema = joi.object({
 .or('id', 'label')
 .required();
 
-export async function createProcedure(procedure: ProcedureClient): Promise<ProcedureClient> {
+export async function createUnit(unit: UnitClient): Promise<UnitClient> {
 
-  logger.debug('Creating new procedure');
+  logger.debug('Creating new unit');
 
-  const {error: err} = newProcedureSchema.validate(procedure);
+  const {error: err} = newUnitSchema.validate(unit);
   if (err) {
-    throw new InvalidProcedure(err.message);
+    throw new InvalidUnit(err.message);
   }
 
   // If an id is given, then check it won't clash with any auto-generated IDs. 
-  if (procedure.id && hasIdBeenGenerated(procedure.id)) {
-    throw new InvalidProcedure(`Procedure ID cannot end '${suffixForGeneratedIds}'`);
+  if (unit.id && hasIdBeenGenerated(unit.id)) {
+    throw new InvalidUnit(`Unit ID cannot end '${suffixForGeneratedIds}'`);
   }
 
   // If it doesn't have an id then assign one
-  if (!procedure.id) {
-    procedure.id = generateId(procedure.label);
+  if (!unit.id) {
+    unit.id = generateId(unit.label);
   } 
 
   // If it does not have a label yet then simply use the id.
-  if (!procedure.label) {
-    procedure.label = procedure.id;
+  if (!unit.label) {
+    unit.label = unit.id;
   }
 
   // Check the deployment exists if provided
-  if (procedure.belongsToDeployment) {
-    await getDeployment(procedure.belongsToDeployment);
+  if (unit.belongsToDeployment) {
+    await getDeployment(unit.belongsToDeployment);
   }
 
-  const created = await procedureService.createProcedure(procedure);
+  const created = await unitService.createUnit(unit);
 
-  return procedureService.procedureAppToClient(created);
+  return unitService.unitAppToClient(created);
 
 }
 
 
 //-------------------------------------------------
-// Get Procedure
+// Get Unit
 //-------------------------------------------------
-const getProcedureOptions = joi.object({
+const getUnitOptions = joi.object({
   includeDeleted: joi.boolean()
 });
 
-export async function getProcedure(id: string, options = {}): Promise<ProcedureClient> {
+export async function getUnit(id: string, options = {}): Promise<UnitClient> {
 
-  const {error: err, value: validOptions} = getProcedureOptions.validate(options);
+  const {error: err, value: validOptions} = getUnitOptions.validate(options);
   if (err) throw new BadRequest(`Invalid 'options' object: ${err.message}`);
 
-  const procedure = await procedureService.getProcedure(id, validOptions);
-  logger.debug('Procedure found', procedure);
-  return procedureService.procedureAppToClient(procedure);
+  const unit = await unitService.getUnit(id, validOptions);
+  logger.debug('Unit found', unit);
+  return unitService.unitAppToClient(unit);
 
 }
 
 
 //-------------------------------------------------
-// Get Procedures
+// Get Units
 //-------------------------------------------------
-const getProceduresWhereSchema = joi.object({
+const getUnitsWhereSchema = joi.object({
   id: joi.object({
     begins: joi.string(),
     in: joi.array().items(joi.string()).min(1)
@@ -106,7 +106,7 @@ const getProceduresWhereSchema = joi.object({
   search: joi.string()
 });
 
-const getProceduresOptionsSchema = joi.object({
+const getUnitsOptionsSchema = joi.object({
   limit: joi.number().integer().positive(),
   offset: joi.number().integer().min(0),
   sortBy: joi.string().valid('id'),
@@ -114,21 +114,21 @@ const getProceduresOptionsSchema = joi.object({
   includeDeleted: joi.boolean(),
 }).required();
 
-export async function getProcedures(where: any, options?: CollectionOptions): Promise<{data: ProcedureClient[]; meta: any}> {
+export async function getUnits(where: any, options?: CollectionOptions): Promise<{data: UnitClient[]; meta: any}> {
 
-  const {error: whereErr, value: validWhere} = getProceduresWhereSchema.validate(where);
+  const {error: whereErr, value: validWhere} = getUnitsWhereSchema.validate(where);
   if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
 
-  const {error: optionsErr, value: validOptions} = getProceduresOptionsSchema.validate(options);
+  const {error: optionsErr, value: validOptions} = getUnitsOptionsSchema.validate(options);
   if (optionsErr) throw new BadRequest(`Invalid options object: ${optionsErr.message}`);
 
-  const {data: procedures, count, total} = await procedureService.getProcedures(validWhere, validOptions);
-  logger.debug(`${procedures.length} procedures found`);
+  const {data: units, count, total} = await unitService.getUnits(validWhere, validOptions);
+  logger.debug(`${units.length} units found`);
 
-  const proceduresForClient = procedures.map(procedureService.procedureAppToClient);
+  const unitsForClient = units.map(unitService.unitAppToClient);
   
   return {
-    data: proceduresForClient,
+    data: unitsForClient,
     meta: {
       count,
       total
@@ -139,9 +139,9 @@ export async function getProcedures(where: any, options?: CollectionOptions): Pr
 
 
 //-------------------------------------------------
-// Update Procedure
+// Update Unit
 //-------------------------------------------------
-const procedureUpdatesSchema = joi.object({
+const unitUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
   comment: joi.string().allow(''),
@@ -152,11 +152,11 @@ const procedureUpdatesSchema = joi.object({
 .min(1)
 .required(); 
 
-export async function updateProcedure(id: string, updates: any): Promise<ProcedureClient> {
+export async function updateUnit(id: string, updates: any): Promise<UnitClient> {
 
-  logger.debug(`Updating used procedure '${id}'`);
+  logger.debug(`Updating used unit '${id}'`);
 
-  const {error: validationErr, value: validUpdates} = procedureUpdatesSchema.validate(updates);
+  const {error: validationErr, value: validUpdates} = unitUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
   // Check the deployment exists if provided
@@ -164,21 +164,21 @@ export async function updateProcedure(id: string, updates: any): Promise<Procedu
     await getDeployment(updates.belongsToDeployment);
   }
 
-  const updatedProcedure = await procedureService.updateProcedure(id, validUpdates);
-  logger.debug(`Procedure '${id}' updated.`);
+  const updatedUnit = await unitService.updateUnit(id, validUpdates);
+  logger.debug(`Unit '${id}' updated.`);
 
-  return procedureService.procedureAppToClient(updatedProcedure);
+  return unitService.unitAppToClient(updatedUnit);
 
 }
 
 
 
 //-------------------------------------------------
-// Delete Procedure
+// Delete Unit
 //-------------------------------------------------
-export async function deleteProcedure(id: string): Promise<void> {
-  await procedureService.deleteProcedure(id);
-  logger.debug(`Procedure with id: '${id}' has been deleted.`);
+export async function deleteUnit(id: string): Promise<void> {
+  await unitService.deleteUnit(id);
+  logger.debug(`Unit with id: '${id}' has been deleted.`);
   return;
 }
 

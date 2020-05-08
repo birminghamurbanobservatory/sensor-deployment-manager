@@ -3,16 +3,16 @@ import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
 import {CollectionOptions} from '../common/collection-options.class';
-import {ProcedureClient} from './procedure-client.class';
-import {InvalidProcedure} from './errors/InvalidProcedure';
+import {AggregationClient} from './aggregation-client.class';
+import {InvalidAggregation} from './errors/InvalidAggregation';
 import {getDeployment} from '../deployment/deployment.service';
-import * as procedureService from './procedure.service';
+import * as aggregationService from './aggregation.service';
 
 
 //-------------------------------------------------
-// Create Procedure
+// Create Aggregation
 //-------------------------------------------------
-const newProcedureSchema = joi.object({
+const newAggregationSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
   comment: joi.string().allow(''),
@@ -24,65 +24,65 @@ const newProcedureSchema = joi.object({
 .or('id', 'label')
 .required();
 
-export async function createProcedure(procedure: ProcedureClient): Promise<ProcedureClient> {
+export async function createAggregation(aggregation: AggregationClient): Promise<AggregationClient> {
 
-  logger.debug('Creating new procedure');
+  logger.debug('Creating new aggregation');
 
-  const {error: err} = newProcedureSchema.validate(procedure);
+  const {error: err} = newAggregationSchema.validate(aggregation);
   if (err) {
-    throw new InvalidProcedure(err.message);
+    throw new InvalidAggregation(err.message);
   }
 
   // If an id is given, then check it won't clash with any auto-generated IDs. 
-  if (procedure.id && hasIdBeenGenerated(procedure.id)) {
-    throw new InvalidProcedure(`Procedure ID cannot end '${suffixForGeneratedIds}'`);
+  if (aggregation.id && hasIdBeenGenerated(aggregation.id)) {
+    throw new InvalidAggregation(`Aggregation ID cannot end '${suffixForGeneratedIds}'`);
   }
 
   // If it doesn't have an id then assign one
-  if (!procedure.id) {
-    procedure.id = generateId(procedure.label);
+  if (!aggregation.id) {
+    aggregation.id = generateId(aggregation.label);
   } 
 
   // If it does not have a label yet then simply use the id.
-  if (!procedure.label) {
-    procedure.label = procedure.id;
+  if (!aggregation.label) {
+    aggregation.label = aggregation.id;
   }
 
   // Check the deployment exists if provided
-  if (procedure.belongsToDeployment) {
-    await getDeployment(procedure.belongsToDeployment);
+  if (aggregation.belongsToDeployment) {
+    await getDeployment(aggregation.belongsToDeployment);
   }
 
-  const created = await procedureService.createProcedure(procedure);
+  const created = await aggregationService.createAggregation(aggregation);
 
-  return procedureService.procedureAppToClient(created);
+  return aggregationService.aggregationAppToClient(created);
 
 }
 
 
 //-------------------------------------------------
-// Get Procedure
+// Get Aggregation
 //-------------------------------------------------
-const getProcedureOptions = joi.object({
+const getAggregationOptions = joi.object({
   includeDeleted: joi.boolean()
 });
 
-export async function getProcedure(id: string, options = {}): Promise<ProcedureClient> {
+export async function getAggregation(id: string, options = {}): Promise<AggregationClient> {
 
-  const {error: err, value: validOptions} = getProcedureOptions.validate(options);
+  const {error: err, value: validOptions} = getAggregationOptions.validate(options);
   if (err) throw new BadRequest(`Invalid 'options' object: ${err.message}`);
 
-  const procedure = await procedureService.getProcedure(id, validOptions);
-  logger.debug('Procedure found', procedure);
-  return procedureService.procedureAppToClient(procedure);
+  const aggregation = await aggregationService.getAggregation(id, validOptions);
+  logger.debug('Aggregation found', aggregation);
+  return aggregationService.aggregationAppToClient(aggregation);
 
 }
 
 
 //-------------------------------------------------
-// Get Procedures
+// Get Aggregations
 //-------------------------------------------------
-const getProceduresWhereSchema = joi.object({
+const getAggregationsWhereSchema = joi.object({
   id: joi.object({
     begins: joi.string(),
     in: joi.array().items(joi.string()).min(1)
@@ -106,7 +106,7 @@ const getProceduresWhereSchema = joi.object({
   search: joi.string()
 });
 
-const getProceduresOptionsSchema = joi.object({
+const getAggregationsOptionsSchema = joi.object({
   limit: joi.number().integer().positive(),
   offset: joi.number().integer().min(0),
   sortBy: joi.string().valid('id'),
@@ -114,21 +114,21 @@ const getProceduresOptionsSchema = joi.object({
   includeDeleted: joi.boolean(),
 }).required();
 
-export async function getProcedures(where: any, options?: CollectionOptions): Promise<{data: ProcedureClient[]; meta: any}> {
+export async function getAggregations(where: any, options?: CollectionOptions): Promise<{data: AggregationClient[]; meta: any}> {
 
-  const {error: whereErr, value: validWhere} = getProceduresWhereSchema.validate(where);
+  const {error: whereErr, value: validWhere} = getAggregationsWhereSchema.validate(where);
   if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
 
-  const {error: optionsErr, value: validOptions} = getProceduresOptionsSchema.validate(options);
+  const {error: optionsErr, value: validOptions} = getAggregationsOptionsSchema.validate(options);
   if (optionsErr) throw new BadRequest(`Invalid options object: ${optionsErr.message}`);
 
-  const {data: procedures, count, total} = await procedureService.getProcedures(validWhere, validOptions);
-  logger.debug(`${procedures.length} procedures found`);
+  const {data: aggregations, count, total} = await aggregationService.getAggregations(validWhere, validOptions);
+  logger.debug(`${aggregations.length} aggregations found`);
 
-  const proceduresForClient = procedures.map(procedureService.procedureAppToClient);
+  const aggregationsForClient = aggregations.map(aggregationService.aggregationAppToClient);
   
   return {
-    data: proceduresForClient,
+    data: aggregationsForClient,
     meta: {
       count,
       total
@@ -139,9 +139,9 @@ export async function getProcedures(where: any, options?: CollectionOptions): Pr
 
 
 //-------------------------------------------------
-// Update Procedure
+// Update Aggregation
 //-------------------------------------------------
-const procedureUpdatesSchema = joi.object({
+const aggregationUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
   comment: joi.string().allow(''),
@@ -152,11 +152,11 @@ const procedureUpdatesSchema = joi.object({
 .min(1)
 .required(); 
 
-export async function updateProcedure(id: string, updates: any): Promise<ProcedureClient> {
+export async function updateAggregation(id: string, updates: any): Promise<AggregationClient> {
 
-  logger.debug(`Updating used procedure '${id}'`);
+  logger.debug(`Updating used aggregation '${id}'`);
 
-  const {error: validationErr, value: validUpdates} = procedureUpdatesSchema.validate(updates);
+  const {error: validationErr, value: validUpdates} = aggregationUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
   // Check the deployment exists if provided
@@ -164,21 +164,21 @@ export async function updateProcedure(id: string, updates: any): Promise<Procedu
     await getDeployment(updates.belongsToDeployment);
   }
 
-  const updatedProcedure = await procedureService.updateProcedure(id, validUpdates);
-  logger.debug(`Procedure '${id}' updated.`);
+  const updatedAggregation = await aggregationService.updateAggregation(id, validUpdates);
+  logger.debug(`Aggregation '${id}' updated.`);
 
-  return procedureService.procedureAppToClient(updatedProcedure);
+  return aggregationService.aggregationAppToClient(updatedAggregation);
 
 }
 
 
 
 //-------------------------------------------------
-// Delete Procedure
+// Delete Aggregation
 //-------------------------------------------------
-export async function deleteProcedure(id: string): Promise<void> {
-  await procedureService.deleteProcedure(id);
-  logger.debug(`Procedure with id: '${id}' has been deleted.`);
+export async function deleteAggregation(id: string): Promise<void> {
+  await aggregationService.deleteAggregation(id);
+  logger.debug(`Aggregation with id: '${id}' has been deleted.`);
   return;
 }
 

@@ -58,4 +58,4 @@ schema.index({belongsToDeployment: 1});
 //-------------------------------------------------
 // Create Model (and expose it to our app)
 //-------------------------------------------------
-export default mongoose.model('Procedure', schema);
+export default mongoose.model('ObservableProperty', schema);
