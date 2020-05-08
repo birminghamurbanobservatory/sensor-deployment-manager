@@ -81,7 +81,7 @@ export async function getDeployments(
     options.mineOnly = true;
   }
   
-  // - So superusers wanting everything wouldn't provide a user property in the where object or mineOnly in the options.
+  // - A superuser wanting everything would omit both the user property in the where object, and mineOnly in the options.
   // - A standard authenticated user wanting their deployments and public deployments would provide their user id, and would set mineOnly to false.
   // A standard user want just theirs would provide their user id and also set mineOnly to true 
   const userPart: any = {};

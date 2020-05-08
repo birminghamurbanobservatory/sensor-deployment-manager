@@ -16,7 +16,7 @@ import {PlatformApp} from '../platform/platform-app.class';
 import {DeploymentApp} from '../deployment/deployment-app.class';
 import {concat, isEqual, cloneDeep} from 'lodash';
 import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWithPermanentHost';
-import {generateSensorId, prefixForGeneratedIds} from '../../utils/generate-sensor-id';
+import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
 import {CannotHostSensorOnPermanentHost} from './errors/CannotHostSensorOnPermanentHost';
 import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
 import {PaginationOptions} from '../common/pagination-options.class';
@@ -69,17 +69,14 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
     }
   }
 
-  // If the sensor has an id, then check it doesn't start with the prefix we'll use for sensors assigned straight to a deployment.
-  if (sensor.id) {
-    const firstPart = sensor.id.split('-')[0];
-    if (firstPart === prefixForGeneratedIds) {
-      throw new InvalidSensor(`Sensor ID cannot start with '${firstPart}-'`);
-    }
+  // If the sensor has an id, then check it won't clash with an auto-generated one
+  if (sensor.id && hasIdBeenGenerated(sensor.id)) {
+    throw new InvalidSensor(`Sensor ID cannot end with '${suffixForGeneratedIds}'`);
   }
 
   // If the sensor doesn't have an id then assign one
   if (!sensor.id) {
-    sensor.id = generateSensorId(sensor.name);
+    sensor.id = generateId(sensor.name);
   } 
 
   // If the sensor does not have a name yet then simply use the id.

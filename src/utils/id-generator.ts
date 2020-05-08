@@ -1,18 +1,17 @@
 import {nameToClientId} from './name-to-client-id';
 import passwordGenerator from 'password-generator';
-import * as check from 'check-types';
 
-const prefixForGeneratedIds = 'ds'; // i.e. deployment sensor
-export {prefixForGeneratedIds};
+const suffixForGeneratedIds = '-susr'; // i.e. standard-user
+export {suffixForGeneratedIds};
 
 
 // If a sensor name is provided we'll incorporate this into the id
-export function generateSensorId(name?: string): string {
+export function generateId(name?: string): string {
 
   let nameSection;
   if (name) {
     const nameSectionFull = nameToClientId(name);
-    const n = 24;
+    const n = 28;
     nameSection = nameSectionFull.slice(0, n);  
   }
 
@@ -20,11 +19,16 @@ export function generateSensorId(name?: string): string {
 
   let sensorId;
   if (nameSection) {
-    sensorId = `${prefixForGeneratedIds}-${nameSection}-${randomPart}`;
+    sensorId = `${nameSection}-${randomPart}${suffixForGeneratedIds}`;
   } else {
-    sensorId = `${prefixForGeneratedIds}-${randomPart}`;
+    sensorId = `${randomPart}${suffixForGeneratedIds}`;
   }
 
   return sensorId;
 
+}
+
+
+export function hasIdBeenGenerated(id: string): boolean {
+  return id.endsWith(suffixForGeneratedIds);
 }
