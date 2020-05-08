@@ -3,7 +3,7 @@ import {whereToMongoFind} from './where-to-mongo-find';
 
 describe('Conversion of where object to MongoDB/Mongoose find object', () => {
 
-  test('Converts and empty object', () => {
+  test('Converts an empty object', () => {
     const where = {};
     const expected = {};
     expect(whereToMongoFind(where)).toEqual(expected);
@@ -69,7 +69,7 @@ describe('Conversion of where object to MongoDB/Mongoose find object', () => {
   });
 
 
-  test(`Can handle an 'include'`, () => {
+  test(`Can handle a 'includes'`, () => {
     const where = {
       hostedByPath: {
         includes: 'weather-station-4'
@@ -79,6 +79,60 @@ describe('Conversion of where object to MongoDB/Mongoose find object', () => {
       hostedByPath: 'weather-station-4'
     };
     expect(whereToMongoFind(where)).toEqual(expected);
+  });
+
+
+  test(`Can handle a 'search'`, () => {
+    const where = {
+      search: 'weather',
+      hasDeployment: 'public-netatmo'
+    };
+    const expected = {
+      $text: {$search: 'weather'},
+      hasDeployment: 'public-netatmo'
+    };
+    expect(whereToMongoFind(where)).toEqual(expected);
+  });
+
+
+  test(`Can handle a 'or'`, () => {
+    const where = {
+      or: [
+        {
+          madeBySensor: {
+            in: ['s1', 's2']
+          }
+        },
+        {
+          public: true
+        }
+      ],
+      hasDeployment: 'public-netatmo'
+    };
+    const expected = {
+      $or: [
+        {
+          madeBySensor: {
+            $in: ['s1', 's2']
+          }
+        },
+        {
+          public: true
+        }
+      ],
+      hasDeployment: 'public-netatmo'
+    };
+    expect(whereToMongoFind(where)).toEqual(expected);
+  });
+
+
+  test(`Throws an error if 'or' is not an array`, () => {
+    const where = {
+      or: 'not-an-array',
+    };
+    expect(() => {
+      whereToMongoFind(where);
+    }).toThrow();
   });
 
 

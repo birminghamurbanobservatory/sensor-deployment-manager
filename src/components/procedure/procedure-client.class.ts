@@ -1,4 +1,4 @@
-export class UsedProcedureClient {
+export class ProcedureClient {
   public id: string;
   public label: string;
   public comment: string;

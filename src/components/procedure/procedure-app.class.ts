@@ -1,4 +1,4 @@
-export class UsedProcedureApp {
+export class ProcedureApp {
   public id: string;
   public label: string;
   public comment: string;

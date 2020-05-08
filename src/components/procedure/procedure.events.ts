@@ -4,17 +4,17 @@ import {Promise} from 'bluebird';
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
-import {UsedProcedureClient} from './used-procedure-client.class';
-import {createUsedProcedure, getUsedProcedure, getUsedProcedures, updateUsedProcedure, deleteUsedProcedure} from './used-procedure.controller';
+import {ProcedureClient} from './procedure-client.class';
+import {createProcedure, getProcedure, getProcedures, updateProcedure, deleteProcedure} from './procedure.controller';
 
-export async function subscribeToUsedProcedureEvents(): Promise<void> {
+export async function subscribeToProcedureEvents(): Promise<void> {
 
   const subscriptionFunctions = [
-    subscribeToUsedProcedureCreateRequests,
-    subscribeToUsedProceduresGetRequests,
-    subscribeToUsedProcedureGetRequests,
-    subscribeToUsedProcedureUpdateRequests,
-    subscribeToUsedProcedureDeleteRequests
+    subscribeToProcedureCreateRequests,
+    subscribeToProceduresGetRequests,
+    subscribeToProcedureGetRequests,
+    subscribeToProcedureUpdateRequests,
+    subscribeToProcedureDeleteRequests
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -37,13 +37,13 @@ export async function subscribeToUsedProcedureEvents(): Promise<void> {
 
 
 //-------------------------------------------------
-// Create Used Procedure
+// Create Procedure
 //-------------------------------------------------
-async function subscribeToUsedProcedureCreateRequests(): Promise<any> {
+async function subscribeToProcedureCreateRequests(): Promise<any> {
   
-  const eventName = 'used-procedure.create.request';
+  const eventName = 'procedure.create.request';
 
-  const usedProcedureCreateRequestSchema = joi.object({
+  const procedureCreateRequestSchema = joi.object({
     new: joi.object({
       // We'll let the controller check this part
     })
@@ -55,11 +55,11 @@ async function subscribeToUsedProcedureCreateRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let created: UsedProcedureClient;
+    let created: ProcedureClient;
     try {
-      const {error: err} = usedProcedureCreateRequestSchema.validate(message);
+      const {error: err} = procedureCreateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
-      created = await createUsedProcedure(message.new);
+      created = await createProcedure(message.new);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
@@ -73,13 +73,13 @@ async function subscribeToUsedProcedureCreateRequests(): Promise<any> {
 
 
 //-------------------------------------------------
-// Get Used Procedure
+// Get Procedure
 //-------------------------------------------------
-async function subscribeToUsedProcedureGetRequests(): Promise<any> {
+async function subscribeToProcedureGetRequests(): Promise<any> {
 
-  const eventName = 'used-procedure.get.request';
+  const eventName = 'procedure.get.request';
 
-  const usedProcedureGetRequestSchema = joi.object({
+  const procedureGetRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
     })
@@ -94,11 +94,11 @@ async function subscribeToUsedProcedureGetRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let found: UsedProcedureClient;
+    let found: ProcedureClient;
     try {
-      const {error: err} = usedProcedureGetRequestSchema.validate(message);
+      const {error: err} = procedureGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      found = await getUsedProcedure(message.where.id, message.options);
+      found = await getProcedure(message.where.id, message.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
@@ -113,13 +113,13 @@ async function subscribeToUsedProcedureGetRequests(): Promise<any> {
 
 
 //-------------------------------------------------
-// Get Used Procedures
+// Get Procedures
 //-------------------------------------------------
-async function subscribeToUsedProceduresGetRequests(): Promise<any> {
+async function subscribeToProceduresGetRequests(): Promise<any> {
 
-  const eventName = 'used-procedures.get.request';
+  const eventName = 'procedures.get.request';
 
-  const usedProceduresGetRequestSchema = joi.object({
+  const proceduresGetRequestSchema = joi.object({
     where: joi.object({}).unknown(), // let the controller check this
     options: joi.object({}).unknown() // let the controller check this
   })
@@ -131,9 +131,9 @@ async function subscribeToUsedProceduresGetRequests(): Promise<any> {
 
     let response;
     try {
-      const {error: err} = usedProceduresGetRequestSchema.validate(message);
+      const {error: err} = proceduresGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
-      response = await getUsedProcedures(message.where, message.options);
+      response = await getProcedures(message.where, message.options);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
@@ -148,12 +148,12 @@ async function subscribeToUsedProceduresGetRequests(): Promise<any> {
 
 
 //-------------------------------------------------
-// Update Used Procedure
+// Update Procedure
 //-------------------------------------------------
-async function subscribeToUsedProcedureUpdateRequests(): Promise<any> {
+async function subscribeToProcedureUpdateRequests(): Promise<any> {
   
-  const eventName = 'used-procedure.update.request';
-  const usedProcedureUpdateRequestSchema = joi.object({
+  const eventName = 'procedure.update.request';
+  const procedureUpdateRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
     })
@@ -168,11 +168,11 @@ async function subscribeToUsedProcedureUpdateRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let updated: UsedProcedureClient;
+    let updated: ProcedureClient;
     try {
-      const {error: err} = usedProcedureUpdateRequestSchema.validate(message);
+      const {error: err} = procedureUpdateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
-      updated = await updateUsedProcedure(message.where.id, message.updates);
+      updated = await updateProcedure(message.where.id, message.updates);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
@@ -186,12 +186,12 @@ async function subscribeToUsedProcedureUpdateRequests(): Promise<any> {
 
 
 //-------------------------------------------------
-// Delete Used Procedure
+// Delete Procedure
 //-------------------------------------------------
-async function subscribeToUsedProcedureDeleteRequests(): Promise<any> {
+async function subscribeToProcedureDeleteRequests(): Promise<any> {
   
-  const eventName = 'used-procedure.delete.request';
-  const usedProcedureDeleteRequestSchema = joi.object({
+  const eventName = 'procedure.delete.request';
+  const procedureDeleteRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
     })
@@ -203,9 +203,9 @@ async function subscribeToUsedProcedureDeleteRequests(): Promise<any> {
     logger.debug(`New ${eventName} message.`, message);
 
     try {
-      const {error: err} = usedProcedureDeleteRequestSchema.validate(message);
+      const {error: err} = procedureDeleteRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
-      await deleteUsedProcedure(message.where.id);
+      await deleteProcedure(message.where.id);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }

@@ -1,10 +1,10 @@
 import {DatabaseError} from '../../../errors/DatabaseError';
 
-export class GetUsedProcedureFail extends DatabaseError {
+export class UpdateProcedureFail extends DatabaseError {
 
   public privateMessage: string;
 
-  public constructor(message = 'Failed to get used procedure.', privateMessage?: string) {
+  public constructor(message = 'Failed to update procedure.', privateMessage?: string) {
     super(message); // 'Error' breaks prototype chain here
     Object.setPrototypeOf(this, new.target.prototype); // restore prototype chain
     // Add a private message, which can for logged for extra detail, but should not be sent to the client.

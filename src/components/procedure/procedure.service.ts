@@ -1,49 +1,49 @@
 import {cloneDeep} from 'lodash';
 import {renameProperty} from '../../utils/rename';
-import {UsedProcedureApp} from './used-procedure-app.class';
-import {UsedProcedureClient} from './used-procedure-client.class';
-import UsedProcedure from './used-procedure.model';
-import {UsedProcedureAlreadyExists} from './errors/UsedProcedureAlreadyExists';
-import {CreateUsedProcedureFail} from './errors/CreateUsedProcedureFail';
-import {InvalidUsedProcedure} from './errors/InvalidUsedProcedure';
-import {GetUsedProcedureFail} from './errors/GetUsedProcedureFail';
-import {UsedProcedureNotFound} from './errors/UsedProcedureNotFound';
+import {ProcedureApp} from './procedure-app.class';
+import {ProcedureClient} from './procedure-client.class';
+import Procedure from './procedure.model';
+import {ProcedureAlreadyExists} from './errors/ProcedureAlreadyExists';
+import {CreateProcedureFail} from './errors/CreateProcedureFail';
+import {InvalidProcedure} from './errors/InvalidProcedure';
+import {GetProcedureFail} from './errors/GetProcedureFail';
+import {ProcedureNotFound} from './errors/ProcedureNotFound';
 import {CollectionOptions} from '../common/collection-options.class';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
-import {GetUsedProceduresFail} from './errors/GetUsedProceduresFail';
+import {GetProceduresFail} from './errors/GetProceduresFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
-import {UpdateUsedProcedureFail} from './errors/UpdateUsedProcedureFail';
-import {DeleteUsedProcedureFail} from './errors/DeleteUsedProcedureFail';
+import {UpdateProcedureFail} from './errors/UpdateProcedureFail';
+import {DeleteProcedureFail} from './errors/DeleteProcedureFail';
 
 
 
-export async function createUsedProcedure(usedProcedure: UsedProcedureApp): Promise<UsedProcedureApp> {
+export async function createProcedure(procedure: ProcedureApp): Promise<ProcedureApp> {
 
-  const usedProcedureDb = usedProcedureAppToDb(usedProcedure);
+  const procedureDb = procedureAppToDb(procedure);
 
   let created;
   try {
-    created = await UsedProcedure.create(usedProcedureDb);
+    created = await Procedure.create(procedureDb);
   } catch (err) {
     if (err.name === 'MongoError' && err.code === 11000) {
-      throw new UsedProcedureAlreadyExists(`A used procedure with an id of '${usedProcedure.id}' already exists.`);
+      throw new ProcedureAlreadyExists(`A procedure with an id of '${procedure.id}' already exists.`);
     // TODO: Check this works
     } else if (err.name === 'ValidationError') {
-      throw new InvalidUsedProcedure(err.message);
+      throw new InvalidProcedure(err.message);
     } else {
-      throw new CreateUsedProcedureFail(undefined, err.message);
+      throw new CreateProcedureFail(undefined, err.message);
     }
   }
 
-  return usedProcedureDbToApp(created);
+  return procedureDbToApp(created);
 
 }
 
 
 
-export async function getUsedProcedure(id, options: {includeDeleted?: boolean} = {}): Promise<UsedProcedureApp> {
+export async function getProcedure(id, options: {includeDeleted?: boolean} = {}): Promise<ProcedureApp> {
 
   const findWhere: any = {_id: id};
   
@@ -53,22 +53,22 @@ export async function getUsedProcedure(id, options: {includeDeleted?: boolean} =
 
   let found;
   try {
-    found = await UsedProcedure.findOne(findWhere).exec();
+    found = await Procedure.findOne(findWhere).exec();
   } catch (err) {
-    throw new GetUsedProcedureFail(undefined, err.message);
+    throw new GetProcedureFail(undefined, err.message);
   }
 
   if (!found) {
-    throw new UsedProcedureNotFound(`A used procedure with id '${id}' could not be found.`);
+    throw new ProcedureNotFound(`A procedure with id '${id}' could not be found.`);
   }
 
-  return usedProcedureDbToApp(found);
+  return procedureDbToApp(found);
 
 }
 
 
 
-export async function getUsedProcedures(
+export async function getProcedures(
   where: {
     id?: any; 
     listed?: boolean; 
@@ -78,7 +78,7 @@ export async function getUsedProcedures(
     search?: string;
   }, 
   options: CollectionOptions = {}
-): Promise<{data: UsedProcedureApp[]; count: number; total: number}> {
+): Promise<{data: ProcedureApp[]; count: number; total: number}> {
 
   const findWhere = whereToMongoFind(where);
 
@@ -91,9 +91,9 @@ export async function getUsedProcedures(
 
   let found;
   try {
-    found = await UsedProcedure.find(findWhere, null, findOptions).exec();
+    found = await Procedure.find(findWhere, null, findOptions).exec();
   } catch (err) {
-    throw new GetUsedProceduresFail(undefined, err.message);
+    throw new GetProceduresFail(undefined, err.message);
   }
 
   const count = found.length;
@@ -103,13 +103,13 @@ export async function getUsedProcedures(
     if (count < findOptions.limit && findOptions.skip === 0) {
       total = count;
     } else {
-      total = await UsedProcedure.countDocuments(findWhere);
+      total = await Procedure.countDocuments(findWhere);
     }
   } else {
     total = count;
   }
 
-  const forApp = found.map(usedProcedureDbToApp);
+  const forApp = found.map(procedureDbToApp);
 
   return {
     data: forApp,
@@ -120,14 +120,14 @@ export async function getUsedProcedures(
 }
 
 
-export async function updateUsedProcedure(id: string, updates: any): Promise<UsedProcedureApp> {
+export async function updateProcedure(id: string, updates: any): Promise<ProcedureApp> {
 
   // If there's any properties such as belongsToDeployment or createdBy that you want to remove completely, then pass in a value of null to have the property unset, e.g. {belongsToDeployment: null}.
   const modifiedUpdates = replaceNullUpdatesWithUnset(updates);
 
   let updated;
   try {
-    updated = await UsedProcedure.findOneAndUpdate(
+    updated = await Procedure.findOneAndUpdate(
       {
         _id: id,
         deletedAt: {$exists: false}
@@ -139,20 +139,20 @@ export async function updateUsedProcedure(id: string, updates: any): Promise<Use
       }
     ).exec();
   } catch (err) {
-    throw new UpdateUsedProcedureFail(undefined, err.message);
+    throw new UpdateProcedureFail(undefined, err.message);
   }
 
   if (!updated) {
-    throw new UsedProcedureNotFound(`A used procedure with id '${id}' could not be found`);
+    throw new ProcedureNotFound(`A procedure with id '${id}' could not be found`);
   }
 
-  return usedProcedureDbToApp(updated);
+  return procedureDbToApp(updated);
 
 }
 
 
 // A soft delete
-export async function deleteUsedProcedure(id: string): Promise<void> {
+export async function deleteProcedure(id: string): Promise<void> {
 
   const updates = {
     deletedAt: new Date()
@@ -160,7 +160,7 @@ export async function deleteUsedProcedure(id: string): Promise<void> {
 
   let deleted;
   try {
-    deleted = await UsedProcedure.findOneAndUpdate(
+    deleted = await Procedure.findOneAndUpdate(
       {
         _id: id,
         deletedAt: {$exists: false}
@@ -172,11 +172,11 @@ export async function deleteUsedProcedure(id: string): Promise<void> {
       }
     ).exec();
   } catch (err) {
-    throw new DeleteUsedProcedureFail(`Failed to delete used procedure '${id}'.`, err.message);
+    throw new DeleteProcedureFail(`Failed to delete procedure '${id}'.`, err.message);
   }
 
   if (!deleted) {
-    throw new UsedProcedureNotFound(`A used procedure with id '${id}' could not be found`);
+    throw new ProcedureNotFound(`A procedure with id '${id}' could not be found`);
   }
 
   return;
@@ -185,14 +185,14 @@ export async function deleteUsedProcedure(id: string): Promise<void> {
 
 
 
-function usedProcedureAppToDb(appFormat: UsedProcedureApp): object {
+function procedureAppToDb(appFormat: ProcedureApp): object {
   const dbFormat: any = cloneDeep(appFormat);
   renameProperty(dbFormat, 'id', '_id');
   return dbFormat;
 }
 
 
-function usedProcedureDbToApp(dbFormat: any): UsedProcedureApp {
+function procedureDbToApp(dbFormat: any): ProcedureApp {
   const appFormat = dbFormat.toObject();
   appFormat.id = appFormat._id.toString();
   delete appFormat._id;
@@ -201,7 +201,7 @@ function usedProcedureDbToApp(dbFormat: any): UsedProcedureApp {
 }
 
 
-export function usedProcedureAppToClient(appFormat: UsedProcedureApp): UsedProcedureClient {
+export function procedureAppToClient(appFormat: ProcedureApp): ProcedureClient {
   const clientFormat: any = cloneDeep(appFormat);
   clientFormat.createdAt = clientFormat.createdAt.toISOString();
   clientFormat.updatedAt = clientFormat.updatedAt.toISOString();
@@ -209,7 +209,7 @@ export function usedProcedureAppToClient(appFormat: UsedProcedureApp): UsedProce
 } 
 
 
-export function usedProcedureClientToApp(clientFormat: UsedProcedureClient): UsedProcedureApp {
+export function procedureClientToApp(clientFormat: ProcedureClient): ProcedureApp {
   const appFormat: any = cloneDeep(clientFormat);
   return appFormat; 
 }

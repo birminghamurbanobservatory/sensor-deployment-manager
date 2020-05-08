@@ -69,6 +69,8 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
     }
   }
 
+  // TODO: Check that the properties listed in the config actually exist. E.g. if they've specified a discipline then make sure this discipline exists in the database.
+
   // If the sensor has an id, then check it won't clash with an auto-generated one
   if (sensor.id && hasIdBeenGenerated(sensor.id)) {
     throw new InvalidSensor(`Sensor ID cannot end with '${suffixForGeneratedIds}'`);

@@ -6,7 +6,7 @@ import {subscribeToSensorEvents} from '../components/sensor/sensor.events';
 import {subscribeToContextEvents} from '../components/context/context.events';
 import {subscribeToDeploymentUserEvents} from '../components/deployment-user/deployment-user.events';
 import {subscribeToUnknownSensorEvents} from '../components/unknown-sensor/unknown-sensor.events';
-import {subscribeToUsedProcedureEvents} from '../components/used-procedure/used-procedure.events';
+import {subscribeToProcedureEvents} from '../components/procedure/procedure.events';
 
 
 
@@ -20,7 +20,7 @@ export async function invokeAllSubscriptions(): Promise<void> {
   await subscribeToSensorEvents();
   await subscribeToContextEvents();
   await subscribeToUnknownSensorEvents();
-  await subscribeToUsedProcedureEvents();
+  await subscribeToProcedureEvents();
 
 }
 
