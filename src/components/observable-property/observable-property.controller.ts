@@ -16,6 +16,7 @@ const newObservablePropertySchema = joi.object({
   id: joi.string(),
   label: joi.string(),
   comment: joi.string().allow(''),
+  units: joi.array().items(joi.string()),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string(),
@@ -52,6 +53,8 @@ export async function createObservableProperty(observableProperty: ObservablePro
   if (observableProperty.belongsToDeployment) {
     await getDeployment(observableProperty.belongsToDeployment);
   }
+
+  // TODO: If units have been provided then check they actually exist.
 
   const created = await observablePropertyService.createObservableProperty(observableProperty);
 

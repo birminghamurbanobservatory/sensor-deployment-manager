@@ -16,6 +16,7 @@ const newUnitSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
   comment: joi.string().allow(''),
+  symbol: joi.string(),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string(),

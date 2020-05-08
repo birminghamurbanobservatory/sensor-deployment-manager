@@ -24,6 +24,9 @@ const schema = new mongoose.Schema({
     maxlength: [1000, 'description is too long'],
     default: ''
   },
+  symbol: {
+    type: String,
+  },
   listed: {
     type: Boolean,
     default: true
