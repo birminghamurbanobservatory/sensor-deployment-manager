@@ -1,6 +1,7 @@
 export class UnitClient {
   public id: string;
   public label: string;
+  public symbol: string;
   public comment: string;
   public listed: boolean;
   public inCommonVocab: boolean;

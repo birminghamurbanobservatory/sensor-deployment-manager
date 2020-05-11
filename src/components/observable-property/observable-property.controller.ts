@@ -149,6 +149,7 @@ const observablePropertyUpdatesSchema = joi.object({
   label: joi.string(),
   comment: joi.string().allow(''),
   listed: joi.boolean(),
+  units: joi.array().items(joi.string()),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string().allow(null)
 })

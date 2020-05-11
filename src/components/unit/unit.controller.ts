@@ -145,6 +145,7 @@ export async function getUnits(where: any, options?: CollectionOptions): Promise
 const unitUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
+  symbol: joi.string().allow(null),
   comment: joi.string().allow(''),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
