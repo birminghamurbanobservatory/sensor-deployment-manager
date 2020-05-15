@@ -31,9 +31,11 @@ const newPlatformSchema = joi.object({
   description: joi.string().allow(''),
   static: joi.boolean().default(true),
   location: joi.object({
+    height: joi.number(),
     geometry: joi.object({
-      type: joi.string().required(),
-      coordinates: joi.array().required()
+      type: joi.string().valid('Point').required(),
+      // I don't want a z-coordinate in this coordinates array, this should come separately.
+      coordinates: joi.array().length(2).required()
     })
     .custom((value) => {
       validateGeometry(value); // throws an error if invalid
@@ -99,10 +101,6 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
     platformToCreate.location.validAt = new Date();
     if (!platformToCreate.location.id) {
       platformToCreate.location.id = uuid();
-    }
-    if (platformToCreate.location.geometry) {
-      // Add a centroid object
-      platformToCreate.location.centroid = calculateGeometryCentroid(platformToCreate.location.geometry);
     }
   }
 
@@ -229,17 +227,11 @@ const getPlatformsWhereSchema = joi.object({
   ),
   search: joi.string(),
   // Spatial queries
-  latitude: joi.object({
-    lt: joi.number().min(-90).max(90),
-    lte: joi.number().min(-90).max(90),
-    gt: joi.number().min(-90).max(90),
-    gte: joi.number().min(-90).max(90)
-  }),
-  longitude: joi.object({
-    lt: joi.number().min(-180).max(180),
-    lte: joi.number().min(-180).max(180),
-    gt: joi.number().min(-180).max(180),
-    gte: joi.number().min(-180).max(180)
+  boundingBox: joi.object({
+    left: joi.number().min(-180).max(180).required(),
+    right: joi.number().min(-180).max(180).required(),
+    top: joi.number().min(-90).max(90).required(),
+    bottom: joi.number().min(-90).max(90).required()
   }),
   height: joi.object({
     lt: joi.number(),
@@ -277,9 +269,6 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
   const {error: optionsErr, value: validOptions} = getPlatformsOptionsSchema.validate(options);
   if (optionsErr) throw new BadRequest(`Invalid options object: ${optionsErr.message}`);
   
-  // TODO: Could do with some extra checks to make sure that, for example, latitude.gte can't be less than or equal to latitude.lte.
-
-
   //------------------------
   // With Nesting
   //------------------------
@@ -362,9 +351,10 @@ const platformUpdatesSchema = joi.object({
   description: joi.string().allow(''),
   static: joi.boolean().valid(false), // for now I'll only allow static to be changed to mobile.
   location: joi.object({
+    height: joi.number(),
     geometry: joi.object({
-      type: joi.string().required(),
-      coordinates: joi.array().required()
+      type: joi.string().valid('Point').required(),
+      coordinates: joi.array().length(2).required()
     })
     .custom((value) => {
       validateGeometry(value); // throws an error if invalid
@@ -414,10 +404,6 @@ export async function updatePlatform(id: string, updates: any): Promise<Platform
     updatesToApply.location.validAt = new Date();
     if (!updates.location.id) {
       updatesToApply.location.id = uuid();
-    }
-    if (updates.location.geometry) {
-      // Update the centroid object too
-      updatesToApply.location.centroid = calculateGeometryCentroid(updates.location.geometry);
     }
   }
 

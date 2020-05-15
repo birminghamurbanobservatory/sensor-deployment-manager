@@ -215,7 +215,7 @@ describe('Context documents are created and updated correctly', () => {
 
   test('Create a sensor that is linked to a deployment from the start', async () => {
 
-    expect.assertions(14);
+    expect.assertions(13);
 
     // Create a Deployment
     const deploymentClient = {
@@ -279,10 +279,6 @@ describe('Context documents are created and updated correctly', () => {
     expect(platform.location.geometry).toEqual(platformClient.location.geometry);
     expect(typeof platform.location.id).toBe('string');
     expect(typeof platform.location.validAt).toBe('string'); // isostring
-    expect(platform.location.centroid).toEqual({
-      lat: platformClient.location.geometry.coordinates[1], 
-      lng: platformClient.location.geometry.coordinates[0]
-    });
 
     // Let's add the sensor to this platform
     await sensorController.hostSensorOnPlatform(sensor.id, platform.id);
@@ -318,7 +314,6 @@ describe('Context documents are created and updated correctly', () => {
 
     const observationWithContext = await addContextToObservation(observationWithoutContext);
     const platformLocationWithoutCentroid = cloneDeep(platform.location);
-    delete platformLocationWithoutCentroid.centroid;
     const expectedObservation = Object.assign({}, observationWithoutContext, {
       hasDeployment: deployment.id,
       hostedByPath: [platform.id],

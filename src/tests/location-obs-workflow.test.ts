@@ -112,8 +112,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // Check it has updated the location of the platform
     const platformAfterObs1 = await platformController.getPlatform(platform.id);
-    // We can't use .Equal here because the platform locatin will have a centroid object added.
-    expect(platformAfterObs1.location).toMatchObject(observation1.location);
+    expect(platformAfterObs1.location).toEqual(observation1.location);
 
     // Now let's try another observation at a later date.
     const observation2Client = {
@@ -122,7 +121,7 @@ describe('Location observations are correctly processed by the addContextToObser
       hasResult: {
         value: {
           type: 'Point',
-          coordinates: [-1.94, 52.7] // different location
+          coordinates: [-1.94, 52.7, 4] // different location, it also has a height now.
         }
       }
     };    
@@ -133,14 +132,13 @@ describe('Location observations are correctly processed by the addContextToObser
     expect(observation2.location.validAt).toBe(observation2Client.resultTime);
     expect(observation2.location.geometry).toEqual({
       type: 'Point',
-      coordinates: [-1.94, 52.7]
+      coordinates: [-1.94, 52.7, 4]
     });  
     expect(observation2).toHaveProperty('hasDeployment');  
 
     // Check it has updated the location of the platform
     const platformAfterObs2 = await platformController.getPlatform(platform.id);
-    // We can't use .Equal here because the platform locatin will have a centroid object added.
-    expect(platformAfterObs2.location).toMatchObject(observation2.location);
+    expect(platformAfterObs2.location).toEqual(observation2.location);
 
     // Now for a observation that's earlier than the last one to make sure this does NOT update the platform's location.
     const observation3Client = {
@@ -165,8 +163,7 @@ describe('Location observations are correctly processed by the addContextToObser
     expect(observation3).toHaveProperty('hasDeployment');
 
     const platformAfterObs3 = await platformController.getPlatform(platform.id);
-    // We can't use .Equal here because the platform locatin will have a centroid object added.
-    expect(platformAfterObs3.location).toMatchObject(observation2.location); // should still be from obs2, not obs3.
+    expect(platformAfterObs3.location).toEqual(observation2.location); // should still be from obs2, not obs3.
 
 
     // Now to try one that's before we even had an context for this sensor
@@ -188,8 +185,7 @@ describe('Location observations are correctly processed by the addContextToObser
     expect(observation4).not.toHaveProperty('hasDeployment');
 
     const platformAfterObs4 = await platformController.getPlatform(platform.id);
-    // We can't use .Equal here because the platform locatin will have a centroid object added.
-    expect(platformAfterObs4.location).toMatchObject(observation2.location); // should still be from obs2, not obs4.
+    expect(platformAfterObs4.location).toEqual(observation2.location); // should still be from obs2, not obs4.
 
 
   });
@@ -282,7 +278,6 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // The platform should now have this location applied
     const platformAfterLocObs1 = await platformController.getPlatform(platform.id);
-    // We can't use .Equal here because the platform locatin will have a centroid object added.
     expect(platformAfterLocObs1.location).toMatchObject(locObs1.location);
 
     // First non-location obs

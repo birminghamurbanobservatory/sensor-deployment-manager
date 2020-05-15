@@ -13,7 +13,6 @@ import {ObservationClient} from '../observation/observation-client.class';
 import {upsertUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
 import {getSensor} from '../sensor/sensor.service';
 import * as check from 'check-types';
-import {centroidToGeometry} from '../../utils/geojson-helpers';
 
 
 const obsWithoutContextSchema = joi.object({
@@ -109,13 +108,7 @@ export async function addContextToObservation(observation: ObservationClient): P
       updatedObs.hostedByPath.forEach((platformId) => {
         const matchingPlatform = platforms.find((platform) => platform.id === platformId);
         if (matchingPlatform && matchingPlatform.location) {
-          // For now at least want the observation locations to all be points rather than polygons, so let's inherit the centroid's geometry instead.
-          const centroidAsGeometry = centroidToGeometry(matchingPlatform.location.centroid);
-          updatedObs.location = {
-            id: matchingPlatform.location.id,
-            geometry: centroidAsGeometry,
-            validAt: matchingPlatform.location.validAt,
-          };
+          updatedObs.location = matchingPlatform.location;
         } 
       });
       if (updatedObs.location) {

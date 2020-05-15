@@ -8,30 +8,10 @@ import {kebabCaseRegex} from '../../utils/regular-expressions';
 //-------------------------------------------------
 // Schema
 //-------------------------------------------------
-const centroidSchema = new mongoose.Schema({
-  lat: {
-    type: Number, // WGS 84
-    required: true,
-    min: -90,
-    max: 90
-  },
-  lng: {
-    type: Number,
-    required: true,
-    min: -180,
-    max: 180
-  },
-  height: {
-    type: Number, // in meters
-    required: false
-  }
-}, {
-  _id: false, // stops this subdocument from having it's own _id
-});
-
 const geometrySchema = new mongoose.Schema({
   type: {
     $type: String,
+    enum: ['Point'], // decided I only ever want Platforms to be points
     required: true
   },
   coordinates: {
@@ -56,9 +36,10 @@ const locationSchema = new mongoose.Schema({
     type: geometrySchema,
     required: true
   },
-  centroid: {
-    type: centroidSchema,
-    required: true
+  height: {
+    // in metres, above ground
+    type: Number
+    // MongoDB's 2dsphere index won't make use of the Z-coordinate, so it makes sense to store it separately.
   }
 }, {
   _id: false, // stops this subdocument from having it's own _id

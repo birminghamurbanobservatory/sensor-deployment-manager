@@ -22,7 +22,7 @@ export class PlatformApp {
 class Location {
   public id?: string;
   public geometry?: Geometry;
-  public centroid?: Centroid;
+  public height?: number;
   public validAt?: Date;
 }
 
