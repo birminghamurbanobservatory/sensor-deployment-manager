@@ -85,8 +85,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create a deployment
     const deployment = {
       id: 'my-deployment',
-      name: 'My Deployment',
-      users: [{id: 'bob', level: 'admin'}]
+      name: 'My Deployment'
     };
     const createdDeployment = await deploymentController.createDeployment(deployment);
 
@@ -219,8 +218,7 @@ describe('Context documents are created and updated correctly', () => {
 
     // Create a Deployment
     const deploymentClient = {
-      name: 'Bobs thermometer Deployment',
-      users: [{id: 'bob', level: 'admin'}]
+      name: 'Bobs thermometer Deployment'
     };
 
     const deployment = await deploymentController.createDeployment(deploymentClient);
@@ -322,6 +320,50 @@ describe('Context documents are created and updated correctly', () => {
       location: platformLocationWithoutCentroid
     });
     expect(observationWithContext).toEqual(expectedObservation);
+
+  });
+
+
+
+  test('Basic sensor updates, e.g. to its description, do not create a completely new context', async () => {
+    
+    expect.assertions(7);
+
+    // Create a sensor
+    const sensorClient = {
+      id: 'sensor-abc'
+    };
+    const sensor = await sensorController.createSensor(sensorClient);
+
+    let allContexts = await Context.find({}).exec();
+    expect(allContexts.length).toBe(1);
+
+    // Change its description
+    const sensorNoDeploymentUpdated = await sensorController.updateSensor(sensor.id, {description: 'new info'});
+    expect(sensorNoDeploymentUpdated.description).toBe('new info');
+
+    allContexts = await Context.find({}).exec();
+    expect(allContexts.length).toBe(1); // should still be 1
+
+    // Add it to a deployment
+    const deploymentClient = {
+      id: 'deployment-1',
+      name: 'Deployment 1'
+    };
+    const deployment = await deploymentController.createDeployment(deploymentClient);
+
+    const sensorInDeployment = await sensorController.updateSensor(sensor.id, {hasDeployment: deployment.id});
+    expect(sensorInDeployment.hasDeployment).toBe(deployment.id);
+
+    allContexts = await Context.find({}).exec();
+    expect(allContexts.length).toBe(2); // will be 2 now given the deployment change
+
+    // Now update the description
+    const sensorInDeploymentUpdated = await sensorController.updateSensor(sensor.id, {description: 'newer info'});
+    expect(sensorInDeploymentUpdated.description).toBe('newer info');
+
+    allContexts = await Context.find({}).exec();
+    expect(allContexts.length).toBe(2); // should still be 2
 
   });
 

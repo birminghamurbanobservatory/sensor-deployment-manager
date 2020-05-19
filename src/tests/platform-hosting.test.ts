@@ -44,8 +44,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'climavue-weather-stations',
-      name: 'Climavue Weather Stations',
-      users: [{id: 'bob', level: 'admin'}]
+      name: 'Climavue Weather Stations'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
@@ -122,8 +121,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'aq-vans',
-      name: 'Air Quality Vans',
-      users: [{id: 'mike', level: 'admin'}]
+      name: 'Air Quality Vans'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 

@@ -140,8 +140,7 @@ describe('Permanent host testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'my-deployment',
-      name: 'My Deployment',
-      users: [{id: 'bob', level: 'admin'}]
+      name: 'My Deployment'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 

@@ -198,8 +198,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // Create a Deployment
     const deploymentClient = {
-      name: 'Mobile AQ Fleet',
-      users: [{id: 'bob', level: 'admin'}]
+      name: 'Mobile AQ Fleet'
     };
 
     const deployment = await deploymentController.createDeployment(deploymentClient);

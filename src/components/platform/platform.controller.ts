@@ -563,18 +563,19 @@ export async function deletePlatform(id: string): Promise<void> {
   // Loop through each sensor
   await Promise.map(sensors, async (sensor) => {
 
-    await sensorService.removeSensorFromPlatform(sensor.id);
-
-    // If the sensor is physically attached to this platform then we need to remove it from the deployment too
     if (sensor.permanentHost) {
+      // If the sensor is physically attached to this platform then we need to remove it from the deployment too
       await sensorService.removeSensorFromDeployment(sensor.id);
       // This will require a more drastic change to the context
       await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.initialConfig);
+    } else {
+      await sensorService.removeSensorFromPlatform(sensor.id);
+      await contextService.processSensorRemovedFromPlatform(sensor.id); 
     }
 
   });
 
-  // Wipe any record of this platform from the hostedByPath of any live contexts. This also works for sensors that weren't directly hosted on this platform.
+  // The following will mop up any sensor's that weren't directly hosted on this platform, but whose context will need updating in order to remove the delete platform from their hostedByPath.
   await contextService.processPlatformDeleted(id);
 
   // If the platform was generated from a permanentHost then we can set this permanentHost as being unregistered, and therefore free to be added to a different deployment.
@@ -591,24 +592,25 @@ export async function deletePlatform(id: string): Promise<void> {
 // This is aimed at users who have initialised a platform from a permanent host using a registration key. They want to release the sensors, but want to keep a record of the platform. I.e. this is an alternative to deleting the whole platform. 
 // Deployment sensors will stay within the deployment, whereas permanentHost sensors will be removed from the deployment all together.
 // This also updates the permanentHost's registeredAs property, allowing the permanentHost to be registered elsewhere.
-export async function releasePlatformSensors(id: string): Promise<void> {
+export async function releasePlatformSensors(platformId: string): Promise<void> {
 
-  // Get some extra info about the platform. Will also throw error if platform does not exist.
-  const platform = await platformService.getPlatform(id); 
+  // Get some extra info about the platform. It'll also throw an error if platform does not exist.
+  const platform = await platformService.getPlatform(platformId); 
   
   // Get all the sensors directly hosted on this platform
-  const {data: sensors} = await sensorService.getSensors({isHostedBy: id});
+  const {data: sensors} = await sensorService.getSensors({isHostedBy: platformId});
 
   // Loop through each sensor
   await Promise.map(sensors, async (sensor) => {
 
-    await sensorService.removeSensorFromPlatform(sensor.id);
-
-    // If the sensor is physically attached to this platform then we need to remove it from the deployment too
     if (sensor.permanentHost) {
+      // If the sensor is physically attached to this platform then we need to remove it from the deployment too
       await sensorService.removeSensorFromDeployment(sensor.id);
       // This will require a more drastic change to the context
       await contextService.processSensorRemovedFromDeployment(sensor.id, sensor.initialConfig);
+    } else {
+      await sensorService.removeSensorFromPlatform(sensor.id);
+      await contextService.processSensorRemovedFromPlatform(sensor.id);
     }
 
   });

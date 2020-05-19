@@ -14,13 +14,16 @@ import {BadRequest} from '../../errors/BadRequest';
 import {CannotHostSensorWithPermanentHost} from './errors/CannotHostSensorWithPermanentHost';
 import {PlatformApp} from '../platform/platform-app.class';
 import {DeploymentApp} from '../deployment/deployment-app.class';
-import {concat, isEqual, cloneDeep} from 'lodash';
+import {concat, isEqual, cloneDeep, omit} from 'lodash';
 import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWithPermanentHost';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
 import {CannotHostSensorOnPermanentHost} from './errors/CannotHostSensorOnPermanentHost';
 import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
 import {PaginationOptions} from '../common/pagination-options.class';
 import {CollectionOptions} from '../common/collection-options.class';
+import {calculateChangeStatus} from '../../utils/change-status';
+import {Forbidden} from '../../errors/Forbidden';
+import {validateSensorConfigArray} from './sensor-config.service';
 
 
 //-------------------------------------------------
@@ -63,13 +66,8 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
   // Make sure no more than 1 initialConfig object has hasPriority set to true.
   if (sensor.initialConfig) {
-    const nTrue = sensor.initialConfig.reduce(configReduceFunction, 0);
-    if (nTrue > 1) {
-      throw new InvalidSensor(`More than one object in you initialConfig array has 'hasPriority: true'.`);
-    }
+    validateSensorConfigArray(sensor.initialConfig);
   }
-
-  // TODO: Check that the properties listed in the config actually exist. E.g. if they've specified a discipline then make sure this discipline exists in the database.
 
   // If the sensor has an id, then check it won't clash with an auto-generated one
   if (sensor.id && hasIdBeenGenerated(sensor.id)) {
@@ -185,7 +183,7 @@ const getSensorsWhereSchema = joi.object({
     }).min(1)
   ),
   search: joi.string()
-});
+}).required();
 
 const getSensorsOptionsSchema = joi.object({
   limit: joi.number().integer().positive(),
@@ -195,7 +193,7 @@ const getSensorsOptionsSchema = joi.object({
   includeDeleted: joi.boolean(),
 }).required();
 
-export async function getSensors(where: any, options?: CollectionOptions): Promise<{data: SensorClient[]; meta: any}> {
+export async function getSensors(where: any, options: CollectionOptions = {}): Promise<{data: SensorClient[]; meta: any}> {
 
   const {error: whereErr, value: validWhere} = getSensorsWhereSchema.validate(where);
   if (whereErr) throw new BadRequest(`Invalid where object: ${whereErr.message}`);
@@ -228,13 +226,14 @@ const sensorUpdatesSchema = joi.object({
   description: joi.string().allow(''),
   hasDeployment: joi.string().allow(null),
   permanentHost: joi.string().allow(null),
+  isHostedBy: joi.string().allow(null),
   initialConfig: joi.array().items(configSchema),
   currentConfig: joi.array().items(configSchema)
 })
 .min(1)
 .required(); 
 
-// When it comes to adding/removing sensors to platforms and deployments, this is handled elsewhere, e.g. via registration keys.
+// When it comes to adding/removing permantly hosted sensors to platforms and deployments, this is handled elsewhere, e.g. via registration keys.
 export async function updateSensor(id: string, updates: any): Promise<SensorClient> {
 
   logger.debug(`Updating sensor '${id}'`);
@@ -245,45 +244,45 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   const {error: validationErr, value: validUpdates} = sensorUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
 
-  // If the sensor will have a permanentHost, then hasDeployment cannot be set here, the mechanism for adding the sensor to the deployment would be via the registrationKey of the permanentHost
-  if ((validUpdates.permanentHost || (oldSensor.permanentHost && validUpdates.permanentHost !== null)) && updates.hasDeployment) {
-    throw new BadRequest(`It is not possible to set 'hasDeployment' when the sensor will have a permanent host.`);
+  const permanentHostStatus = calculateChangeStatus('permanentHost', oldSensor, validUpdates);
+  const hasDeploymentStatus = calculateChangeStatus('hasDeployment', oldSensor, validUpdates);
+  const isHostedByStatus = calculateChangeStatus('isHostedBy', oldSensor, validUpdates);
+
+  if (permanentHostStatus.willBeSet && hasDeploymentStatus.settingNow) {
+    throw new Forbidden(`It is not possible to set 'hasDeployment' when the sensor has (or will have) a permanent host.`);
+    // N.B. The proper mechanism for adding a permantly hosted sensor to a deployment would be by registering the permanentHost to the deployment.
   }
 
-  // Make sure no more than 1 initialConfig object has hasPriority set to true.
-  if (updates.initialConfig) {
-    const nTrue = updates.initialConfig.reduce(configReduceFunction, 0);
-    if (nTrue > 1) {
-      throw new InvalidSensor(`More than one object in you initialConfig array has 'hasPriority: true'.`);
-    }
-  }
-  // Do the same for the currentConfig object
-  if (updates.currentConfig) {
-    const nTrue = updates.currentConfig.reduce(configReduceFunction, 0);
-    if (nTrue > 1) {
-      throw new InvalidSensor(`More than one object in you currentConfig array has 'hasPriority: true'.`);
-    }
+  if (permanentHostStatus.isChanging && isHostedByStatus.wasSet) {
+    throw new Forbidden(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. You cannot change the permanent host until the platform is removed from this platform.`);
   }
 
-  const permanentHostChange = check.containsKey(validUpdates, 'permanentHost') && 
-    oldSensor.permanentHost !== validUpdates.permanentHost &&
-    !(!oldSensor.permanentHost && validUpdates.permanentHost === null);
-
-  const hasDeploymentChange = check.containsKey(validUpdates, 'hasDeployment') && 
-    oldSensor.hasDeployment !== validUpdates.hasDeployment &&
-    !(!oldSensor.hasDeployment && validUpdates.hasDeployment === null);
-
-  if (hasDeploymentChange && oldSensor.isHostedBy) {
-    throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. You cannot change its deployment until the sensor is removed from this platform.`);
+  if (permanentHostStatus.isChanging && hasDeploymentStatus.willBeSet) {
+    throw new Forbidden('The permanent host cannot be changed whilst a sensor is in (or about to be in) a deployment.');
   }
 
-  if (permanentHostChange && (oldSensor.isHostedBy)) {
-    throw new BadRequest(`The sensor is still hosted by the '${oldSensor.isHostedBy}' platform. You cannot change the permanent host until the platform is removed from this platform.`);
+  if (isHostedByStatus.settingNow && !hasDeploymentStatus.willBeSet) {
+    throw new Forbidden('A sensor can only be hosted on a platform when it is (or will be) in a deployment.');
   }
 
-  // Only allow the user to set the permanentHost if the sensor won't be assigned to a deployment
-  if (permanentHostChange && validUpdates.permanentHost && oldSensor.hasDeployment && validUpdates.hasDeployment !== null) {
-    throw new BadRequest(`The sensor cannot be assigned a permanent host when it is, or will be, in a deployment.`);
+  if (isHostedByStatus.settingNow && permanentHostStatus.willBeSet) {
+    throw new Forbidden('A sensor can only be directly hosted on a platform when it has (or will have) a permanent host.');
+  }
+
+  if (isHostedByStatus.isChanging && permanentHostStatus.wasSet) {
+    throw new Forbidden('A sensor with a permanent host cannot have its host platform changed.');
+  }
+
+  if (hasDeploymentStatus.isChanging && permanentHostStatus.wasSet) {
+    throw new Forbidden('A sensor with a permanent host cannot have its deployment changed.');
+  }
+
+  if (hasDeploymentStatus.settingNow && hasDeploymentStatus.isChanging && isHostedByStatus.wasSet && !isHostedByStatus.isChanging) {
+    throw new Forbidden('A sensor being assigned to a new deployment cannot remain hosted on the same platform.');
+  }
+
+  if (hasDeploymentStatus.unsettingNow && isHostedByStatus.willBeSet) {
+    throw new Forbidden('A sensor being removed from a deployment cannot remain on, or be added to, a platform.');
   }
 
   let permanentHost;
@@ -293,58 +292,83 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   }
 
   // If it's being removed from a permanent host, and the permanent host was using this sensor to update its location, then we'll need to update the permanent host too.
-  if (check.null(validUpdates.permamentHost) && permanentHost && permanentHost.updateLocationWithSensor === id) {
+  if (permanentHostStatus.unsettingNow && permanentHost && permanentHost.updateLocationWithSensor === id) {
     await permanentHostService.updatePermanentHost(permanentHost.id, {updateLocationWithSensor: null});
   }
+
+  // Make sure no more than 1 initialConfig object has hasPriority set to true.
+  if (updates.initialConfig) {
+    validateSensorConfigArray(updates.initialConfig);
+  }
+  // Do the same for the currentConfig object
+  if (updates.initialConfig) {
+    validateSensorConfigArray(updates.currentConfig);
+  }
+
+  let newHostPlatform;
+  if (isHostedByStatus.settingNow) {
+
+    // This will check if it actually exists
+    newHostPlatform = await platformService.getPlatform(validUpdates.isHostedBy);
+
+    // For now at least we'll inforce that the platform the sensor is hosted on must be in the same deployment as the sensor.
+    if (hasDeploymentStatus.valueWillBe !== newHostPlatform.inDeployment) {
+      throw new Forbidden(`The sensor cannot be hosted on a platform that is in a different deployment to the sensor (sensor deployment will be '${hasDeploymentStatus.valueWillBe}').`);
+    }
+
+    // We also don't want any more sensors being hosted on a platform that was initialised from a permanentHost.
+    if (check.assigned(newHostPlatform.initialisedFrom)) {
+      throw new Forbidden('This platforms added to a deployment via the registraion process are not permitted to host any more sensors');
+    }
+  }
+
+  logger.debug(`Updates for sensor ${id}`, validUpdates);
 
   const updatedSensor = await sensorService.updateSensor(id, validUpdates);
   logger.debug(`Sensor '${id}' updated.`);
 
   // Get the existing context (there should always be one)
   const existingContext = await contextService.getLiveContextForSensor(id);
-
-  let contextUpdateRequired;
+  
+  // Start to define the potential new context
   const transitionDate = new Date();
-
   const potentialNewContext: ContextApp = {
     sensor: id,
     startDate: transitionDate,
     config: updatedSensor.currentConfig
   };
 
-  if (!hasDeploymentChange) {
-    // We can inherit the hostedByPath from the previous context if the deployment isn't being changed
-    if (existingContext.hostedByPath) {
-      potentialNewContext.hostedByPath = existingContext.hostedByPath;
-    }
+  // Set the context's hostedByPath
+  if (isHostedByStatus.settingNow) {
+    potentialNewContext.hostedByPath = newHostPlatform.isHostedBy ? concat([newHostPlatform.hostedByPath], [newHostPlatform.id]) : [newHostPlatform.id];
+  } else if (existingContext.hostedByPath && !isHostedByStatus.unsettingNow) {
+    // Inherit whatever it was before.
+    potentialNewContext.hostedByPath = existingContext.hostedByPath;
   }
 
-  // To do a proper comparison I need to remove the IDs as these end up being different.
-  const existingContextConfigNoIds = cloneDeep(existingContext.config).map((config) => {
-    delete config.id;
-    return config;
+  // Set the context's hasDeployment
+  if (hasDeploymentStatus.settingNow) {
+    potentialNewContext.hasDeployment = validUpdates.hasDeployment;
+  } else if (existingContext.hasDeployment && !hasDeploymentStatus.unsettingNow) {
+    // Inherit whatever it was before.
+    potentialNewContext.hasDeployment = existingContext.hasDeployment;
+  }
+
+  // Now to see if this new context is any different, if it is then we'll need to create a new context.
+  // To do a proper comparison I need to remove certain properties
+  const contextPropsToIgnore = ['id', 'startDate'];
+  const existingContextForComparison: any = omit(cloneDeep(existingContext), contextPropsToIgnore);
+  // And I need to remove the ids from each of the config objects because these end up being different.
+  existingContextForComparison.config.forEach((configItem) => {
+    delete configItem.id;
   });
-  const sensorCurrentConfigNoIds = cloneDeep(updatedSensor.currentConfig).map((config) => {
-    delete config.id;
-    return config;
+  const potentialContextForComparison = omit(cloneDeep(potentialNewContext), contextPropsToIgnore);
+  potentialContextForComparison.config.forEach((configItem) => {
+    delete configItem.id;
   });
+
   // A change to the config will require a context update
-  if (!isEqual(existingContextConfigNoIds, sensorCurrentConfigNoIds)) {
-    contextUpdateRequired = true;
-  }
-
-  // A change to the deployment will also require a context update
-  if (hasDeploymentChange) {
-    contextUpdateRequired = true;
-    if (validUpdates.hasDeployment) {
-      potentialNewContext.hasDeployment = validUpdates.hasDeployment;
-    }
-  } else {
-    // Inherit whatever it was before
-    if (existingContext.hasDeployment) {
-      potentialNewContext.hasDeployment = existingContext.hasDeployment;
-    }
-  }
+  const contextUpdateRequired = !isEqual(existingContextForComparison, potentialContextForComparison);
 
   if (contextUpdateRequired) {
 
@@ -365,10 +389,11 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 }
 
 
+// TODO: I had separated the hosting/unhosting of a sensor on a platform from the general updating of sensor, but I've not done both above so all this below can probably go, along with the events (the api-gateway wasn't using these events yet anyway)
 //-------------------------------------------------
 // Host sensor on platform
 //-------------------------------------------------
-// IMPORTANT: This is not the procedure by which sensors on permanentHosts are hosted on a platfrom. This is done via a registration key.
+// IMPORTANT: This is not the procedure by which sensors on permanentHosts are hosted on a platform. This is done via a registration key.
 export async function hostSensorOnPlatform(sensorId: string, platformId: string): Promise<SensorClient> {
 
   // First let's get the sensor
@@ -470,12 +495,3 @@ export async function deleteSensor(id: string): Promise<void> {
 
 }
 
-
-
-function configReduceFunction(count: number, config): number {
-  if (config.hasPriority === true) {
-    return count + 1;
-  } else {
-    return count;
-  }
-}

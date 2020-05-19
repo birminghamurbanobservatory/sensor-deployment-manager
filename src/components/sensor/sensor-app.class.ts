@@ -1,3 +1,5 @@
+import {SensorConfigApp} from './sensor-config-app';
+
 export class SensorApp {
   public id: string;
   public name?: string;
@@ -5,19 +7,11 @@ export class SensorApp {
   public hasDeployment?: string;
   public isHostedBy?: string;
   public permanentHost?: string;
-  public initialConfig?: Config[];
-  public currentConfig?: Config[];
+  public initialConfig?: SensorConfigApp[];
+  public currentConfig?: SensorConfigApp[];
   public createdAt?: string;
   public updatedAt?: string;
   public type?: string; // for when in a platform's 'hosts' array
 }
 
-export class Config {
-  id?: string;
-  hasPriority?: boolean;
-  observedProperty?: string;
-  unit?: string;
-  hasFeatureOfInterest?: string;
-  disciplines?: string[];
-  usedProcedures?: string[];
-}
+

@@ -11,10 +11,24 @@ import * as platformService from '../platform/platform.service';
 import * as contextService from '../context/context.service';
 import * as sensorService from '../sensor/sensor.service';
 import {GetDeploymentsOptions} from './get-deployments-options.class';
+import {InvalidDeployment} from './errors/InvalidDeployment';
 
 
+const createDeploymentSchema = joi.object({
+  id: joi.string(),
+  name: joi.string().required(),
+  description: joi.string().allow(''),
+  public: joi.boolean(),
+  createdBy: joi.string()
+})
+.required();
 
 export async function createDeployment(deployment: DeploymentClient): Promise<DeploymentClient> {
+
+  const {error: validationError} = createDeploymentSchema.validate(deployment);
+  if (validationError) {
+    throw new InvalidDeployment(validationError.message);
+  }
 
   // If the new deployment doesn't have an id yet, then we can autogenerate one.
   const idSpecified = check.assigned(deployment.id);
