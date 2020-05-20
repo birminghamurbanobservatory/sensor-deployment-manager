@@ -41,10 +41,12 @@ const newSensorSchema = joi.object({
   isHostedBy: joi.string(),
   initialConfig: joi.array().items(configSchema)
 })
-.or('id', 'hasDeployment')
 // If an ID isn't provided, then hasDeployment must be, as this indicates that a deployment sensor is being created.
-.without('hasDeployment', 'permanentHost')
-// I don't want hasDeployment and permanentHost to be set at the same time. If the sensor has a permanentHost then the mechanism for adding the sensor to a deployment is via a registration key.
+.or('id', 'hasDeployment')
+// If a sensor has a permanentHost then it can be assigned to a deployment or platform at the same time. The mechanism for adding the sensor to a deployment is via a registration key.
+.without('permanentHost', ['hasDeployment', 'isHostedBy'])
+// We don't want a sensor to be hosted on a platform without it also having its deployment set.
+.with('isHostedBy', 'hasDeployment')
 .required();
 
 
@@ -98,13 +100,13 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
     context.hostedByPath = hostPlatform.hostedByPath ? concat(hostPlatform.hostedByPath, hostPlatform.id) : [hostPlatform.id];
   }
 
-  // Has any config been set for the sensor that should be used in the context.
-  context.config = sensor.initialConfig || [];
-
   // Check the permanent host exists if provided
   if (sensor.permanentHost) {
     await permanentHostService.getPermanentHost(sensor.permanentHost);
   }
+
+  // Has any config been set for the sensor that should be used in the context.
+  context.config = sensor.initialConfig || [];
 
   const sensorToCreate: SensorApp = sensorService.sensorClientToApp(sensor);
   // Use the initialConfig as the currentConfig.
@@ -269,6 +271,10 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
   if (isHostedByStatus.isChanging && permanentHostStatus.wasSet) {
     throw new Forbidden('A sensor with a permanent host cannot have its host platform changed.');
+  }
+
+  if (isHostedByStatus.willBeSet && !hasDeploymentStatus.willBeSet) {
+    throw new Forbidden(`A sensor cannot be hosted on a platform when the sensor has not been allocated to a deployment.`);
   }
 
   if (hasDeploymentStatus.isChanging && permanentHostStatus.wasSet) {
