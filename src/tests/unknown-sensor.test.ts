@@ -7,6 +7,7 @@ import * as permanentHostController from '../components/permanent-host/permanent
 import * as unknownSensorController from '../components/unknown-sensor/unknown-sensor.controller';
 import * as contextService from '../components/context/context.service';
 import * as contextController from '../components/context/context.controller';
+import {createObservableProperty} from '../components/observable-property/observable-property.controller';
 
 describe('Unknown sensor tests', () => {
 
@@ -47,8 +48,10 @@ describe('Unknown sensor tests', () => {
     };
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
-    // Create a sensor
     const exampleObservedProperty = 'air-temperature';
+    await createObservableProperty({id: exampleObservedProperty});
+
+    // Create a sensor
     const knownSensorClient = {
       id: 'sensor-123',
       name: 'Sensor 123',
@@ -57,7 +60,7 @@ describe('Unknown sensor tests', () => {
         {
           hasPriority: true,
           observedProperty: exampleObservedProperty
-        },
+        }
       ]
     };
     const knownSensor = await sensorController.createSensor(knownSensorClient);
@@ -82,7 +85,7 @@ describe('Unknown sensor tests', () => {
     let unknownSensors = result1.data;
     expect(unknownSensors.length).toBe(0);
 
-    // Now to try adding context to an unknown sensor
+    // Now to try adding context to an unknown sensor obs
     const unknownSensorId = 'some-unknown-sensor';
     const unknownSensorObsWithoutContext1 = {
       madeBySensor: unknownSensorId,
@@ -143,7 +146,7 @@ describe('Unknown sensor tests', () => {
         {
           hasPriority: true,
           observedProperty: exampleObservedProperty
-        },
+        }
       ]
     };
 

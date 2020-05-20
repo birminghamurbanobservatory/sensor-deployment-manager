@@ -12,6 +12,9 @@ import {register} from '../components/registration/registration.controller';
 import Context from '../components/context/context.model';
 import {addContextToObservation} from '../components/context/context.controller';
 import {cloneDeep} from 'lodash';
+import * as disciplineController from '../components/discipline/discipline.controller';
+import * as observablePropertyController from '../components/observable-property/observable-property.controller';
+
 
 
 describe('Context documents are created and updated correctly', () => {
@@ -52,6 +55,10 @@ describe('Context documents are created and updated correctly', () => {
       description: 'Climavue weather station'
     };
     const createdPermanentHost = await permanentHostController.createPermanentHost(permanentHost);
+
+    // Need to create the following before the sensor can be created
+    await observablePropertyController.createObservableProperty({id: 'AirTemperature'});
+    await disciplineController.createDiscipline({id: 'Meteorology'});
 
     // Create a sensor
     const sensorClient = {
@@ -225,7 +232,10 @@ describe('Context documents are created and updated correctly', () => {
 
     // Create a sensor
     const exampleObservedProperty = 'temperature';
-    const exampleHasFeatureOfInterest = 'weather';
+    const exampleDiscipline = 'meteorology';
+    await observablePropertyController.createObservableProperty({id: exampleObservedProperty});
+    await disciplineController.createDiscipline({id: exampleDiscipline});
+
     const sensorClient = {
       name: 'Bobs Mercury Thermometer',
       hasDeployment: deployment.id,
@@ -233,7 +243,7 @@ describe('Context documents are created and updated correctly', () => {
         {
           hasPriority: true,
           observedProperty: exampleObservedProperty,
-          hasFeatureOfInterest: exampleHasFeatureOfInterest
+          disciplines: [exampleDiscipline]
         }
       ]
     };
@@ -316,7 +326,7 @@ describe('Context documents are created and updated correctly', () => {
       hasDeployment: deployment.id,
       hostedByPath: [platform.id],
       observedProperty: exampleObservedProperty,
-      hasFeatureOfInterest: exampleHasFeatureOfInterest,
+      disciplines: [exampleDiscipline],
       location: platformLocationWithoutCentroid
     });
     expect(observationWithContext).toEqual(expectedObservation);

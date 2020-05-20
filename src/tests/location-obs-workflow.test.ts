@@ -11,6 +11,7 @@ import * as check from 'check-types';
 import {register} from '../components/registration/registration.controller';
 import Context from '../components/context/context.model';
 import {addContextToObservation} from '../components/context/context.controller';
+import * as observablePropertyController from '../components/observable-property/observable-property.controller';
 
 
 describe('Location observations are correctly processed by the addContextToObservation function', () => {
@@ -53,15 +54,17 @@ describe('Location observations are correctly processed by the addContextToObser
       createdBy: 'user-1'
     };
 
-    const primaryDeployment = await deploymentController.createDeployment(deploymentClient);    
+    const primaryDeployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a sensor
+    const exampleObservedProperty = 'Location';
+    await observablePropertyController.createObservableProperty({id: exampleObservedProperty});
     const sensorClient = {
       hasDeployment: primaryDeployment.id,
       initialConfig: [
         {
           hasPriority: true,
-          observedProperty: 'Location'
+          observedProperty: exampleObservedProperty
         }
       ]
     };
@@ -211,6 +214,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // Create a location sensor on this permanent host
     const exampleObservedPropertyForLocationSensor = 'Location';
+    await observablePropertyController.createObservableProperty({id: exampleObservedPropertyForLocationSensor});
     const locationSensorClient = {
       id: 'zephyr-123-gps',
       name: 'Zephyr 123 GPS Sensor',
@@ -226,6 +230,7 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // Create a non-location sensor on this permanent host
     const exampleObservedPropertyForNonLocationSensor = 'no2-concentration';
+    await observablePropertyController.createObservableProperty({id: exampleObservedPropertyForNonLocationSensor});
     const nonLocationSensorClient = {
       id: 'zephyr-123-no2',
       name: 'Zephyr 123 NO2 Sensor',

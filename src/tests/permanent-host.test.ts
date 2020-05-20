@@ -126,14 +126,7 @@ describe('Permanent host testing', () => {
     const sensorClient = {
       id: 'sensor-123',
       name: 'Sensor 123',
-      permanentHost: permanentHost.id,
-      initialConfig: [
-        {
-          hasPriority: true,
-          observedProperty: 'temperature',
-          hasFeatureOfInterest: 'EarthAtmosphere'
-        }
-      ]
+      permanentHost: permanentHost.id
     };
     const sensor = await sensorController.createSensor(sensorClient);
 
@@ -202,14 +195,7 @@ describe('Permanent host testing', () => {
     // Create a sensor on this permanent host
     const sensorClient = {
       id: 'sensor-123',
-      permanentHost: permanentHost.id,
-      initialConfig: [
-        {
-          hasPriority: true,
-          observedProperty: 'temperature',
-          hasFeatureOfInterest: 'EarthAtmosphere'
-        }
-      ]
+      permanentHost: permanentHost.id
     };
     const sensor = await sensorController.createSensor(sensorClient);
 

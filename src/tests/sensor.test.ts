@@ -9,6 +9,7 @@ import * as deploymentController from '../components/deployment/deployment.contr
 import * as platformController from '../components/platform/platform.controller';
 import {Forbidden} from '../errors/Forbidden';
 import {register} from '../components/registration/registration.controller';
+import {ObservablePropertyNotFound} from '../components/observable-property/errors/ObservablePropertyNotFound';
 
 
 describe('Sensor testing', () => {
@@ -401,7 +402,34 @@ describe('Sensor testing', () => {
 
 
 
+  test('Will not let you create a sensor with a config that contains an ID that has not been defined yet', async() => {
+    
+    expect.assertions(1);
+
+    // Create a "deployment sensor"
+    const sensorClient = {
+      id: 'sensor-456',
+      initialConfig: [
+        {
+          hasPriority: true,
+          observedProperty: 'UnknownProperty'
+        }
+      ]
+    };
+
+    let errCreatingSensor;
+    try {
+      await sensorController.createSensor(sensorClient);
+    } catch (err) {
+      errCreatingSensor = err;
+    }
+    expect(errCreatingSensor).toBeInstanceOf(ObservablePropertyNotFound);
+
+  });
 
 });
+
+
+
 
 
