@@ -17,7 +17,6 @@ import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-u
 import {UnhostExternalSensorsFromDisappearingDeploymentFail} from './errors/UnhostExternalSensorsFromDisappearingDeploymentFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {DeleteSensorFail} from './errors/DeleteSensorFail';
-import {PaginationOptions} from '../common/pagination-options.class';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types'; 
 import {CollectionOptions} from '../common/collection-options.class';

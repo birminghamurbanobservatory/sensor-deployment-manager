@@ -62,7 +62,7 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
   // Make sure no more than 1 initialConfig object has hasPriority set to true.
   if (sensor.initialConfig) {
-    validateSensorConfigArray(sensor.initialConfig);
+    await validateSensorConfigArray(sensor.initialConfig);
   }
 
   // If the sensor has an id, then check it won't clash with an auto-generated one
@@ -302,11 +302,11 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
   // Make sure no more than 1 initialConfig object has hasPriority set to true.
   if (updates.initialConfig) {
-    validateSensorConfigArray(updates.initialConfig);
+    await validateSensorConfigArray(updates.initialConfig);
   }
   // Do the same for the currentConfig object
   if (updates.initialConfig) {
-    validateSensorConfigArray(updates.currentConfig);
+    await validateSensorConfigArray(updates.currentConfig);
   }
 
   let newHostPlatform;
