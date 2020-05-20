@@ -75,11 +75,11 @@ describe('Sensor testing', () => {
 
     // Make sure this sensor can't be added directly to a platform
     // First create a platform
-    const platformClient = {
+    const otherPlatformClient = {
       name: 'Platform 1',
       inDeployment: deployment.id
     };
-    const otherPlatform = await platformController.createPlatform(platformClient);
+    const otherPlatform = await platformController.createPlatform(otherPlatformClient);
     // Now try adding the sensor to it
     let errAddingPermanentlyHostedSensorToPlatform;
     try {
@@ -154,7 +154,7 @@ describe('Sensor testing', () => {
 
   test('A standalone sensor can be correctly added and removed to a deployment', async () => {
 
-    expect.assertions(13);
+    expect.assertions(12);
     
     // Create a deployment
     const deploymentClient = {
@@ -211,28 +211,14 @@ describe('Sensor testing', () => {
     expect(sensorBackOnPlatform.hasDeployment).toBe(deployment.id);
     expect(sensorBackOnPlatform.isHostedBy).toBe(platform.id);
 
-    // For now at least let's make sure a sensor cannot be hosted on a platform outside of this deployment whilst it remains in the first deployment.
+
+    // Check it doesn't allow this sensor to change deployment if its platform remains in the first deployment
     const otherDeploymentClient = {
       id: 'deployment-2',
       name: 'Deployment 2'
     };
     const otherDeployment = await deploymentController.createDeployment(otherDeploymentClient);
 
-    const otherPlatformClient = {
-      name: 'Platform 1',
-      inDeployment: otherDeployment.id
-    };
-    const otherPlatform = await platformController.createPlatform(otherPlatformClient);
-
-    let errHostingOnExternalPlatform;
-    try {
-      await sensorController.updateSensor(sensor.id, {isHostedBy: otherPlatform.id});
-    } catch (err) {
-      errHostingOnExternalPlatform = err;
-    }
-    expect(errHostingOnExternalPlatform).toBeInstanceOf(Forbidden);
-
-    // Check it doesn't allow this sensor to change deployment if its platform remains in the first deployment
     let errChangingDeploymentWithoutChangingPlatform;
     try {
       await sensorController.updateSensor(sensor.id, {hasDeployment: otherDeployment.id});
@@ -284,6 +270,39 @@ describe('Sensor testing', () => {
     expect(sensor.hasDeployment).toBe(deployment.id);
     expect(sensor).not.toHaveProperty('permanentHost');
     expect(sensor).not.toHaveProperty('isHostedBy');
+
+  });
+
+
+  test('Create a sensor that is within a deployment and on a platform from creation', async () => {
+
+    expect.assertions(3);
+    
+    // Create a deployment
+    const deploymentClient = {
+      id: 'deployment-1',
+      name: 'Deployment 1'
+    };
+    const deployment = await deploymentController.createDeployment(deploymentClient);
+
+    // Create a platform
+    const platformClient = {
+      name: 'Platform 1',
+      inDeployment: deployment.id
+    };
+    const platform = await platformController.createPlatform(platformClient);
+
+    // Create sensor
+    const sensorClient = {
+      id: 'sensor-123',
+      hasDeployment: deployment.id,
+      isHostedBy: platform.id
+    };
+    const sensor = await sensorController.createSensor(sensorClient);
+
+    expect(sensor.hasDeployment).toBe(deployment.id);
+    expect(sensor.isHostedBy).toBe(platform.id);
+    expect(sensor).not.toHaveProperty('permanentHost');
 
   });
 

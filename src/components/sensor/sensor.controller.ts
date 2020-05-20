@@ -38,7 +38,7 @@ const newSensorSchema = joi.object({
   description: joi.string().allow(''),
   permanentHost: joi.string(),
   hasDeployment: joi.string(),
-  // N.B. isHostedBy is not allow here. Hosting a sensor on a platform is a separate step and depends on whether the sensor has a permanentHost or not. 
+  isHostedBy: joi.string(),
   initialConfig: joi.array().items(configSchema)
 })
 .or('id', 'hasDeployment')
@@ -87,11 +87,15 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
   // Check the deployment exists if provided
   if (sensor.hasDeployment) {
     await deploymentService.getDeployment(sensor.hasDeployment);
+    // Add the deployment to the context
+    context.hasDeployment = sensor.hasDeployment;
   }
 
-  // Is the sensor being created already in a deployment
-  if (sensor.hasDeployment) {
-    context.hasDeployment = sensor.hasDeployment;
+  // Check the platform exists if provided
+  if (sensor.isHostedBy) {
+    const hostPlatform = await platformService.getPlatform(sensor.isHostedBy);
+    // Add the platform path to the context
+    context.hostedByPath = hostPlatform.hostedByPath ? concat(hostPlatform.hostedByPath, hostPlatform.id) : [hostPlatform.id];
   }
 
   // Has any config been set for the sensor that should be used in the context.
@@ -304,11 +308,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
     // This will check if it actually exists
     newHostPlatform = await platformService.getPlatform(validUpdates.isHostedBy);
-
-    // For now at least we'll inforce that the platform the sensor is hosted on must be in the same deployment as the sensor.
-    if (hasDeploymentStatus.valueWillBe !== newHostPlatform.inDeployment) {
-      throw new Forbidden(`The sensor cannot be hosted on a platform that is in a different deployment to the sensor (sensor deployment will be '${hasDeploymentStatus.valueWillBe}').`);
-    }
+    // N.B. we'll allow sensor can be hosted on a platfrom from another deployment.
 
     // We also don't want any more sensors being hosted on a platform that was initialised from a permanentHost.
     if (check.assigned(newHostPlatform.initialisedFrom)) {
@@ -339,7 +339,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
   // Set the context's hostedByPath
   if (isHostedByStatus.settingNow) {
-    potentialNewContext.hostedByPath = newHostPlatform.isHostedBy ? concat([newHostPlatform.hostedByPath], [newHostPlatform.id]) : [newHostPlatform.id];
+    potentialNewContext.hostedByPath = newHostPlatform.isHostedBy ? concat(newHostPlatform.hostedByPath, newHostPlatform.id) : [newHostPlatform.id];
   } else if (existingContext.hostedByPath && !isHostedByStatus.unsettingNow) {
     // Inherit whatever it was before.
     potentialNewContext.hostedByPath = existingContext.hostedByPath;
