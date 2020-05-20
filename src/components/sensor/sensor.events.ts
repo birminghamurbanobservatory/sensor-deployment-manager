@@ -1,5 +1,5 @@
 import * as event from 'event-stream';
-import {createSensor, updateSensor, hostSensorOnPlatform, unhostSensorFromPlatform, getSensor, getSensors, deleteSensor} from './sensor.controller';
+import {createSensor, updateSensor, getSensor, getSensors, deleteSensor} from './sensor.controller';
 import * as logger from 'node-logger';
 import {Promise} from 'bluebird'; 
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
@@ -12,8 +12,6 @@ export async function subscribeToSensorEvents(): Promise<void> {
   const subscriptionFunctions = [
     subscribeToSensorCreateRequests,
     subscribeToSensorUpdateRequests,
-    subscribeToPlatformSensorHostRequests,
-    subscribeToPlatformSensorUnhostRequests,
     subscribeToSensorGetRequests,
     subscribeToSensorsGetRequests,
     subscribeToSensorDeleteRequests
@@ -178,77 +176,6 @@ async function subscribeToSensorUpdateRequests(): Promise<any> {
       const {error: err} = sensorUpdateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
       updatedSensor = await updateSensor(message.where.id, message.updates);
-    } catch (err) {
-      logCensorAndRethrow(eventName, err);
-    }
-
-    return updatedSensor;
-  });
-
-  logger.debug(`Subscribed to ${eventName} requests`);
-  return;
-}
-
-
-//-------------------------------------------------
-// Host sensor on platform
-//-------------------------------------------------
-async function subscribeToPlatformSensorHostRequests(): Promise<any> {
-  
-  const eventName = 'platform-sensor.host.request';
-
-  const sensorUpdateRequestSchema = joi.object({
-    where: joi.object({
-      sensorId: joi.string().required(),
-      platformId: joi.string().required()
-    })
-      .required(),
-  }).required();
-
-  await event.subscribe(eventName, async (message): Promise<void> => {
-
-    logger.debug(`New ${eventName} message.`, message);
-
-    let updatedSensor: SensorClient;
-    try {
-      const {error: err} = sensorUpdateRequestSchema.validate(message);
-      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
-      updatedSensor = await hostSensorOnPlatform(message.where.sensorId, message.where.platformId);
-    } catch (err) {
-      logCensorAndRethrow(eventName, err);
-    }
-
-    return updatedSensor;
-  });
-
-  logger.debug(`Subscribed to ${eventName} requests`);
-  return;
-}
-
-
-//-------------------------------------------------
-// Unhost sensor from platform
-//-------------------------------------------------
-async function subscribeToPlatformSensorUnhostRequests(): Promise<any> {
-  
-  const eventName = 'platform-sensor.unhost.request';
-
-  const sensorUpdateRequestSchema = joi.object({
-    where: joi.object({
-      sensorId: joi.string().required()
-    })
-      .required(),
-  }).required();
-
-  await event.subscribe(eventName, async (message): Promise<void> => {
-
-    logger.debug(`New ${eventName} message.`, message);
-
-    let updatedSensor: SensorClient;
-    try {
-      const {error: err} = sensorUpdateRequestSchema.validate(message);
-      if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
-      updatedSensor = await unhostSensorFromPlatform(message.where.sensorId);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }

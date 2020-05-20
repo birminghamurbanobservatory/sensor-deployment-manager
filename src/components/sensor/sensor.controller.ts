@@ -11,15 +11,9 @@ import * as joi from '@hapi/joi';
 import {InvalidSensor} from './errors/InvalidSensor';
 import * as check from 'check-types';
 import {BadRequest} from '../../errors/BadRequest';
-import {CannotHostSensorWithPermanentHost} from './errors/CannotHostSensorWithPermanentHost';
-import {PlatformApp} from '../platform/platform-app.class';
-import {DeploymentApp} from '../deployment/deployment-app.class';
 import {concat, isEqual, cloneDeep, omit} from 'lodash';
-import {CannotUnhostSensorWithPermanentHost} from './errors/CannotUnhostSensorWithPermanentHost';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
-import {CannotHostSensorOnPermanentHost} from './errors/CannotHostSensorOnPermanentHost';
 import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
-import {PaginationOptions} from '../common/pagination-options.class';
 import {CollectionOptions} from '../common/collection-options.class';
 import {calculateChangeStatus} from '../../utils/change-status';
 import {Forbidden} from '../../errors/Forbidden';
@@ -318,8 +312,13 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
     // We also don't want any more sensors being hosted on a platform that was initialised from a permanentHost.
     if (check.assigned(newHostPlatform.initialisedFrom)) {
-      throw new Forbidden('This platforms added to a deployment via the registraion process are not permitted to host any more sensors');
+      throw new Forbidden('Platforms added to a deployment via the registraion process are not permitted to host any more sensors');
     }
+  }
+
+  // If the sensor is being removed from a platform then it can no longer be used to update the location of a platform.
+  if (isHostedByStatus.unsettingNow) {
+    await platformService.removeSensorFromAnyMatchingUpdateLocationWithSensor(id);
   }
 
   logger.debug(`Updates for sensor ${id}`, validUpdates);
@@ -388,89 +387,6 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
 }
 
-
-// TODO: I had separated the hosting/unhosting of a sensor on a platform from the general updating of sensor, but I've not done both above so all this below can probably go, along with the events (the api-gateway wasn't using these events yet anyway)
-//-------------------------------------------------
-// Host sensor on platform
-//-------------------------------------------------
-// IMPORTANT: This is not the procedure by which sensors on permanentHosts are hosted on a platform. This is done via a registration key.
-export async function hostSensorOnPlatform(sensorId: string, platformId: string): Promise<SensorClient> {
-
-  // First let's get the sensor
-  const sensor: SensorApp = await sensorService.getSensor(sensorId);
-
-  // Check this sensor doesn't have a permanentHost
-  if (sensor.permanentHost) {
-    throw new CannotHostSensorWithPermanentHost(`Sensor '${sensorId}' has a permanent host (i.e. is physically attached to this host) and thus it cannot be directly hosted on another platform using this method.`);
-  }
-
-  // Throws error if the platform does not exist
-  const platform: PlatformApp = await platformService.getPlatform(platformId);
-
-  // If this platform is itself created from a permanentHost then don't allow more sensors to be hosted on it.
-  if (platform.initialisedFrom) {
-    throw new CannotHostSensorOnPermanentHost(`Platform '${platformId}' was generated from a permanent host and therefore it is not possible to add an extra sensor to it this way.`);
-  }
-
-  // Check it's ok to add the sensor to this platform
-  let hasAccessToPlatform;
-  if (platform.inDeployment === sensor.hasDeployment) {
-    hasAccessToPlatform = true;
-  } else {
-    // Is the platform's deployment public?
-    const platformDeployment: DeploymentApp = await deploymentService.getDeployment(platform.inDeployment);
-    if (platformDeployment.public) {
-      hasAccessToPlatform = true;
-    }
-  }
-  if (!hasAccessToPlatform) {
-    throw new InvalidSensor(`Platform '${platformId} is either not associated with the '${sensor.hasDeployment}' deployment, or it is in a private deployment. Therefore sensor '${sensorId}' cannot be hosted on it.`);
-  }
-
-  // Update the sensor
-  const updatedSensor = await sensorService.updateSensor(sensorId, {
-    isHostedBy: platformId
-  });
-
-  // Now to update its context
-  let newHostedByPath = [platformId];
-  if (platform.hostedByPath) {
-    newHostedByPath = concat(platform.hostedByPath, newHostedByPath);
-  }
-  await contextService.changeSensorsHostedByPath(sensorId, newHostedByPath);
-
-  return sensorService.sensorAppToClient(updatedSensor);
-
-}
-
-
-//-------------------------------------------------
-// Unhost sensor
-//-------------------------------------------------
-export async function unhostSensorFromPlatform(sensorId: string): Promise<SensorClient> {
-  
-  // First let's get the sensor
-  const sensor: SensorApp = await sensorService.getSensor(sensorId);
-
-  // Check this sensor doesn't have a permanentHost
-  if (sensor.permanentHost) {
-    throw new CannotUnhostSensorWithPermanentHost(`Sensor '${sensorId}' has a permanent host (i.e. is physically attached to this host) and thus it cannot be unhosted.`);
-  }
-
-  // Update the sensor
-  const updatedSensor = await sensorService.updateSensor(sensorId, {
-    isHostedBy: null
-  });
-
-  // Now to update its context
-  await contextService.removeSensorsHostedByPath(sensorId);
-
-  // TODO: might want to only run the following line for sensors that actually record location..
-  await platformService.removeSensorFromAnyMatchingUpdateLocationWithSensor(sensorId);
-
-  return sensorService.sensorAppToClient(updatedSensor);  
-
-}
 
 
 //-------------------------------------------------

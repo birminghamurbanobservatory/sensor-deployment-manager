@@ -79,7 +79,7 @@ describe('Location observations are correctly processed by the addContextToObser
     const platform = await platformController.createPlatform(platformClient);
 
     // Host the sensor on the platform
-    await sensorController.hostSensorOnPlatform(sensor.id, platform.id);
+    await sensorController.updateSensor(sensor.id, {isHostedBy: platform.id});
 
     // Update the platform so that it updates its location with this sensor
     const updatedPlatform = await platformController.updatePlatform(platform.id, {updateLocationWithSensor: sensor.id});

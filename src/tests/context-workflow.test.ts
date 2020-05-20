@@ -279,7 +279,7 @@ describe('Context documents are created and updated correctly', () => {
     expect(typeof platform.location.validAt).toBe('string'); // isostring
 
     // Let's add the sensor to this platform
-    await sensorController.hostSensorOnPlatform(sensor.id, platform.id);
+    await sensorController.updateSensor(sensor.id, {isHostedBy: platform.id});
 
     // Check the context
     const context2 = await contextService.getLiveContextForSensor(sensor.id);

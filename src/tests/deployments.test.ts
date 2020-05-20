@@ -10,8 +10,7 @@ import * as contextService from '../components/context/context.service';
 import Context from '../components/context/context.model';
 
 
-describe('Testing the functionality of the deployment code, in particular the knock on effect updating/deleteing a deployment has on other database collections', () => {
-
+describe('Testing the functionality of the deployment code, in particular the knock on effect updating/deleting a deployment has on other database collections', () => {
 
   let mongoServer;
 
@@ -70,7 +69,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
   test('Changing a deployment to private has the desired knock on effects', async () => {
     
-    expect.assertions(13);
+    expect.assertions(8);
 
     //------------------------
     // Original deployment
@@ -95,7 +94,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
       hasDeployment: originalDeployment.id
     };
     let nonsharedPlatformSensor = await sensorController.createSensor(nonsharedPlatformSensorClient);
-    nonsharedPlatformSensor = await sensorController.hostSensorOnPlatform(nonsharedPlatformSensor.id, nonSharedPlatform.id);
+    nonsharedPlatformSensor = await sensorController.updateSensor(nonsharedPlatformSensor.id, {isHostedBy: nonSharedPlatform.id});
 
     //------------------------
     // Non-sharee deployment
@@ -121,7 +120,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
     };
     let externalPlatformSensor = await sensorController.createSensor(externalPlatformSensorClient);
 
-    externalPlatformSensor = await sensorController.hostSensorOnPlatform(externalPlatformSensor.id, externalPlatform.id);
+    externalPlatformSensor = await sensorController.updateSensor(externalPlatformSensor.id, {isHostedBy: externalPlatform.id});
 
     // Check this sensor's context is as expected
     const externalPlatformSensorContext = await contextService.getLiveContextForSensor(externalPlatformSensor.id);
@@ -129,12 +128,6 @@ describe('Testing the functionality of the deployment code, in particular the kn
       hostedByPath: [externalPlatform.id],
       hasDeployment: nonShareeDeployment.id
     });
-
-    // Create a standalone sensor
-    const standaloneSensorClient = {
-      hasDeployment: nonShareeDeployment.id
-    };
-    const standaloneSensor = await sensorController.createSensor(standaloneSensorClient);
 
     //------------------------
     // Host external platform
@@ -151,20 +144,6 @@ describe('Testing the functionality of the deployment code, in particular the kn
       hostedByPath: [nonSharedPlatform.id, externalPlatform.id],
       hasDeployment: nonShareeDeployment.id
       // Note how the sensor doesn't end up "in" the original deployment, merely its hosted on the deployment's platform. It would only end up "in" when the host platform is shared with the new deployment.
-    });
-
-    //------------------------
-    // Host standalone sensor
-    //------------------------
-    // Host the standalone sensor on the platform in the original network
-    const hostedStandaloneSensor = await sensorController.hostSensorOnPlatform(standaloneSensor.id, nonSharedPlatform.id);
-    expect(hostedStandaloneSensor.isHostedBy).toBe(nonSharedPlatform.id);
-    // Check the context has updated
-    const hostedStandaloneSensorContext = await contextService.getLiveContextForSensor(standaloneSensor.id);
-    expect(hostedStandaloneSensorContext).toMatchObject({
-      hostedByPath: [nonSharedPlatform.id],
-      hasDeployment: nonShareeDeployment.id
-      // Note how the sensor doesn't end up "in" the original deployment, merely its hosted on the deployment's platform.
     });
 
     //------------------------
@@ -185,14 +164,6 @@ describe('Testing the functionality of the deployment code, in particular the kn
       hostedByPath: [externalPlatform.id],
       hasDeployment: nonShareeDeployment.id
     });
-
-    // The standalone sensor should now be unhosted
-    const unhostedStandaloneSensor = await sensorController.getSensor(standaloneSensor.id);
-    expect(unhostedStandaloneSensor.isHostedBy).toBeUndefined();
-    // Check it's context too
-    const unhostedStandaloneSensorContext = await contextService.getLiveContextForSensor(standaloneSensor.id);
-    expect(unhostedStandaloneSensorContext.hasDeployment).toEqual(nonShareeDeployment.id);
-    expect(unhostedStandaloneSensorContext.hostedByPath).toBeUndefined();
 
   });
 
