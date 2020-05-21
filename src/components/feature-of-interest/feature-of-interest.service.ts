@@ -1,6 +1,6 @@
 import {cloneDeep} from 'lodash';
 import {renameProperty} from '../../utils/rename';
-import {FeatureOfInterestApp} from './feature-of-interest-app.class';
+import {FeatureOfInterestApp, FeatureOfInterestLocation} from './feature-of-interest-app.class';
 import {FeatureOfInterestClient} from './feature-of-interest-client.class';
 import FeatureOfInterest from './feature-of-interest.model';
 import {FeatureOfInterestAlreadyExists} from './errors/FeatureOfInterestAlreadyExists';
@@ -16,19 +16,20 @@ import {GetFeaturesOfInterestFail} from './errors/GetFeaturesOfInterestFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UpdateFeatureOfInterestFail} from './errors/UpdateFeatureOfInterestFail';
 import {DeleteFeatureOfInterestFail} from './errors/DeleteFeatureOfInterestFail';
+import {v4 as uuid} from 'uuid';
+import {calculateCentroidFromGeometry} from '../../utils/geojson-helpers';
 
 
+export async function createFeatureOfInterest(featureOfInterest: FeatureOfInterestApp): Promise<FeatureOfInterestApp> {
 
-export async function createFeatureOfInterest(featureOfIinterest: FeatureOfInterestApp): Promise<FeatureOfInterestApp> {
-
-  const featureOfIinterestDb = featureOfIinterestAppToDb(featureOfIinterest);
+  const featureOfInterestDb = featureOfInterestAppToDb(featureOfInterest);
 
   let created;
   try {
-    created = await FeatureOfInterest.create(featureOfIinterestDb);
+    created = await FeatureOfInterest.create(featureOfInterestDb);
   } catch (err) {
     if (err.name === 'MongoError' && err.code === 11000) {
-      throw new FeatureOfInterestAlreadyExists(`A featureOfIinterest with an id of '${featureOfIinterest.id}' already exists.`);
+      throw new FeatureOfInterestAlreadyExists(`A featureOfInterest with an id of '${featureOfInterest.id}' already exists.`);
     // TODO: Check this works
     } else if (err.name === 'ValidationError') {
       throw new InvalidFeatureOfInterest(err.message);
@@ -37,7 +38,7 @@ export async function createFeatureOfInterest(featureOfIinterest: FeatureOfInter
     }
   }
 
-  return featureOfIinterestDbToApp(created);
+  return featureOfInterestDbToApp(created);
 
 }
 
@@ -59,10 +60,10 @@ export async function getFeatureOfInterest(id, options: {includeDeleted?: boolea
   }
 
   if (!found) {
-    throw new FeatureOfInterestNotFound(`A featureOfIinterest with id '${id}' could not be found.`);
+    throw new FeatureOfInterestNotFound(`A featureOfInterest with id '${id}' could not be found.`);
   }
 
-  return featureOfIinterestDbToApp(found);
+  return featureOfInterestDbToApp(found);
 
 }
 
@@ -109,7 +110,7 @@ export async function getFeaturesOfInterest(
     total = count;
   }
 
-  const forApp = found.map(featureOfIinterestDbToApp);
+  const forApp = found.map(featureOfInterestDbToApp);
 
   return {
     data: forApp,
@@ -143,10 +144,10 @@ export async function updateFeatureOfInterest(id: string, updates: any): Promise
   }
 
   if (!updated) {
-    throw new FeatureOfInterestNotFound(`A featureOfIinterest with id '${id}' could not be found`);
+    throw new FeatureOfInterestNotFound(`A featureOfInterest with id '${id}' could not be found`);
   }
 
-  return featureOfIinterestDbToApp(updated);
+  return featureOfInterestDbToApp(updated);
 
 }
 
@@ -172,11 +173,11 @@ export async function deleteFeatureOfInterest(id: string): Promise<void> {
       }
     ).exec();
   } catch (err) {
-    throw new DeleteFeatureOfInterestFail(`Failed to delete featureOfIinterest '${id}'.`, err.message);
+    throw new DeleteFeatureOfInterestFail(`Failed to delete featureOfInterest '${id}'.`, err.message);
   }
 
   if (!deleted) {
-    throw new FeatureOfInterestNotFound(`A featureOfIinterest with id '${id}' could not be found`);
+    throw new FeatureOfInterestNotFound(`A featureOfInterest with id '${id}' could not be found`);
   }
 
   return;
@@ -185,14 +186,14 @@ export async function deleteFeatureOfInterest(id: string): Promise<void> {
 
 
 
-function featureOfIinterestAppToDb(appFormat: FeatureOfInterestApp): object {
+function featureOfInterestAppToDb(appFormat: FeatureOfInterestApp): object {
   const dbFormat: any = cloneDeep(appFormat);
   renameProperty(dbFormat, 'id', '_id');
   return dbFormat;
 }
 
 
-function featureOfIinterestDbToApp(dbFormat: any): FeatureOfInterestApp {
+function featureOfInterestDbToApp(dbFormat: any): FeatureOfInterestApp {
   const appFormat = dbFormat.toObject();
   appFormat.id = appFormat._id.toString();
   delete appFormat._id;
@@ -201,15 +202,33 @@ function featureOfIinterestDbToApp(dbFormat: any): FeatureOfInterestApp {
 }
 
 
-export function featureOfIinterestAppToClient(appFormat: FeatureOfInterestApp): FeatureOfInterestClient {
+export function featureOfInterestAppToClient(appFormat: FeatureOfInterestApp): FeatureOfInterestClient {
   const clientFormat: any = cloneDeep(appFormat);
+  if (clientFormat.location && clientFormat.location.validAt) {
+    clientFormat.location.validAt = clientFormat.location.validAt.toISOString();
+  }
   clientFormat.createdAt = clientFormat.createdAt.toISOString();
   clientFormat.updatedAt = clientFormat.updatedAt.toISOString();
   return clientFormat;
 } 
 
 
-export function featureOfIinterestClientToApp(clientFormat: FeatureOfInterestClient): FeatureOfInterestApp {
+export function featureOfInterestClientToApp(clientFormat: FeatureOfInterestClient): FeatureOfInterestApp {
   const appFormat: any = cloneDeep(clientFormat);
   return appFormat; 
+}
+
+
+export function completeFeatureOfInterestLocation(location: FeatureOfInterestLocation): FeatureOfInterestLocation {
+  const completed = cloneDeep(location);
+  if (!location.id) {
+    // Does it really need an id? Platform locations did because observations would inherit it, the question is whether anything will inherit a feature of interest's id?
+    completed.id = uuid(); 
+  }
+  if (!location.validAt) {
+    completed.validAt = new Date();
+  }
+  // Find the centroid
+  completed.centroid = calculateCentroidFromGeometry(location.geometry);
+  return completed;
 }

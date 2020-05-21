@@ -43,7 +43,7 @@ async function subscribeToFeatureOfInterestCreateRequests(): Promise<any> {
   
   const eventName = 'feature-of-interest.create.request';
 
-  const featureOfIinterestCreateRequestSchema = joi.object({
+  const featureOfInterestCreateRequestSchema = joi.object({
     new: joi.object({
       // We'll let the controller check this part
     })
@@ -57,7 +57,7 @@ async function subscribeToFeatureOfInterestCreateRequests(): Promise<any> {
 
     let created: FeatureOfInterestClient;
     try {
-      const {error: err} = featureOfIinterestCreateRequestSchema.validate(message);
+      const {error: err} = featureOfInterestCreateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
       created = await createFeatureOfInterest(message.new);
     } catch (err) {
@@ -79,7 +79,7 @@ async function subscribeToFeatureOfInterestGetRequests(): Promise<any> {
 
   const eventName = 'feature-of-interest.get.request';
 
-  const featureOfIinterestGetRequestSchema = joi.object({
+  const featureOfInterestGetRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
     })
@@ -96,7 +96,7 @@ async function subscribeToFeatureOfInterestGetRequests(): Promise<any> {
 
     let found: FeatureOfInterestClient;
     try {
-      const {error: err} = featureOfIinterestGetRequestSchema.validate(message);
+      const {error: err} = featureOfInterestGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);
       found = await getFeatureOfInterest(message.where.id, message.options);
     } catch (err) {
@@ -153,7 +153,7 @@ async function subscribeToFeaturesOfInterestGetRequests(): Promise<any> {
 async function subscribeToFeatureOfInterestUpdateRequests(): Promise<any> {
   
   const eventName = 'feature-of-interest.update.request';
-  const featureOfIinterestUpdateRequestSchema = joi.object({
+  const featureOfInterestUpdateRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
     })
@@ -170,7 +170,7 @@ async function subscribeToFeatureOfInterestUpdateRequests(): Promise<any> {
 
     let updated: FeatureOfInterestClient;
     try {
-      const {error: err} = featureOfIinterestUpdateRequestSchema.validate(message);
+      const {error: err} = featureOfInterestUpdateRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
       updated = await updateFeatureOfInterest(message.where.id, message.updates);
     } catch (err) {
@@ -191,7 +191,7 @@ async function subscribeToFeatureOfInterestUpdateRequests(): Promise<any> {
 async function subscribeToFeatureOfInterestDeleteRequests(): Promise<any> {
   
   const eventName = 'feature-of-interest.delete.request';
-  const featureOfIinterestDeleteRequestSchema = joi.object({
+  const featureOfInterestDeleteRequestSchema = joi.object({
     where: joi.object({
       id: joi.string().required()
     })
@@ -203,7 +203,7 @@ async function subscribeToFeatureOfInterestDeleteRequests(): Promise<any> {
     logger.debug(`New ${eventName} message.`, message);
 
     try {
-      const {error: err} = featureOfIinterestDeleteRequestSchema.validate(message);
+      const {error: err} = featureOfInterestDeleteRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);      
       await deleteFeatureOfInterest(message.where.id);
     } catch (err) {

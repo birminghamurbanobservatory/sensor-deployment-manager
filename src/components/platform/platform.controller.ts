@@ -20,7 +20,6 @@ import {validateGeometry} from '../../utils/geojson-validator';
 import {v4 as uuid} from 'uuid';
 import {SensorNotFound} from '../sensor/errors/SensorNotFound';
 import * as permanentHostService from '../permanent-host/permanent-host.service';
-import {calculateGeometryCentroid} from '../../utils/geojson-helpers';
 import {PaginationOptions} from '../common/pagination-options.class';
 import {CollectionOptions} from '../common/collection-options.class';
 

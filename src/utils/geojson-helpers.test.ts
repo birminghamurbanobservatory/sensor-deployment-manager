@@ -1,7 +1,8 @@
-import {calculateGeometryCentroid, centroidToGeometry} from './geojson-helpers';
+import {calculateCentroidFromGeometry, centroidToGeometry} from './geojson-helpers';
 
 
-describe('Testing of calculateGeometryCentroid function', () => {
+describe('Testing of calculateCentroidFromGeometry function', () => {
+
 
   test('Find correct centroid of Point geometry', () => {
     const geometry = {
@@ -9,37 +10,38 @@ describe('Testing of calculateGeometryCentroid function', () => {
       coordinates: [-1.9, 52.5]
     };
     const expected = {
-      lat: 52.5,
-      lng: -1.9
+      type: 'Point',
+      coordinates: [-1.9, 52.5]
     };
-    const centroid = calculateGeometryCentroid(geometry);
+    const centroid = calculateCentroidFromGeometry(geometry);
     expect(centroid).toEqual(expected);
   });
 
-  test('Find correct centroid of Point geometry with height', () => {
+
+  test('Find correct centroid of a linestring geometry', () => {
     const geometry = {
-      type: 'Point',
-      coordinates: [-1.9, 52.5, 100]
+      type: 'LineString',
+      coordinates: [[10, 10], [20, 20], [30, 30]]
     };
     const expected = {
-      lat: 52.5,
-      lng: -1.9,
-      height: 100
+      type: 'Point',
+      coordinates: [20, 20]
     };
-    const centroid = calculateGeometryCentroid(geometry);
+    const centroid = calculateCentroidFromGeometry(geometry);
     expect(centroid).toEqual(expected);
   });
+
 
   test('Find correct centroid of a polygon geometry', () => {
     const geometry = {
       type: 'Polygon',
-      coordinates: [[[10, 10], [10, 20], [20, 20], [20, 10], [10, 10]]]
+      coordinates: [[[10, 10], [20, 10], [20, 20], [10, 20], [10, 10]]]
     };
     const expected = {
-      lat: 15,
-      lng: 15,
+      type: 'Point',
+      coordinates: [15, 15]
     };
-    const centroid = calculateGeometryCentroid(geometry);
+    const centroid = calculateCentroidFromGeometry(geometry);
     expect(centroid).toEqual(expected);
   });
 

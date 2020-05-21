@@ -29,9 +29,3 @@ class Geometry {
  public type: string;
  public coordinates: any;
 }
-
-class Centroid {
-  public lat: number;
-  public lng: number;
-  public height?: number
-}

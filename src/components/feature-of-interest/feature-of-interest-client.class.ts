@@ -1,11 +1,27 @@
-export class FeatureOfInterestClient {
-  public id: string;
-  public label: string;
-  public comment: string;
-  public listed: boolean;
-  public inCommonVocab: boolean;
-  public createdBy?: string;
-  public belongsToDeployment?: string;
-  public createdAt?: string;
-  public updatedAt?: string;
+export interface FeatureOfInterestClient {
+  id?: string;
+  label?: string;
+  comment?: string;
+  listed?: boolean;
+  inCommonVocab?: boolean;
+  createdBy?: string;
+  belongsToDeployment?: string;
+  location?: FeatureOfInterestLocation;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string;
+}
+
+export interface FeatureOfInterestLocation {
+  id?: string;
+  geometry?: Geometry;
+  centroid?: Geometry;
+  height?: number;
+  validAt?: Date;
+}
+
+
+interface Geometry {
+ type: string;
+ coordinates: any[];
 }

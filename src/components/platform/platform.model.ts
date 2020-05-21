@@ -18,6 +18,7 @@ const geometrySchema = new mongoose.Schema({
     $type: [],
     required: true
   }
+  // It makes sense to use this GeoJSON format as MongoDB understands it and can build indexes from it.
 }, {
   _id: false, // stops this subdocument from having it's own _id
   typeKey: '$type' // need to do this so I can use the 'type' key for the geojson location
