@@ -640,10 +640,13 @@ export async function cutDescendantsOfPlatform(id: string): Promise<void> {
     // For descendants hosted directly on the platform they'll no longer be hosted on anything
     if (descendant.isHostedBy === id) {
       updates.$unset = {isHostedBy: '', hostedByPath: ''};
+      updates.topPlatform = descendant.id;
     // For distant descendants (grandchildren, etc)
     } else {
       const idx = descendant.hostedByPath.indexOf(id);
-      updates.hostedByPath = descendant.hostedByPath.slice(idx + 1, descendant.hostedByPath.length);
+      const newHostedByPath = descendant.hostedByPath.slice(idx + 1, descendant.hostedByPath.length);
+      updates.hostedByPath = newHostedByPath;
+      updates.topPlatform = newHostedByPath[0];
     }
 
     // Update this decendant

@@ -3,7 +3,7 @@ import {ContextApp} from './context-app.class';
 import {ContextClient} from './context-client.class';
 import {GetLiveContextForSensorFail} from './errors/GetLiveContextForSensorFail';
 import {ContextNotFound} from './errors/ContextNotFound';
-import {cloneDeep, merge, concat, pull, pullAll, uniq, without} from 'lodash';
+import {cloneDeep, merge, concat, pull, pullAll, uniq} from 'lodash';
 import {ContextAlreadyExists} from './errors/ContextAlreadyExists';
 import {CreateContextFail} from './errors/CreateContextFail';
 import {InvalidContext} from './errors/InvalidContext';
@@ -104,7 +104,7 @@ export async function getContextForSensorAtTime(sensorId: string, time: Date): P
 }
 
 
-export async function getLiveContextsForPlatform(platformId: string): Promise<ContextApp> {
+export async function getLiveContextsForPlatform(platformId: string): Promise<ContextApp[]> {
 
   let contexts;
   try {
@@ -228,7 +228,7 @@ export async function processPlatformDeleted(platformId: string): Promise<void> 
 
   await Promise.map(existingContexts, async (existingContext) => {
 
-    await endLiveContextForSensor(existingContext.madeBySensor, transitionDate);
+    await endLiveContextForSensor(existingContext.sensor, transitionDate);
 
     const newContext = cloneDeep(existingContext);
     newContext.startDate = transitionDate;
@@ -239,8 +239,10 @@ export async function processPlatformDeleted(platformId: string): Promise<void> 
       // Remove the hostedByPath entirely when it only contained this platform.
       delete newContext.hostedByPath;
     } else {
-      // Leaves the other platform ids in the array
-      newContext.hostedByPath = without(newContext.hostedByPath, platformId);
+      // We'll want to leave an platforms below the platform that is being deleted.
+      const idx = newContext.hostedByPath.indexOf(platformId);
+      const newHostedByPath = newContext.hostedByPath.slice(idx + 1, newContext.hostedByPath.length);
+      newContext.hostedByPath = newHostedByPath;
     }
 
     await createContext(newContext);
