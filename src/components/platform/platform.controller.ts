@@ -6,7 +6,7 @@ import * as check from 'check-types';
 import {PlatformApp} from './platform-app.class';
 import {PlatformNotFound} from './errors/PlatformNotFound';
 import * as logger from 'node-logger';
-import {nameToClientId} from '../../utils/name-to-client-id';
+import {labelToClientId} from '../../utils/label-to-client-id';
 import {cloneDeep, concat, difference, sortBy} from 'lodash';
 import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
 import * as sensorService from '../sensor/sensor.service';
@@ -26,7 +26,7 @@ import {CollectionOptions} from '../common/collection-options.class';
 
 const newPlatformSchema = joi.object({
   id: joi.string(),
-  name: joi.string().required(),
+  label: joi.string().required(),
   description: joi.string().allow(''),
   static: joi.boolean().default(true),
   location: joi.object({
@@ -92,8 +92,8 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
 
   const platformToCreate: any = cloneDeep(platform);
   if (!idSpecified) {
-    platformToCreate.id = nameToClientId(platformToCreate.name);
-    logger.debug(`The platform name: '${platform.name}' has been converted to an id of '${platformToCreate.id}'`);
+    platformToCreate.id = labelToClientId(platformToCreate.label);
+    logger.debug(`The platform label: '${platform.label}' has been converted to an id of '${platformToCreate.id}'`);
   }
 
   if (platformToCreate.location) {
@@ -124,7 +124,7 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
   try {
     createdPlatform = await platformService.createPlatform(platformToCreate);
   } catch (err) {
-    // If we generated an id from the name and this id is already taken then add a suffix and try again.
+    // If we generated an id from the label and this id is already taken then add a suffix and try again.
     if (!idSpecified && err.name === 'PlatformAlreadyExists') {
       platformToCreate.id = `${platformToCreate.id}-${generateClientIdSuffix()}`;
       createdPlatform = await platformService.createPlatform(platformToCreate);
@@ -346,7 +346,7 @@ export async function getPlatforms(where: any = {}, options: GetPlatformsOptions
 // Update Platform
 //-------------------------------------------------
 const platformUpdatesSchema = joi.object({
-  name: joi.string(),
+  label: joi.string(),
   description: joi.string().allow(''),
   static: joi.boolean().valid(false), // for now I'll only allow static to be changed to mobile.
   location: joi.object({

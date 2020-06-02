@@ -5,10 +5,10 @@ describe('Testing replaceNullUpdatesWithUnset function', () => {
   test('Correctly modifies updates', () => {
     
     expect(replaceNullUpdatesWithUnset({
-      name: 'new name',
+      label: 'new label',
       inDeployment: null
     })).toEqual({
-      name: 'new name',
+      label: 'new label',
       $unset: {inDeployment: ''}
     });
 

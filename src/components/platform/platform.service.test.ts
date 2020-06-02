@@ -9,21 +9,21 @@ describe('Testing buildNestedHostsArray function', () => {
     const subPlatforms = [
       {
         id: 'parent-platform-1',
-        name: 'Parent Platform 1',
+        label: 'Parent Platform 1',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
         topPlatform: 'grand-parent-platform'
       },
       {
         id: 'parent-platform-2',
-        name: 'Parent Platform 2',
+        label: 'Parent Platform 2',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
         topPlatform: 'grand-parent-platform'
       },
       {
         id: 'child-platform-1',
-        name: 'Child Platform 1',
+        label: 'Child Platform 1',
         isHostedBy: 'parent-platform-2',
         hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
         topPlatform: 'grand-parent-platform'
@@ -57,7 +57,7 @@ describe('Testing buildNestedHostsArray function', () => {
       },
       {
         id: 'parent-platform-1',
-        name: 'Parent Platform 1',
+        label: 'Parent Platform 1',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
         topPlatform: 'grand-parent-platform',
@@ -77,7 +77,7 @@ describe('Testing buildNestedHostsArray function', () => {
       },
       {
         id: 'parent-platform-2',
-        name: 'Parent Platform 2',
+        label: 'Parent Platform 2',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
         topPlatform: 'grand-parent-platform',
@@ -85,7 +85,7 @@ describe('Testing buildNestedHostsArray function', () => {
         hosts: [
           {
             id: 'child-platform-1',
-            name: 'Child Platform 1',
+            label: 'Child Platform 1',
             isHostedBy: 'parent-platform-2',
             hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
             topPlatform: 'grand-parent-platform',
@@ -117,12 +117,12 @@ describe('Testing buildNestedHostsArray function', () => {
     const subPlatforms = [
       {
         id: 'parent-platform-1',
-        name: 'Parent Platform 1',
+        label: 'Parent Platform 1',
         isHostedBy: 'grand-parent-platform'
       },
       {
         id: 'parent-platform-2',
-        name: 'Parent Platform 2',
+        label: 'Parent Platform 2',
         isHostedBy: 'some-other-grand-parent-platform' // <-- This is the bit that should cause the error
       }
     ];
@@ -169,26 +169,26 @@ describe('Testing buildNestedPlatformsArray function', () => {
     const allPlatforms = [
       {
         id: 'grand-parent-platform',
-        name: 'GrandParent Platform',
+        label: 'GrandParent Platform',
         topPlatform: 'grand-parent-platform'
       },
       {
         id: 'parent-platform-1',
-        name: 'Parent Platform 1',
+        label: 'Parent Platform 1',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
         topPlatform: 'grand-parent-platform'
       },
       {
         id: 'parent-platform-2',
-        name: 'Parent Platform 2',
+        label: 'Parent Platform 2',
         isHostedBy: 'grand-parent-platform',
         hostedByPath: ['grand-parent-platform'],
         topPlatform: 'grand-parent-platform'
       },
       {
         id: 'child-platform-1',
-        name: 'Child Platform 1',
+        label: 'Child Platform 1',
         isHostedBy: 'parent-platform-2',
         hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
         topPlatform: 'grand-parent-platform'
@@ -217,7 +217,7 @@ describe('Testing buildNestedPlatformsArray function', () => {
     const expected = [
       {
         id: 'grand-parent-platform',
-        name: 'GrandParent Platform',
+        label: 'GrandParent Platform',
         topPlatform: 'grand-parent-platform',
         hosts: [
           {
@@ -227,7 +227,7 @@ describe('Testing buildNestedPlatformsArray function', () => {
           },
           {
             id: 'parent-platform-1',
-            name: 'Parent Platform 1',
+            label: 'Parent Platform 1',
             isHostedBy: 'grand-parent-platform',
             hostedByPath: ['grand-parent-platform'],
             topPlatform: 'grand-parent-platform',
@@ -247,7 +247,7 @@ describe('Testing buildNestedPlatformsArray function', () => {
           },
           {
             id: 'parent-platform-2',
-            name: 'Parent Platform 2',
+            label: 'Parent Platform 2',
             isHostedBy: 'grand-parent-platform',
             hostedByPath: ['grand-parent-platform'],
             topPlatform: 'grand-parent-platform',
@@ -255,7 +255,7 @@ describe('Testing buildNestedPlatformsArray function', () => {
             hosts: [
               {
                 id: 'child-platform-1',
-                name: 'Child Platform 1',
+                label: 'Child Platform 1',
                 isHostedBy: 'parent-platform-2',
                 hostedByPath: ['grand-parent-platform', 'parent-platform-2'],
                 topPlatform: 'grand-parent-platform',

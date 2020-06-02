@@ -76,7 +76,7 @@ const schema = new mongoose.Schema({
     required: true,
     maxlength: [44, 'label is too long']
   },
-  comment: {
+  description: {
     type: String,
     maxlength: [1000, 'description is too long'],
     default: ''

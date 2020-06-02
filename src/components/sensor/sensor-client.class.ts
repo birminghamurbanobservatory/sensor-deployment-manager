@@ -2,7 +2,7 @@ import {SensorConfigClient} from './sensor-config-client';
 
 export class SensorClient {
   public id?: string;
-  public name?: string;
+  public label?: string;
   public description?: string;
   public hasDeployment?: string;
   public isHostedBy?: string;

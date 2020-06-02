@@ -51,7 +51,7 @@ describe('Context documents are created and updated correctly', () => {
 
     // Create a permanent host
     const permanentHost = {
-      name: 'Climavue 123',
+      label: 'Climavue 123',
       description: 'Climavue weather station'
     };
     const createdPermanentHost = await permanentHostController.createPermanentHost(permanentHost);
@@ -63,7 +63,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create a sensor
     const sensorClient = {
       id: 'sensor-123',
-      name: 'Sensor 123',
+      label: 'Sensor 123',
       permanentHost: createdPermanentHost.id,
       initialConfig: [
         {
@@ -92,7 +92,7 @@ describe('Context documents are created and updated correctly', () => {
     // Create a deployment
     const deployment = {
       id: 'my-deployment',
-      name: 'My Deployment'
+      label: 'My Deployment'
     };
     const createdDeployment = await deploymentController.createDeployment(deployment);
 
@@ -120,7 +120,7 @@ describe('Context documents are created and updated correctly', () => {
 
     // Create another platform in the deployment
     const parentPlatform = await platformController.createPlatform({
-      name: 'building-1',
+      label: 'building-1',
       inDeployment: createdDeployment.id,
       static: true
     });
@@ -147,7 +147,7 @@ describe('Context documents are created and updated correctly', () => {
 
     // Let's create another parent platform and move it over to that instead
     const secondParentPlatform = await platformController.createPlatform({
-      name: 'building-2',
+      label: 'building-2',
       inDeployment: createdDeployment.id,
       static: true
     });
@@ -225,7 +225,7 @@ describe('Context documents are created and updated correctly', () => {
 
     // Create a Deployment
     const deploymentClient = {
-      name: 'Bobs thermometer Deployment'
+      label: 'Bobs thermometer Deployment'
     };
 
     const deployment = await deploymentController.createDeployment(deploymentClient);
@@ -237,7 +237,7 @@ describe('Context documents are created and updated correctly', () => {
     await disciplineController.createDiscipline({id: exampleDiscipline});
 
     const sensorClient = {
-      name: 'Bobs Mercury Thermometer',
+      label: 'Bobs Mercury Thermometer',
       hasDeployment: deployment.id,
       initialConfig: [
         {
@@ -271,7 +271,7 @@ describe('Context documents are created and updated correctly', () => {
 
     // Let's create a platform in this deployment
     const platformClient = {
-      name: 'Bobs back garden',
+      label: 'Bobs back garden',
       static: true,
       inDeployment: deployment.id,
       location: {
@@ -358,7 +358,7 @@ describe('Context documents are created and updated correctly', () => {
     // Add it to a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1'
+      label: 'Deployment 1'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 

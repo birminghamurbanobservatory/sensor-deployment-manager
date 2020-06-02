@@ -1,7 +1,7 @@
 // This is the format that this application uses (specifically the services and controllers)
 export class PlatformApp {
   public id?: string;
-  public name: string;
+  public label: string;
   public description?: string;
   public inDeployment?: string;
   public isHostedBy?: string;

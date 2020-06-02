@@ -48,10 +48,10 @@ const schema = new mongoose.Schema({
       }
     }
   },
-  name: {
+  label: {
     type: String,
     required: true,
-    maxlength: [44, 'Sensor name is too long']
+    maxlength: [44, 'Sensor label is too long']
   },
   description: {
     type: String,
@@ -91,7 +91,7 @@ const schema = new mongoose.Schema({
 schema.index({permanentHost: 1});
 schema.index({hasDeployment: 1, isHostedBy: 1});
 schema.index({isHostedBy: 1}); // comes in handy when getting nested platforms including the sensors
-schema.index({_id: 'text', name: 'text'});
+schema.index({_id: 'text', label: 'text'});
 
 
 //-------------------------------------------------

@@ -44,7 +44,7 @@ describe('Unknown sensor tests', () => {
     // For even greater peace of mind, let's create a sensor that is known first.
     // Create a permanent host
     const permanentHostClient = {
-      name: 'Climavue 123',
+      label: 'Climavue 123',
     };
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
@@ -54,7 +54,7 @@ describe('Unknown sensor tests', () => {
     // Create a sensor
     const knownSensorClient = {
       id: 'sensor-123',
-      name: 'Sensor 123',
+      label: 'Sensor 123',
       permanentHost: permanentHost.id,
       initialConfig: [
         {
@@ -140,7 +140,7 @@ describe('Unknown sensor tests', () => {
     // Now let's create the sensor for real
     const nowKnownSensorClient = {
       id: unknownSensorId,
-      name: 'Now known sensor',
+      label: 'Now known sensor',
       permanentHost: permanentHost.id,
       initialConfig: [
         {

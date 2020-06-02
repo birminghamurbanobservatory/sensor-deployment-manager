@@ -48,7 +48,7 @@ describe('Permanent host testing', () => {
     //------------------------
 
     const permanentHostClient = {
-      name: 'Weather Station 5',
+      label: 'Weather Station 5',
       description: 'A weather station with lots of intergrated sensors on it',
       static: false
     };
@@ -65,7 +65,7 @@ describe('Permanent host testing', () => {
     expect(check.nonEmptyString(permanentHost.updatedAt)).toBe(true);
     expect(permanentHost).toEqual({
       id: permanentHost.id,
-      name: permanentHostClient.name,
+      label: permanentHostClient.label,
       description: permanentHostClient.description,
       static: permanentHostClient.static,
       registrationKey: permanentHost.registrationKey,
@@ -112,7 +112,7 @@ describe('Permanent host testing', () => {
     expect.assertions(8);
 
     const permanentHostClient = {
-      name: 'Weather Station 5',
+      label: 'Weather Station 5',
       description: 'A weather station with lots of intergrated sensors on it',
       static: false
     };
@@ -125,7 +125,7 @@ describe('Permanent host testing', () => {
     // Create a sensor on this permanent host
     const sensorClient = {
       id: 'sensor-123',
-      name: 'Sensor 123',
+      label: 'Sensor 123',
       permanentHost: permanentHost.id
     };
     const sensor = await sensorController.createSensor(sensorClient);
@@ -133,7 +133,7 @@ describe('Permanent host testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'my-deployment',
-      name: 'My Deployment'
+      label: 'My Deployment'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
@@ -172,7 +172,7 @@ describe('Permanent host testing', () => {
     const createdPermanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
     
     expect(createdPermanentHost.id).toBe(permanentHostClient.id);
-    expect(createdPermanentHost.name).toBe(permanentHostClient.id); // uses the id as the name
+    expect(createdPermanentHost.label).toBe(permanentHostClient.id); // uses the id as the label
     expect(createdPermanentHost.static).toBe(false); // should default to being mobile
     expect(check.nonEmptyString(createdPermanentHost.createdAt)).toBe(true);
     expect(check.nonEmptyString(createdPermanentHost.updatedAt)).toBe(true);
@@ -188,7 +188,7 @@ describe('Permanent host testing', () => {
 
     // Create the permanent host
     const permanentHostClient = {
-      name: 'Weather Station 5'
+      label: 'Weather Station 5'
     };
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 

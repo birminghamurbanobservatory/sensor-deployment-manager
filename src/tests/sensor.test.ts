@@ -63,7 +63,7 @@ describe('Sensor testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1'
+      label: 'Deployment 1'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
@@ -77,7 +77,7 @@ describe('Sensor testing', () => {
     // Make sure this sensor can't be added directly to a platform
     // First create a platform
     const otherPlatformClient = {
-      name: 'Platform 1',
+      label: 'Platform 1',
       inDeployment: deployment.id
     };
     const otherPlatform = await platformController.createPlatform(otherPlatformClient);
@@ -160,13 +160,13 @@ describe('Sensor testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1'
+      label: 'Deployment 1'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a platform
     const platformClient = {
-      name: 'Platform 1',
+      label: 'Platform 1',
       inDeployment: deployment.id
     };
     const platform = await platformController.createPlatform(platformClient);
@@ -216,7 +216,7 @@ describe('Sensor testing', () => {
     // Check it doesn't allow this sensor to change deployment if its platform remains in the first deployment
     const otherDeploymentClient = {
       id: 'deployment-2',
-      name: 'Deployment 2'
+      label: 'Deployment 2'
     };
     const otherDeployment = await deploymentController.createDeployment(otherDeploymentClient);
 
@@ -257,7 +257,7 @@ describe('Sensor testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1'
+      label: 'Deployment 1'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
@@ -282,13 +282,13 @@ describe('Sensor testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1'
+      label: 'Deployment 1'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a platform
     const platformClient = {
-      name: 'Platform 1',
+      label: 'Platform 1',
       inDeployment: deployment.id
     };
     const platform = await platformController.createPlatform(platformClient);
@@ -328,7 +328,7 @@ describe('Sensor testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1'
+      label: 'Deployment 1'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
@@ -376,7 +376,7 @@ describe('Sensor testing', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1'
+      label: 'Deployment 1'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 

@@ -15,7 +15,7 @@ import * as observablePropertyService from './observable-property.service';
 const newObservablePropertySchema = joi.object({
   id: joi.string(),
   label: joi.string(),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   units: joi.array().items(joi.string()),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
@@ -147,7 +147,7 @@ export async function getObservableProperties(where: any, options?: CollectionOp
 const observablePropertyUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   listed: joi.boolean(),
   units: joi.array().items(joi.string()),
   inCommonVocab: joi.boolean(),

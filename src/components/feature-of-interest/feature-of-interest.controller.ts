@@ -30,7 +30,7 @@ const featureOfInterestLocationSchema = joi.object({
 const newFeatureOfInterestSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string(),
@@ -166,7 +166,7 @@ export async function getFeaturesOfInterest(where: any = {}, options: Collection
 const featureOfInterestUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string().allow(null),

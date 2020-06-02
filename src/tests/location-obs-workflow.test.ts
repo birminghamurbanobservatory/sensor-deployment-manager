@@ -49,7 +49,7 @@ describe('Location observations are correctly processed by the addContextToObser
     // Create a deployment
     const deploymentClient = {
       id: 'deployment-1',
-      name: 'Deployment 1',
+      label: 'Deployment 1',
       description: 'My first deployment',
       createdBy: 'user-1'
     };
@@ -74,7 +74,7 @@ describe('Location observations are correctly processed by the addContextToObser
     // Create a platform
     const platformClient = {
       id: 'van-123',
-      name: 'Mobile van 123',
+      label: 'Mobile van 123',
       static: false,
       inDeployment: primaryDeployment.id
     };
@@ -201,14 +201,14 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // Create a Deployment
     const deploymentClient = {
-      name: 'Mobile AQ Fleet'
+      label: 'Mobile AQ Fleet'
     };
 
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a permanent host
     const permanentHostClient = {
-      name: 'Earthsense Zephyr 123'
+      label: 'Earthsense Zephyr 123'
     };
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
@@ -217,7 +217,7 @@ describe('Location observations are correctly processed by the addContextToObser
     await observablePropertyController.createObservableProperty({id: exampleObservedPropertyForLocationSensor});
     const locationSensorClient = {
       id: 'zephyr-123-gps',
-      name: 'Zephyr 123 GPS Sensor',
+      label: 'Zephyr 123 GPS Sensor',
       permanentHost: permanentHost.id,
       initialConfig: [
         {
@@ -233,7 +233,7 @@ describe('Location observations are correctly processed by the addContextToObser
     await observablePropertyController.createObservableProperty({id: exampleObservedPropertyForNonLocationSensor});
     const nonLocationSensorClient = {
       id: 'zephyr-123-no2',
-      name: 'Zephyr 123 NO2 Sensor',
+      label: 'Zephyr 123 NO2 Sensor',
       permanentHost: permanentHost.id,
       initialConfig: [
         {

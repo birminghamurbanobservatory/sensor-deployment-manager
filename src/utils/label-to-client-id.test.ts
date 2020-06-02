@@ -1,4 +1,4 @@
-import {nameToClientId} from './name-to-client-id';
+import {labelToClientId} from './label-to-client-id';
 
 
 //-------------------------------------------------
@@ -7,23 +7,23 @@ import {nameToClientId} from './name-to-client-id';
 describe('name to clientId function', () => {
 
   test('Convert standard space separated name', () => {
-    const name = 'reference weather stations';
+    const label = 'reference weather stations';
     const expected = 'reference-weather-stations';
-    expect(nameToClientId(name)).toBe(expected);
+    expect(labelToClientId(label)).toBe(expected);
   });
 
   
   test('Removes any characters unsafe for a url', () => {
-    const name = 'reference %*stat/ions';
+    const label = 'reference %*stat/ions';
     const expected = 'reference-stations';
-    expect(nameToClientId(name)).toBe(expected);
+    expect(labelToClientId(label)).toBe(expected);
   });
   
   
   test('Removes any upper case characters', () => {
-    const name = 'Reference Weather Stations';
+    const label = 'Reference Weather Stations';
     const expected = 'reference-weather-stations';
-    expect(nameToClientId(name)).toBe(expected);
+    expect(labelToClientId(label)).toBe(expected);
   });  
 
 

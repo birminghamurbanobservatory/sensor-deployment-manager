@@ -15,7 +15,7 @@ import * as unitService from './unit.service';
 const newUnitSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   symbol: joi.string(),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
@@ -146,7 +146,7 @@ const unitUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
   symbol: joi.string().allow(null),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string().allow(null)

@@ -1,7 +1,7 @@
 // This is the format that clients and other microservices see.
 export class PlatformClient {
   public id?: string;
-  public name: string;
+  public label: string;
   public description?: string;
   public inDeployment?: string;
   public isHostedBy?: string;

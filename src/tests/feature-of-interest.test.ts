@@ -47,7 +47,7 @@ describe('Feature of interest tests', () => {
     const featureOfInterestClient = {
       id: 'earth-atmosphere',
       label: 'Earth Atmosphere',
-      comment: `The Earth's atmosphere`,
+      description: `The Earth's atmosphere`,
       location: {
         geometry: {
           type: 'Polygon',
@@ -90,7 +90,7 @@ describe('Feature of interest tests', () => {
     // Update
     //------------------------
     const updates = {
-      comment: 'The vast earth atmosphere',
+      description: 'The vast earth atmosphere',
       location: {
         geometry: {
           type: 'LineString',
@@ -100,7 +100,7 @@ describe('Feature of interest tests', () => {
       }
     };
     const updatedFeatureOfInterest = await featureOfInterestController.updateFeatureOfInterest(featureOfInterest.id, updates);
-    expect(updatedFeatureOfInterest.comment).toBe(updates.comment);
+    expect(updatedFeatureOfInterest.description).toBe(updates.description);
     expect(updatedFeatureOfInterest.location.geometry).toEqual(updates.location.geometry);
     expect(updatedFeatureOfInterest.location.centroid).toEqual({
       type: 'Point',

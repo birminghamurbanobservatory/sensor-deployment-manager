@@ -43,14 +43,14 @@ describe('Testing the functionality of the deployment code, in particular the kn
     expect.assertions(7);
 
     const initialClientDeployment = {
-      name: 'Deployment 1',
+      label: 'Deployment 1',
       description: 'My first deployment',
       createdBy: 'user-1'
     };
 
     const createdDeployment = await deploymentController.createDeployment(initialClientDeployment);
 
-    expect(createdDeployment.name).toBe(initialClientDeployment.name);
+    expect(createdDeployment.label).toBe(initialClientDeployment.label);
     expect(createdDeployment.description).toBe(initialClientDeployment.description);
     expect(createdDeployment.id).toBe('deployment-1');
     expect(createdDeployment.public).toBe(false);
@@ -75,7 +75,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Deployment 1
     //------------------------
     const deploymentOneClient = {
-      name: 'Deployment 1',
+      label: 'Deployment 1',
       createdBy: 'user-1',
       public: true
     };
@@ -83,7 +83,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Create a platform in the first deployment
     const platformInDepOneClient = {
-      name: 'park 1',
+      label: 'park 1',
       inDeployment: deploymentOne.id,
       static: true
     };
@@ -100,14 +100,14 @@ describe('Testing the functionality of the deployment code, in particular the kn
     // Second deployment
     //------------------------
     const deploymentTwoClient = {
-      name: 'Deployment 2',
+      label: 'Deployment 2',
       createdBy: 'user-2'
     };
     const deploymentTwo = await deploymentController.createDeployment(deploymentTwoClient);
 
     // Create a platform in the deploymentTwo that we'll later host on a platform in the first deployment
     const platformInDepTwoClient = {
-      name: 'Stevenson Screen',
+      label: 'Stevenson Screen',
       inDeployment: deploymentTwo.id,
       static: false
     };
@@ -115,7 +115,7 @@ describe('Testing the functionality of the deployment code, in particular the kn
 
     // Create a sensor hosted on this platform
     const platformInDepTwoSensorClient = {
-      name: 'Mercury Thermometer',
+      label: 'Mercury Thermometer',
       hasDeployment: deploymentTwo.id
     };
     let platformInDepTwoSensor = await sensorController.createSensor(platformInDepTwoSensorClient);

@@ -34,7 +34,7 @@ const configSchema = joi.object({
 
 const newSensorSchema = joi.object({
   id: joi.string(), // we'll leave the model schema to check the length
-  name: joi.string(),
+  label: joi.string(),
   description: joi.string().allow(''),
   permanentHost: joi.string(),
   hasDeployment: joi.string(),
@@ -72,12 +72,12 @@ export async function createSensor(sensor: SensorClient): Promise<SensorClient> 
 
   // If the sensor doesn't have an id then assign one
   if (!sensor.id) {
-    sensor.id = generateId(sensor.name);
+    sensor.id = generateId(sensor.label);
   } 
 
-  // If the sensor does not have a name yet then simply use the id.
-  if (!sensor.name) {
-    sensor.name = sensor.id;
+  // If the sensor does not have a label yet then simply use the id.
+  if (!sensor.label) {
+    sensor.label = sensor.id;
   }
 
   // Begin to create the context for this sensor.
@@ -222,7 +222,7 @@ export async function getSensors(where: any, options: CollectionOptions = {}): P
 //-------------------------------------------------
 const sensorUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
-  name: joi.string(),
+  label: joi.string(),
   description: joi.string().allow(''),
   hasDeployment: joi.string().allow(null),
   permanentHost: joi.string().allow(null),

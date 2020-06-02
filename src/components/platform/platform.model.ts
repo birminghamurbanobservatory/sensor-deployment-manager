@@ -61,10 +61,10 @@ const schema = new mongoose.Schema({
       }
     }
   },
-  name: {
+  label: {
     type: String,
     required: true,
-    maxlength: [44, 'Platform name is too long']
+    maxlength: [44, 'Platform label is too long']
   },
   description: {
     type: String,
@@ -116,7 +116,7 @@ schema.index({inDeployment: 1});
 schema.index({hostedByPath: 1});
 schema.index({topPlatform: 1});
 schema.index({updateLocationWithSensor: 1});
-schema.index({_id: 'text', name: 'text'});
+schema.index({_id: 'text', label: 'text'});
 schema.index({'location.geometry': '2dsphere'}); // for geospatial queries
 
 

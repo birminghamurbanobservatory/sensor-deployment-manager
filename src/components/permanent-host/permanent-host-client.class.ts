@@ -1,6 +1,6 @@
 export class PermanentHostClient {
   public id?: string;
-  public name?: string;
+  public label?: string;
   public description?: string;
   public static?: boolean;
   public updateLocationWithSensor?: string;

@@ -40,7 +40,7 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   // Create a new platform in the deployment based on this permanentHost
   const platformToCreate = {
     id: `${permanentHost.id}-${generateClientIdSuffix()}`,
-    name: permanentHost.name,
+    label: permanentHost.label,
     description: permanentHost.description,
     inDeployment: deploymentId,
     static: permanentHost.static,

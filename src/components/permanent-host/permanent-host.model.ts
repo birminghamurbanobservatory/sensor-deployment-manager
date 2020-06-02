@@ -24,10 +24,10 @@ const schema = new mongoose.Schema({
       }
     }
   },
-  name: {
+  label: {
     type: String, 
     required: true,
-    maxlength: [44, 'Permanent host name is too long']
+    maxlength: [44, 'Permanent host label is too long']
   },
   description: {
     type: String,
@@ -67,7 +67,7 @@ const schema = new mongoose.Schema({
 // Indexes
 //-------------------------------------------------
 schema.index({registrationKey: 1}, {unique: true});
-schema.index({_id: 'text', name: 'text'});
+schema.index({_id: 'text', label: 'text'});
 
 //-------------------------------------------------
 // Create Model (and expose it to our app)

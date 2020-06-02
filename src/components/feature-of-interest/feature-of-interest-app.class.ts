@@ -1,7 +1,7 @@
 export interface FeatureOfInterestApp {
   id?: string;
   label?: string;
-  comment?: string;
+  description?: string;
   listed?: boolean;
   inCommonVocab?: boolean;
   createdBy?: string;

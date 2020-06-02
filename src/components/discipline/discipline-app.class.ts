@@ -1,7 +1,7 @@
 export class DisciplineApp {
   public id?: string;
   public label?: string;
-  public comment?: string;
+  public description?: string;
   public listed?: boolean;
   public inCommonVocab?: boolean;
   public createdBy?: string;

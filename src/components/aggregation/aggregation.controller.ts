@@ -15,7 +15,7 @@ import * as aggregationService from './aggregation.service';
 const newAggregationSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string(),
@@ -144,7 +144,7 @@ export async function getAggregations(where: any, options?: CollectionOptions): 
 const aggregationUpdatesSchema = joi.object({
   // There's only certain fields the client should be able to update.
   label: joi.string(),
-  comment: joi.string().allow(''),
+  description: joi.string().allow(''),
   listed: joi.boolean(),
   inCommonVocab: joi.boolean(),
   belongsToDeployment: joi.string().allow(null)

@@ -35,10 +35,10 @@ const schema = new mongoose.Schema({
       }
     }
   },
-  name: {
+  label: {
     type: String, 
     required: true,
-    maxlength: [44, 'Deployment name is too long']
+    maxlength: [44, 'Deployment label is too long']
   },
   description: {
     type: String,

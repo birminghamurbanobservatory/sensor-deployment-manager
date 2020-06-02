@@ -3,7 +3,7 @@ import {generateRegistrationKey} from '../../utils/registration-keys';
 import * as permanentHostService from './permanent-host.service';
 import * as check from 'check-types';
 import * as logger from 'node-logger';
-import {nameToClientId} from '../../utils/name-to-client-id';
+import {labelToClientId} from '../../utils/label-to-client-id';
 import {PermanentHostApp} from './permanent-host-app.class';
 import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
 import {SensorNotFound} from '../sensor/errors/SensorNotFound';
@@ -18,12 +18,12 @@ import {PaginationOptions} from '../common/pagination-options.class';
 
 const newPermanentHostSchema = joi.object({
   id: joi.string(),
-  name: joi.string(),
+  label: joi.string(),
   description: joi.string().allow(''),
   static: joi.boolean()
   // N.B. updateLocationWithSensor is not allow here, as the client first has to create this permanent host in order to add locational sensors to it and then it can be updated to use one of these sensors for location.
 })
-.or('id', 'name')
+.or('id', 'label')
 .required();
 
 export async function createPermanentHost(permanentHost: PermanentHostClient): Promise<PermanentHostClient> {
@@ -38,15 +38,15 @@ export async function createPermanentHost(permanentHost: PermanentHostClient): P
   // If the new permanent host doesn't have an id yet, then we can autogenerate one.
   const idSpecified = check.assigned(permanentHost.id);
   if (!idSpecified) {
-    permanentHostToCreate.id = nameToClientId(permanentHost.name);
-    logger.debug(`The permanent host name: '${permanentHostToCreate.name}' has been converted to an id of '${permanentHostToCreate.id}'`);
+    permanentHostToCreate.id = labelToClientId(permanentHost.label);
+    logger.debug(`The permanent host label: '${permanentHostToCreate.label}' has been converted to an id of '${permanentHostToCreate.id}'`);
   }
 
-  // If it doesn't yet have a name then we'll just use the id as the name
-  const nameSpecified = check.assigned(permanentHost.name);
-  if (!nameSpecified) {
-    // Use slice just in case the id is too long to use as the name.
-    permanentHostToCreate.name = permanentHost.id.slice(0, 44);
+  // If it doesn't yet have a label then we'll just use the id as the label
+  const labelSpecified = check.assigned(permanentHost.label);
+  if (!labelSpecified) {
+    // Use slice just in case the id is too long to use as the label.
+    permanentHostToCreate.label = permanentHost.id.slice(0, 44);
   }
 
   // Generate a registration key
@@ -56,7 +56,7 @@ export async function createPermanentHost(permanentHost: PermanentHostClient): P
   try {
     createdPermanentHost = await permanentHostService.createPermanentHost(permanentHostToCreate);
   } catch (err) {
-    if (!idSpecified && err.name === 'PermanentHostAlreadyExists') {
+    if (!idSpecified && err.label === 'PermanentHostAlreadyExists') {
       // If the id we allocated is already taken then add a random string on the end and try again.
       permanentHostToCreate.id = `${permanentHostToCreate.id}-${generateClientIdSuffix()}`;
       createdPermanentHost = await permanentHostService.createPermanentHost(permanentHostToCreate);
@@ -108,16 +108,16 @@ export async function getPermanentHosts(where: any, options: PaginationOptions =
 }
 
 
-// Allow updates to permanent hosts, e.g. changing the name, description or updateLocationWithSensor (with this the listed sensor's permanentHost must match the permanentHost being updated).
+// Allow updates to permanent hosts, e.g. changing the label, description or updateLocationWithSensor (with this the listed sensor's permanentHost must match the permanentHost being updated).
 const updatePermanentHostSchema = joi.object({
-  name: joi.string(),
+  label: joi.string(),
   description: joi.string().allow(''),
   static: joi.boolean(),
   updateLocationWithSensor: joi.string().allow(null)
 })
 .required();
 
-export async function updatePermanentHost(id: string, updates: {name?: string; description?: string; static?: boolean; updateLocationWithSensor?: string}): Promise<PermanentHostClient> {
+export async function updatePermanentHost(id: string, updates: {label?: string; description?: string; static?: boolean; updateLocationWithSensor?: string}): Promise<PermanentHostClient> {
 
   const {error: validationError} = updatePermanentHostSchema.validate(updates);
   if (validationError) {

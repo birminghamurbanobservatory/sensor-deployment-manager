@@ -1,6 +1,6 @@
 import {DeploymentClient} from './deployment-client.class';
 import * as check from 'check-types';
-import {nameToClientId} from '../../utils/name-to-client-id';
+import {labelToClientId} from '../../utils/label-to-client-id';
 import {generateClientIdSuffix} from '../../utils/generate-client-id-suffix';
 import {DeploymentApp} from './deployment-app.class';
 import * as logger from 'node-logger';
@@ -16,7 +16,7 @@ import {InvalidDeployment} from './errors/InvalidDeployment';
 
 const createDeploymentSchema = joi.object({
   id: joi.string(),
-  name: joi.string().required(),
+  label: joi.string().required(),
   description: joi.string().allow(''),
   public: joi.boolean(),
   createdBy: joi.string()
@@ -33,8 +33,8 @@ export async function createDeployment(deployment: DeploymentClient): Promise<De
   // If the new deployment doesn't have an id yet, then we can autogenerate one.
   const idSpecified = check.assigned(deployment.id);
   if (!idSpecified) {
-    deployment.id = nameToClientId(deployment.name);
-    logger.debug(`The deployment name: '${deployment.name}' has been converted to an id of '${deployment.id}'`);
+    deployment.id = labelToClientId(deployment.label);
+    logger.debug(`The deployment label: '${deployment.label}' has been converted to an id of '${deployment.id}'`);
   }
 
   const deploymentToCreate: DeploymentApp = deploymentService.deploymentClientToApp(deployment);
@@ -126,7 +126,7 @@ export async function getDeployments(where: {user?: string; public?: boolean; id
 
 
 const updateDeploymentSchema = joi.object({
-  name: joi.string(),
+  label: joi.string(),
   description: joi.string().allow(''),
   public: joi.boolean()
 })

@@ -48,13 +48,13 @@ describe('Platform hosting tests', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'climavue-weather-stations',
-      name: 'Climavue Weather Stations'
+      label: 'Climavue Weather Stations'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a permanent host
     const permanentHostClient = {
-      name: 'Climavue 123',
+      label: 'Climavue 123',
       description: 'Climavue weather station'
     };
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
@@ -62,7 +62,7 @@ describe('Platform hosting tests', () => {
     // Create a sensor
     const sensorClient = {
       id: 'sensor-123',
-      name: 'Sensor 123',
+      label: 'Sensor 123',
       permanentHost: permanentHost.id
     };
     const sensor = await sensorController.createSensor(sensorClient);
@@ -73,7 +73,7 @@ describe('Platform hosting tests', () => {
 
     // Create a host platform
     const hostPlatformClient = {
-      name: 'Lighting Column no. 16',
+      label: 'Lighting Column no. 16',
       inDeployment: deployment.id,
       static: true,
       location: {
@@ -117,20 +117,20 @@ describe('Platform hosting tests', () => {
     // Create a deployment
     const deploymentClient = {
       id: 'aq-vans',
-      name: 'Air Quality Vans'
+      label: 'Air Quality Vans'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a permanent host
     const permanentHostClient = {
-      name: 'Earthsense Zephyr serial no. 152342',
+      label: 'Earthsense Zephyr serial no. 152342',
     };
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
     // Create sensor 1
     const sensor1Client = {
       id: 'zephyr-152342-co2',
-      name: 'Zephyr 152342 CO2 sensor',
+      label: 'Zephyr 152342 CO2 sensor',
       permanentHost: permanentHost.id
     };
     const sensor1 = await sensorController.createSensor(sensor1Client);
@@ -138,7 +138,7 @@ describe('Platform hosting tests', () => {
     // Create sensor 2
     const sensor2Client = {
       id: 'zephyr-152342-gps',
-      name: 'Zephyr 152342 GPS sensor',
+      label: 'Zephyr 152342 GPS sensor',
       permanentHost: permanentHost.id
     };
     const sensor2 = await sensorController.createSensor(sensor2Client);
@@ -157,7 +157,7 @@ describe('Platform hosting tests', () => {
 
     // Create a host platform
     const hostPlatformClient = {
-      name: 'AQ Van No. 1',
+      label: 'AQ Van No. 1',
       inDeployment: deployment.id,
       static: false
     };
@@ -203,20 +203,20 @@ describe('Platform hosting tests', () => {
 
     // Create a deployment
     const deploymentClient = {
-      name: 'Uni Met Station'
+      label: 'Uni Met Station'
     };
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create parent platform
     const parentPlatformClient = {
-      name: 'Met Enclosure',
+      label: 'Met Enclosure',
       inDeployment: deployment.id
     };
     const parentPlatform = await platformController.createPlatform(parentPlatformClient);
 
     // Add a sensor to the parent platform
     const parentSensorClient = {
-      name: 'pyranometer',
+      label: 'pyranometer',
       hasDeployment: deployment.id,
       isHostedBy: parentPlatform.id
     };
@@ -224,7 +224,7 @@ describe('Platform hosting tests', () => {
 
     // Create a child platform
     const stdChildPlatformClient = {
-      name: 'Stevenson screen',
+      label: 'Stevenson screen',
       isHostedBy: parentPlatform.id,
       inDeployment: deployment.id
     };
@@ -232,7 +232,7 @@ describe('Platform hosting tests', () => {
 
     // Add a sensor to this child platform
     const stdChildSensorClient = {
-      name: 'mercury-thermometer',
+      label: 'mercury-thermometer',
       hasDeployment: deployment.id,
       isHostedBy: stdChildPlatform.id
     };
@@ -240,14 +240,14 @@ describe('Platform hosting tests', () => {
 
     // Create a permanent host
     const permanentHostClient = {
-      name: 'climavue50'
+      label: 'climavue50'
     }; 
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
     // Create a sensor on the permanentHost
     const pHostSensorClient = {
       id: 'phost-1-sensor-1',
-      name: 'thermometer',
+      label: 'thermometer',
       permanentHost: permanentHost.id
     };  
     const pHostSensor = await sensorController.createSensor(pHostSensorClient);

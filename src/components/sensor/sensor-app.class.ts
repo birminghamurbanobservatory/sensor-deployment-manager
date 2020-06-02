@@ -2,7 +2,7 @@ import {SensorConfigApp} from './sensor-config-app';
 
 export class SensorApp {
   public id: string;
-  public name?: string;
+  public label?: string;
   public description?: string;
   public hasDeployment?: string;
   public isHostedBy?: string;
