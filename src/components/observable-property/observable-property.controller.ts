@@ -7,7 +7,8 @@ import {ObservablePropertyClient} from './observable-property-client.class';
 import {InvalidObservableProperty} from './errors/InvalidObservableProperty';
 import {getDeployment} from '../deployment/deployment.service';
 import * as observablePropertyService from './observable-property.service';
-
+import * as Promise from 'bluebird';
+import {getUnit} from '../unit/unit.service';
 
 //-------------------------------------------------
 // Create ObservableProperty
@@ -54,7 +55,12 @@ export async function createObservableProperty(observableProperty: ObservablePro
     await getDeployment(observableProperty.belongsToDeployment);
   }
 
-  // TODO: If units have been provided then check they actually exist.
+  // If units have been provided then check they actually exist.
+  if (observableProperty.units) {
+    await Promise.mapSeries(observableProperty.units, async (unit) => {
+      await getUnit(unit); // throws a UnitNotFound error if the unit does not exist
+    });
+  }
 
   const created = await observablePropertyService.createObservableProperty(observableProperty);
 
@@ -166,6 +172,13 @@ export async function updateObservableProperty(id: string, updates: any): Promis
   // Check the deployment exists if provided
   if (updates.belongsToDeployment) {
     await getDeployment(updates.belongsToDeployment);
+  }
+
+  // Check the units exist if provided
+  if (validUpdates.units) {
+    await Promise.mapSeries(validUpdates.units, async (unit) => {
+      await getUnit(unit); // throws a UnitNotFound error if the unit does not exist
+    });
   }
 
   const updatedObservableProperty = await observablePropertyService.updateObservableProperty(id, validUpdates);
