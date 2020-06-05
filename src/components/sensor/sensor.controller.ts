@@ -305,7 +305,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
     await validateSensorConfigArray(updates.initialConfig);
   }
   // Do the same for the currentConfig object
-  if (updates.initialConfig) {
+  if (updates.currentConfig) {
     await validateSensorConfigArray(updates.currentConfig);
   }
 
