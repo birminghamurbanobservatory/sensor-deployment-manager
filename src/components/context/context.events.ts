@@ -4,14 +4,13 @@ import {Promise} from 'bluebird';
 import {logCensorAndRethrow} from '../../events/handle-event-handler-error';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
-import {ContextClient} from './context-client.class';
 import {addContextToObservation} from './context.controller';
 import {ObservationClient} from '../observation/observation-client.class';
 
 export async function subscribeToContextEvents(): Promise<void> {
 
   const subscriptionFunctions = [
-    subscribeToObservationAddContextRequests
+    subscribeToObservationAddContextEvent
   ];
 
   // I don't want later subscriptions to be prevented, just because an earlier attempt failed, as I want my event-stream module to have all the event names and handler functions added to its list of subscriptions so it can add them again upon a reconnect.
@@ -35,11 +34,12 @@ export async function subscribeToContextEvents(): Promise<void> {
 
 
 //-------------------------------------------------
-// Add context to an observation
+// Add context to an observation (expects imediate response)
 //-------------------------------------------------
-async function subscribeToObservationAddContextRequests(): Promise<void> {
+async function subscribeToObservationAddContextEvent(): Promise<void> {
 
-  const eventName = 'observation.add-context.request';
+  // Note: we haven't included the word 'request' in the eventname, because most of the time requests coming in will expect the updatedObservation to be added to another fire-and-forget queue, rather than expecting a direct RPC reponse. N.B. for the former we don't need to set what queue they'll then be added onto, because it's up to the publisher to decide this. Were the word request used in the eventName the configuration of queue would be different, i.e. faster but less durable.
+  const eventName = 'observation.add-context';
   const observationAddContextRequestSchema = joi.object({
     // Worth having this structure in case I ever need to provide any options too.
     observation: joi.object({}).unknown().required()
@@ -65,5 +65,6 @@ async function subscribeToObservationAddContextRequests(): Promise<void> {
   return;
 
 }
+
 
 

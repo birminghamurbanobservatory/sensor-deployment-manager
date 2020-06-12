@@ -29,7 +29,7 @@
     "check-types": "^10.1.2",
     "cls-hooked": "^4.2.2",
     "dotenv": "^8.2.0",
-    "event-stream": "github:birminghamurbanobservatory/event-stream#semver:^1.0.0",
+    "event-stream": "github:birminghamurbanobservatory/event-stream#semver:^2.0.0",
     "mongoose": "^5.7.7",
     "node-logger": "github:birminghamurbanobservatory/node-logger#semver:^1.0.0",
     "password-generator": "^2.2.0",
