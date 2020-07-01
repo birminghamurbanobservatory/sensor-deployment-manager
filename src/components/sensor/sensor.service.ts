@@ -194,7 +194,7 @@ export async function removeSensorsFromDeployment(deploymentId: string): Promise
 
 export async function updateSensor(id: string, updates: any): Promise<SensorApp> {
 
-  // N.B. for simplicity we won't let users update individual objects in the initialConfig or currentConfig arrays. Theyt'll have to update the whole thing in one go. 
+  // N.B. for simplicity we won't let users update individual objects in the initialConfig or currentConfig arrays. They'll have to update the whole thing in one go. 
 
   // If there's any properties such as hasDeployment or isHostedBy that you want to remove completely, e.g. because a sensor has been removed from a deployment then pass in a value of null to have the property unset, e.g. {hasDeployment: null}.
   const modifiedUpdates = replaceNullUpdatesWithUnset(updates);
@@ -304,7 +304,7 @@ function sensorDbToApp(sensorDb: any): SensorApp {
   return sensorApp;
 }
 
-
+// TODO: Could remove this now that these config sub-docs don't have a _id assigned.
 function renameId(doc): any {
   if (doc._id) {
     doc.id = doc._id;

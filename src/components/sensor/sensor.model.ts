@@ -31,6 +31,8 @@ const configSchema = new mongoose.Schema({
     type: [String],
     default: undefined // so it doesn't assign an empty array by default
   }
+}, {
+  _id : false // Stops these sub-documents from having an _id added
 });
 
 const schema = new mongoose.Schema({

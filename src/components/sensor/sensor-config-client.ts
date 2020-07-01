@@ -1,5 +1,4 @@
 export interface SensorConfigClient {
-  id?: string;
   hasPriority?: boolean;
   observedProperty?: string;
   unit?: string;
