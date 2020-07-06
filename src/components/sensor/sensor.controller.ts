@@ -266,7 +266,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
   }
 
   if (isHostedByStatus.settingNow && permanentHostStatus.willBeSet) {
-    throw new Forbidden('A sensor can only be directly hosted on a platform when it has (or will have) a permanent host.');
+    throw new Forbidden('A sensor cannot be directly hosted on a platform when it has (or will have) a permanent host.');
   }
 
   if (isHostedByStatus.isChanging && permanentHostStatus.wasSet) {
