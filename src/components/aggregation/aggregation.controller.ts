@@ -154,7 +154,7 @@ const aggregationUpdatesSchema = joi.object({
 
 export async function updateAggregation(id: string, updates: any): Promise<AggregationClient> {
 
-  logger.debug(`Updating used aggregation '${id}'`);
+  logger.debug(`Updating aggregation '${id}'`);
 
   const {error: validationErr, value: validUpdates} = aggregationUpdatesSchema.validate(updates);
   if (validationErr) throw new BadRequest(validationErr.message);
