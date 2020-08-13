@@ -8,7 +8,7 @@ import {CreateUnitFail} from './errors/CreateUnitFail';
 import {InvalidUnit} from './errors/InvalidUnit';
 import {GetUnitFail} from './errors/GetUnitFail';
 import {UnitNotFound} from './errors/UnitNotFound';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
@@ -16,6 +16,9 @@ import {GetUnitsFail} from './errors/GetUnitsFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UpdateUnitFail} from './errors/UpdateUnitFail';
 import {DeleteUnitFail} from './errors/DeleteUnitFail';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {UnitIsDeleted} from './errors/UnitIsDeleted';
+import {formatDistanceToNow} from 'date-fns';
 
 
 
@@ -43,14 +46,10 @@ export async function createUnit(unit: UnitApp): Promise<UnitApp> {
 
 
 
-export async function getUnit(id, options: {includeDeleted?: boolean} = {}): Promise<UnitApp> {
+export async function getUnit(id, options: GetResourceOptions = {}): Promise<UnitApp> {
 
   const findWhere: any = {_id: id};
   
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
-
   let found;
   try {
     found = await Unit.findOne(findWhere).exec();
@@ -60,6 +59,10 @@ export async function getUnit(id, options: {includeDeleted?: boolean} = {}): Pro
 
   if (!found) {
     throw new UnitNotFound(`A unit with id '${id}' could not be found.`);
+  }
+
+  if (!options.includeDeleted && found.deletedAt) {
+    throw new UnitIsDeleted(`The unit with '${id}' was deleted ${formatDistanceToNow(found.deletedAt)} ago.`);
   }
 
   return unitDbToApp(found);

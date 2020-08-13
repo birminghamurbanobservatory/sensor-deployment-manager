@@ -8,7 +8,7 @@ import {CreateObservablePropertyFail} from './errors/CreateObservablePropertyFai
 import {InvalidObservableProperty} from './errors/InvalidObservableProperty';
 import {GetObservablePropertyFail} from './errors/GetObservablePropertyFail';
 import {ObservablePropertyNotFound} from './errors/ObservablePropertyNotFound';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
@@ -16,6 +16,9 @@ import {GetObservablePropertiesFail} from './errors/GetObservablePropertiesFail'
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UpdateObservablePropertyFail} from './errors/UpdateObservablePropertyFail';
 import {DeleteObservablePropertyFail} from './errors/DeleteObservablePropertyFail';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {ObservablePropertyIsDeleted} from './errors/ObservablePropertyIsDeleted';
+import {formatDistanceToNow} from 'date-fns';
 
 
 
@@ -43,14 +46,10 @@ export async function createObservableProperty(observableProperty: ObservablePro
 
 
 
-export async function getObservableProperty(id, options: {includeDeleted?: boolean} = {}): Promise<ObservablePropertyApp> {
+export async function getObservableProperty(id, options: GetResourceOptions = {}): Promise<ObservablePropertyApp> {
 
   const findWhere: any = {_id: id};
   
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
-
   let found;
   try {
     found = await ObservableProperty.findOne(findWhere).exec();
@@ -59,7 +58,11 @@ export async function getObservableProperty(id, options: {includeDeleted?: boole
   }
 
   if (!found) {
-    throw new ObservablePropertyNotFound(`A observableProperty with id '${id}' could not be found.`);
+    throw new ObservablePropertyNotFound(`A observable property with id '${id}' could not be found.`);
+  }
+
+  if (!options.includeDeleted && found.deletedAt) {
+    throw new ObservablePropertyIsDeleted(`The observable property with '${id}' was deleted ${formatDistanceToNow(found.deletedAt)} ago.`);
   }
 
   return observablePropertyDbToApp(found);

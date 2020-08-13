@@ -8,7 +8,7 @@ import {CreateProcedureFail} from './errors/CreateProcedureFail';
 import {InvalidProcedure} from './errors/InvalidProcedure';
 import {GetProcedureFail} from './errors/GetProcedureFail';
 import {ProcedureNotFound} from './errors/ProcedureNotFound';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
@@ -16,6 +16,9 @@ import {GetProceduresFail} from './errors/GetProceduresFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UpdateProcedureFail} from './errors/UpdateProcedureFail';
 import {DeleteProcedureFail} from './errors/DeleteProcedureFail';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {ProcedureIsDeleted} from './errors/ProcedureIsDeleted';
+import {formatDistanceToNow} from 'date-fns';
 
 
 
@@ -43,13 +46,9 @@ export async function createProcedure(procedure: ProcedureApp): Promise<Procedur
 
 
 
-export async function getProcedure(id, options: {includeDeleted?: boolean} = {}): Promise<ProcedureApp> {
+export async function getProcedure(id, options: GetResourceOptions = {}): Promise<ProcedureApp> {
 
   const findWhere: any = {_id: id};
-  
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
 
   let found;
   try {
@@ -60,6 +59,10 @@ export async function getProcedure(id, options: {includeDeleted?: boolean} = {})
 
   if (!found) {
     throw new ProcedureNotFound(`A procedure with id '${id}' could not be found.`);
+  }
+
+  if (!options.includeDeleted && found.deletedAt) {
+    throw new ProcedureIsDeleted(`The procedure with '${id}' was deleted ${formatDistanceToNow(found.deletedAt)} ago.`);
   }
 
   return procedureDbToApp(found);

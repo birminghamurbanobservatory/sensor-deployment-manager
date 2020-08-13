@@ -14,7 +14,7 @@ import {BadRequest} from '../../errors/BadRequest';
 import {concat, isEqual, cloneDeep, omit} from 'lodash';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
 import {deleteUnknownSensor} from '../unknown-sensor/unknown-sensor.service';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {calculateChangeStatus} from '../../utils/change-status';
 import {Forbidden} from '../../errors/Forbidden';
 import {validateSensorConfigArray} from './sensor-config.service';

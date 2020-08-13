@@ -20,8 +20,8 @@ import {validateGeometry} from '../../utils/geojson-validator';
 import {v4 as uuid} from 'uuid';
 import {SensorNotFound} from '../sensor/errors/SensorNotFound';
 import * as permanentHostService from '../permanent-host/permanent-host.service';
-import {PaginationOptions} from '../common/pagination-options.class';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
+import {PlatformIsDeleted} from './errors/PlatformIsDeleted';
 
 
 const newPlatformSchema = joi.object({
@@ -72,6 +72,8 @@ export async function createPlatform(platformClient: PlatformClient): Promise<Pl
     } catch (err) {
       if (err.name === 'PlatformNotFound') {
         throw new PlatformNotFound(`Could not find the platform '${platform.isHostedBy}' provided as the 'isHostedBy' property.`);
+      } else if (err.name === 'PlatformIsDeleted') {
+        throw new PlatformIsDeleted(`Cannot use platform '${platform.isHostedBy}' as a host. ${err.message}`);
       } else {
         throw err;
       }
@@ -256,8 +258,8 @@ const getPlatformsOptionsSchema = joi.object({
   nest: joi.boolean()
 }).required();
 
-class GetPlatformsOptions extends CollectionOptions {
-  public nest: boolean;
+interface GetPlatformsOptions extends CollectionOptions {
+  nest: boolean;
 }
 
 export async function getPlatforms(where: any = {}, options: GetPlatformsOptions): Promise<{data: PlatformClient[]; meta: {count: number; total: number}}> {

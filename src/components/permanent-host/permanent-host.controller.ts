@@ -13,7 +13,7 @@ import {BadRequest} from '../../errors/BadRequest';
 import {InvalidPermanentHost} from './errors/InvalidPermanentHost';
 import {Forbidden} from '../../errors/Forbidden';
 import {SensorsRemainOnPermanentHost} from './errors/SensorsRemainOnPermanentHost';
-import {PaginationOptions} from '../common/pagination-options.class';
+import {PaginationOptions} from '../common/pagination-options.interface';
 
 
 const newPermanentHostSchema = joi.object({

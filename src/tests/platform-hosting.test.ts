@@ -11,6 +11,7 @@ import Context from '../components/context/context.model';
 import {platform} from 'os';
 import {PlatformNotFound} from '../components/platform/errors/PlatformNotFound';
 import {getLiveContextForSensor} from '../components/context/context.service';
+import {PlatformIsDeleted} from '../components/platform/errors/PlatformIsDeleted';
 
 
 describe('Platform hosting tests', () => {
@@ -275,7 +276,7 @@ describe('Platform hosting tests', () => {
     } catch (err) {
       errGettingDeletedPlatform = err;
     }
-    expect(errGettingDeletedPlatform).toBeInstanceOf(PlatformNotFound);
+    expect(errGettingDeletedPlatform).toBeInstanceOf(PlatformIsDeleted);
 
     // Check the sensor that was directly on the platform
     const parentSensorAfter = await sensorController.getSensor(parentSensor.id);

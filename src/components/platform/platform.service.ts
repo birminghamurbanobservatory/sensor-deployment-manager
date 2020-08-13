@@ -31,7 +31,10 @@ import {SensorApp} from '../sensor/sensor-app.class';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import {GetDistinctTopPlatformsFail} from './errors/GetDistinctTopPlatformsFail';
 import {SensorClient} from '../sensor/sensor-client.class';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {PlatformIsDeleted} from './errors/PlatformIsDeleted';
+import {formatDistanceToNow} from 'date-fns';
 
 
 export async function createPlatform(platform: PlatformApp): Promise<PlatformApp> {
@@ -81,14 +84,10 @@ function deriveTopPlatformFromPlatform(platform: PlatformApp): string {
 
 
 
-export async function getPlatform(id: string, options: {includeDeleted?: boolean} = {}): Promise<PlatformApp> {
+export async function getPlatform(id: string, options: GetResourceOptions = {}): Promise<PlatformApp> {
 
   const findWhere: any = {_id: id};
   
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
-
   let foundPlatform;
   try {
     foundPlatform = await Platform.findOne(findWhere).exec();
@@ -98,6 +97,10 @@ export async function getPlatform(id: string, options: {includeDeleted?: boolean
 
   if (!foundPlatform) {
     throw new PlatformNotFound(`A platform with id '${id}' could not be found`);
+  }
+
+  if (!options.includeDeleted && foundPlatform.deletedAt) {
+    throw new PlatformIsDeleted(`The platform with '${id}' was deleted ${formatDistanceToNow(foundPlatform.deletedAt)} ago.`);
   }
 
   return platformDbToApp(foundPlatform);

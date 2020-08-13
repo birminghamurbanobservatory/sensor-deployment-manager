@@ -47,10 +47,10 @@ export async function addContextToObservation(observation: ObservationClient): P
       // If no context is found, then it's either because we have no record of this sensor, or because the resultTime is outside of the contexts's start and end dates. If it's the case that the sensor is completely unknown then lets keep a record of this unknown sensor.
       let sensorIsUnknown;
       try {
-        // TODO: do we also want to find a sensor even if it has been deleted? {deletedAt: true}?
         await getSensor(observation.madeBySensor);
       } catch (err) {
         if (err.name === 'SensorNotFound') {
+          // N.B. at present this won't be reach when a SensorIsDeleted error is throw. Which I think is what I want.
           sensorIsUnknown = true;
         } else {
           throw err;

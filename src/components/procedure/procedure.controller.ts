@@ -2,7 +2,7 @@ import * as logger from 'node-logger';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {ProcedureClient} from './procedure-client.class';
 import {InvalidProcedure} from './errors/InvalidProcedure';
 import {getDeployment} from '../deployment/deployment.service';

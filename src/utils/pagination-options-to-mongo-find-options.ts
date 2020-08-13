@@ -1,4 +1,4 @@
-import {PaginationOptions} from '../components/common/pagination-options.class';
+import {PaginationOptions} from '../components/common/pagination-options.interface';
 import * as check from 'check-types';
 
 export function paginationOptionsToMongoFindOptions(paginationOptions: PaginationOptions): any {

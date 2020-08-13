@@ -8,7 +8,7 @@ import {CreateDisciplineFail} from './errors/CreateDisciplineFail';
 import {InvalidDiscipline} from './errors/InvalidDiscipline';
 import {GetDisciplineFail} from './errors/GetDisciplineFail';
 import {DisciplineNotFound} from './errors/DisciplineNotFound';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
@@ -16,6 +16,9 @@ import {GetDisciplinesFail} from './errors/GetDisciplinesFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UpdateDisciplineFail} from './errors/UpdateDisciplineFail';
 import {DeleteDisciplineFail} from './errors/DeleteDisciplineFail';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {formatDistanceToNow} from 'date-fns';
+import {DisciplineIsDeleted} from './errors/DisciplineIsDeleted';
 
 
 
@@ -43,14 +46,10 @@ export async function createDiscipline(discipline: DisciplineApp): Promise<Disci
 
 
 
-export async function getDiscipline(id, options: {includeDeleted?: boolean} = {}): Promise<DisciplineApp> {
+export async function getDiscipline(id, options: GetResourceOptions = {}): Promise<DisciplineApp> {
 
   const findWhere: any = {_id: id};
   
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
-
   let found;
   try {
     found = await Discipline.findOne(findWhere).exec();
@@ -60,6 +59,10 @@ export async function getDiscipline(id, options: {includeDeleted?: boolean} = {}
 
   if (!found) {
     throw new DisciplineNotFound(`A discipline with id '${id}' could not be found.`);
+  }
+
+  if (!options.includeDeleted && found.deletedAt) {
+    throw new DisciplineIsDeleted(`The discipline with '${id}' was deleted ${formatDistanceToNow(found.deletedAt)} ago.`);
   }
 
   return disciplineDbToApp(found);

@@ -11,6 +11,7 @@ import * as platformController from '../components/platform/platform.controller'
 import {register} from '../components/registration/registration.controller';
 import {getLiveContextForSensor} from '../components/context/context.service';
 import {SensorsRemainOnPermanentHost} from '../components/permanent-host/errors/SensorsRemainOnPermanentHost';
+import {PermanentHostIsDeleted} from '../components/permanent-host/errors/PermanentHostIsDeleted';
 
 describe('Permanent host testing', () => {
 
@@ -97,7 +98,7 @@ describe('Permanent host testing', () => {
     await permanentHostController.deletePermanentHost(permanentHost.id);
 
     // Try getting the deleted permanentHost
-    await expect(permanentHostController.getPermanentHost(permanentHost.id)).rejects.toThrow(PermanentHostNotFound);
+    await expect(permanentHostController.getPermanentHost(permanentHost.id)).rejects.toThrow(PermanentHostIsDeleted);
 
     // Try getting all the permanentHosts
     const {data: permanentHostsAfterDelete} = await permanentHostController.getPermanentHosts({});

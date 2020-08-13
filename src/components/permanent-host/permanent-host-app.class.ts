@@ -7,7 +7,8 @@ export class PermanentHostApp {
   public updateLocationWithSensor?: string;
   public registrationKey?: string;
   public registeredAs?: string;
-  public createdAt?: string;
-  public updatedAt?: string;
+  public createdAt?: Date;
+  public updatedAt?: Date;
+  public deletedAt?: Date;
 }
 

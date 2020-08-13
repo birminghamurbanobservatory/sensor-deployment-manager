@@ -6,7 +6,7 @@ import {UpsertUnknownSensorFail} from './errors/UpsertUnknownSensorFail';
 import {GetUnknownSensorsFail} from './errors/GetUnknownSensorsFail';
 import {UnknownSensorNotFound} from './errors/UnknownSensorNotFound';
 import {DeleteUnknownSensorFail} from './errors/DeleteUnknownSensorFail';
-import {PaginationOptions} from '../common/pagination-options.class';
+import {PaginationOptions} from '../common/pagination-options.interface';
 import * as check from 'check-types';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';

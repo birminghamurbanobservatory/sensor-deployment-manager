@@ -8,7 +8,7 @@ import {CreateFeatureOfInterestFail} from './errors/CreateFeatureOfInterestFail'
 import {InvalidFeatureOfInterest} from './errors/InvalidFeatureOfInterest';
 import {GetFeatureOfInterestFail} from './errors/GetFeatureOfInterestFail';
 import {FeatureOfInterestNotFound} from './errors/FeatureOfInterestNotFound';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
@@ -18,6 +18,9 @@ import {UpdateFeatureOfInterestFail} from './errors/UpdateFeatureOfInterestFail'
 import {DeleteFeatureOfInterestFail} from './errors/DeleteFeatureOfInterestFail';
 import {v4 as uuid} from 'uuid';
 import {calculateCentroidFromGeometry} from '../../utils/geojson-helpers';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {FeatureOfInterestIsDeleted} from './errors/FeatureOfInterestIsDeleted';
+import {formatDistanceToNow} from 'date-fns';
 
 
 export async function createFeatureOfInterest(featureOfInterest: FeatureOfInterestApp): Promise<FeatureOfInterestApp> {
@@ -44,13 +47,9 @@ export async function createFeatureOfInterest(featureOfInterest: FeatureOfIntere
 
 
 
-export async function getFeatureOfInterest(id, options: {includeDeleted?: boolean} = {}): Promise<FeatureOfInterestApp> {
+export async function getFeatureOfInterest(id, options: GetResourceOptions = {}): Promise<FeatureOfInterestApp> {
 
   const findWhere: any = {_id: id};
-  
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
 
   let found;
   try {
@@ -61,6 +60,10 @@ export async function getFeatureOfInterest(id, options: {includeDeleted?: boolea
 
   if (!found) {
     throw new FeatureOfInterestNotFound(`A featureOfInterest with id '${id}' could not be found.`);
+  }
+
+  if (!options.includeDeleted && found.deletedAt) {
+    throw new FeatureOfInterestIsDeleted(`The feature of interest with '${id}' was deleted ${formatDistanceToNow(found.deletedAt)} ago.`);
   }
 
   return featureOfInterestDbToApp(found);

@@ -19,7 +19,10 @@ import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {DeleteSensorFail} from './errors/DeleteSensorFail';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types'; 
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {formatDistanceToNow} from 'date-fns';
+import {SensorIsDeleted} from './errors/SensorIsDeleted';
 
 
 
@@ -47,14 +50,10 @@ export async function createSensor(sensor: SensorApp): Promise<SensorApp> {
 
 
 
-export async function getSensor(id, options: {includeDeleted?: boolean} = {}): Promise<SensorApp> {
+export async function getSensor(id, options: GetResourceOptions = {}): Promise<SensorApp> {
 
   const findWhere: any = {_id: id};
   
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
-
   let sensor;
   try {
     sensor = await Sensor.findOne(findWhere).exec();
@@ -64,6 +63,10 @@ export async function getSensor(id, options: {includeDeleted?: boolean} = {}): P
 
   if (!sensor) {
     throw new SensorNotFound(`A sensor with id '${id}' could not be found.`);
+  }
+
+  if (!options.includeDeleted && sensor.deletedAt) {
+    throw new SensorIsDeleted(`The sensor with '${id}' was deleted ${formatDistanceToNow(sensor.deletedAt)} ago.`);
   }
 
   return sensorDbToApp(sensor);

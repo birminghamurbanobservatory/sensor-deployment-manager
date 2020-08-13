@@ -16,9 +16,12 @@ import {DeletePermanentHostFail} from './errors/DeletePermanentHostFail';
 import {DeregisterPermanentHostFail} from './errors/DeregisterPermanentHostFail';
 import {PermanentHostAlreadyRegistered} from './errors/PermanentHostAlreadyRegistered';
 import {UpdatePermanentHostRegisteredAsFail} from './errors/UpdatePermanentHostRegisteredAsFail';
-import {PaginationOptions} from '../common/pagination-options.class';
+import {PaginationOptions} from '../common/pagination-options.interface';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {PermanentHostIsDeleted} from './errors/PermanentHostIsDeleted';
+import {formatDistanceToNow} from 'date-fns';
 
 
 export async function createPermanentHost(permanentHost: PermanentHostApp): Promise<PermanentHostApp> {
@@ -88,15 +91,14 @@ export async function getPermanentHosts(where, options: PaginationOptions = {}):
 }
 
 
-export async function getPermanentHost(id: string): Promise<PermanentHostApp> {
+export async function getPermanentHost(id: string, options: GetResourceOptions = {}): Promise<PermanentHostApp> {
 
   let permanentHost;
   try {
     permanentHost = await PermanentHost.findOne(
       {
-        _id: id,
-        deletedAt: {$exists: false}
-      },      
+        _id: id
+      },
     ).exec();
   } catch (err) {
     throw new GetPermanentHostFail(undefined, err.message);
@@ -104,6 +106,10 @@ export async function getPermanentHost(id: string): Promise<PermanentHostApp> {
 
   if (!permanentHost) {
     throw new PermanentHostNotFound(`A permanent host with id '${id}' could not be found`);
+  }
+
+  if (!options.includeDeleted && permanentHost.deletedAt) {
+    throw new PermanentHostIsDeleted(`The permanent host with '${id}' was deleted ${formatDistanceToNow(permanentHost.deletedAt)} ago.`);
   }
 
   return permanentHostDbToApp(permanentHost);
@@ -292,6 +298,9 @@ export function permanentHostAppToClient(permanentHostApp: PermanentHostApp): Pe
   const permanentHostClient: any = cloneDeep(permanentHostApp);
   permanentHostClient.createdAt = permanentHostClient.createdAt.toISOString();
   permanentHostClient.updatedAt = permanentHostClient.updatedAt.toISOString();
+  if (permanentHostClient.deletedAt) {
+    permanentHostClient.deletedAt = permanentHostClient.deletedAt.toISOString();
+  }
   return permanentHostClient;
 } 
 

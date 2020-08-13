@@ -10,7 +10,7 @@ import {BadRequest} from '../../errors/BadRequest';
 import * as platformService from '../platform/platform.service';
 import * as contextService from '../context/context.service';
 import * as sensorService from '../sensor/sensor.service';
-import {GetDeploymentsOptions} from './get-deployments-options.class';
+import {GetDeploymentsOptions} from './get-deployments-options.interface';
 import {InvalidDeployment} from './errors/InvalidDeployment';
 
 

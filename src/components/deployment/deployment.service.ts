@@ -12,9 +12,11 @@ import {DeploymentNotFound} from './errors/DeploymentNotFound';
 import {UpdateDeploymentFail} from './errors/UpdateDeploymentFail';
 import {DeleteDeploymentFail} from './errors/DeleteDeploymentFail';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
-import {PaginationOptions} from '../common/pagination-options.class';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
-import {GetDeploymentsOptions} from './get-deployments-options.class';
+import {GetDeploymentsOptions} from './get-deployments-options.interface';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {formatDistanceToNow} from 'date-fns';
+import {DeploymentIsDeleted} from './errors/DeploymentIsDeleted';
 
 
 export async function createDeployment(deployment: DeploymentApp): Promise<DeploymentApp> {
@@ -40,14 +42,13 @@ export async function createDeployment(deployment: DeploymentApp): Promise<Deplo
 }
 
 
-export async function getDeployment(id: string): Promise<DeploymentApp> {
+export async function getDeployment(id: string, options: GetResourceOptions = {}): Promise<DeploymentApp> {
 
   let deployment;
   try {
     deployment = await Deployment.findOne(
       {
         _id: id,
-        deletedAt: {$exists: false}
       }       
     ).exec();
   } catch (err) {
@@ -57,6 +58,10 @@ export async function getDeployment(id: string): Promise<DeploymentApp> {
   // Will need to think if we ever need to get a deleted deployment, and if so how to handle this, e.g. at which level: service, controller or api gateway?
   if (!deployment || deployment.deletedAt) {
     throw new DeploymentNotFound(`A deployment with id '${id}' could not be found`);
+  }
+
+  if (!options.includeDeleted && deployment.deletedAt) {
+    throw new DeploymentIsDeleted(`The deployment with '${id}' was deleted ${formatDistanceToNow(deployment.deletedAt)} ago.`);
   }
 
   return deploymentDbToApp(deployment);

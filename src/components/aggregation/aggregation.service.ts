@@ -8,7 +8,7 @@ import {CreateAggregationFail} from './errors/CreateAggregationFail';
 import {InvalidAggregation} from './errors/InvalidAggregation';
 import {GetAggregationFail} from './errors/GetAggregationFail';
 import {AggregationNotFound} from './errors/AggregationNotFound';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {whereToMongoFind} from '../../utils/where-to-mongo-find';
 import {paginationOptionsToMongoFindOptions} from '../../utils/pagination-options-to-mongo-find-options';
 import * as check from 'check-types';
@@ -16,6 +16,9 @@ import {GetAggregationsFail} from './errors/GetAggregationsFail';
 import replaceNullUpdatesWithUnset from '../../utils/replace-null-updates-with-unset';
 import {UpdateAggregationFail} from './errors/UpdateAggregationFail';
 import {DeleteAggregationFail} from './errors/DeleteAggregationFail';
+import {GetResourceOptions} from '../common/get-resource-options.interface';
+import {AggregationIsDeleted} from './errors/AggregationIsDeleted';
+import {formatDistanceToNow} from 'date-fns';
 
 
 
@@ -43,14 +46,10 @@ export async function createAggregation(aggregation: AggregationApp): Promise<Ag
 
 
 
-export async function getAggregation(id, options: {includeDeleted?: boolean} = {}): Promise<AggregationApp> {
+export async function getAggregation(id, options: GetResourceOptions = {}): Promise<AggregationApp> {
 
   const findWhere: any = {_id: id};
   
-  if (!options.includeDeleted) {
-    findWhere.deletedAt = {$exists: false};
-  }
-
   let found;
   try {
     found = await Aggregation.findOne(findWhere).exec();
@@ -60,6 +59,10 @@ export async function getAggregation(id, options: {includeDeleted?: boolean} = {
 
   if (!found) {
     throw new AggregationNotFound(`A aggregation with id '${id}' could not be found.`);
+  }
+
+  if (!options.includeDeleted && found.deletedAt) {
+    throw new AggregationIsDeleted(`The aggregation with '${id}' was deleted ${formatDistanceToNow(found.deletedAt)} ago.`);
   }
 
   return aggregationDbToApp(found);

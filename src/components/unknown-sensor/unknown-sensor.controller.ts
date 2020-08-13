@@ -1,6 +1,6 @@
 import * as unknownSensorService from './unknown-sensor.service';
 import {UnknownSensorClient} from './unknown-sensor-client.class';
-import {PaginationOptions} from '../common/pagination-options.class';
+import {PaginationOptions} from '../common/pagination-options.interface';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 

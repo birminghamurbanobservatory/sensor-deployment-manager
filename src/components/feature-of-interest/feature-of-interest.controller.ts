@@ -2,7 +2,7 @@ import * as logger from 'node-logger';
 import * as joi from '@hapi/joi';
 import {BadRequest} from '../../errors/BadRequest';
 import {generateId, suffixForGeneratedIds, hasIdBeenGenerated} from '../../utils/id-generator';
-import {CollectionOptions} from '../common/collection-options.class';
+import {CollectionOptions} from '../common/collection-options.interface';
 import {FeatureOfInterestClient} from './feature-of-interest-client.class';
 import {InvalidFeatureOfInterest} from './errors/InvalidFeatureOfInterest';
 import {getDeployment} from '../deployment/deployment.service';

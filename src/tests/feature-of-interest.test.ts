@@ -5,6 +5,7 @@ import * as MongodbMemoryServer from 'mongodb-memory-server';
 import * as featureOfInterestController from '../components/feature-of-interest/feature-of-interest.controller';
 import * as check from 'check-types';
 import {FeatureOfInterestNotFound} from '../components/feature-of-interest/errors/FeatureOfInterestNotFound';
+import {FeatureOfInterestIsDeleted} from '../components/feature-of-interest/errors/FeatureOfInterestIsDeleted';
 
 
 
@@ -118,7 +119,7 @@ describe('Feature of interest tests', () => {
     await featureOfInterestController.deleteFeatureOfInterest(featureOfInterest.id);
 
     // Try getting the deleted featureOfInterest
-    await expect(featureOfInterestController.getFeatureOfInterest(featureOfInterest.id)).rejects.toThrow(FeatureOfInterestNotFound);
+    await expect(featureOfInterestController.getFeatureOfInterest(featureOfInterest.id)).rejects.toThrow(FeatureOfInterestIsDeleted);
 
     // Try getting all
     const {data: featureOfInterestsAfterDelete} = await featureOfInterestController.getFeaturesOfInterest({});
