@@ -16,7 +16,6 @@ import * as disciplineController from '../components/discipline/discipline.contr
 import * as observablePropertyController from '../components/observable-property/observable-property.controller';
 
 
-
 describe('Context documents are created and updated correctly', () => {
 
   let mongoServer;
@@ -52,7 +51,8 @@ describe('Context documents are created and updated correctly', () => {
     // Create a permanent host
     const permanentHost = {
       label: 'Climavue 123',
-      description: 'Climavue weather station'
+      description: 'Climavue weather station',
+      passLocationToObservations: true
     };
     const createdPermanentHost = await permanentHostController.createPermanentHost(permanentHost);
 
@@ -122,7 +122,13 @@ describe('Context documents are created and updated correctly', () => {
     const parentPlatform = await platformController.createPlatform({
       label: 'building-1',
       inDeployment: createdDeployment.id,
-      static: true
+      static: true,
+      location: {
+        geometry: {
+          type: 'Point',
+          coordinates: [-1.9, 52.5]
+        }
+      }
     });
 
     // Now lets host the sensor's platform on this new platform.
@@ -274,12 +280,13 @@ describe('Context documents are created and updated correctly', () => {
       label: 'Bobs back garden',
       static: true,
       inDeployment: deployment.id,
+      passLocationToObservations: true,
       location: {
         geometry: {
           type: 'Point',
           coordinates: [-1.929, 52]
         }
-      }
+      },
     };
 
     const platform = await platformController.createPlatform(platformClient);
@@ -321,13 +328,13 @@ describe('Context documents are created and updated correctly', () => {
     };
 
     const observationWithContext = await addContextToObservation(observationWithoutContext);
-    const platformLocationWithoutCentroid = cloneDeep(platform.location);
+    const platformLocation = cloneDeep(platform.location);
     const expectedObservation = Object.assign({}, observationWithoutContext, {
       hasDeployment: deployment.id,
       hostedByPath: [platform.id],
       observedProperty: exampleObservedProperty,
       disciplines: [exampleDiscipline],
-      location: platformLocationWithoutCentroid
+      location: platformLocation
     });
     expect(observationWithContext).toEqual(expectedObservation);
 
@@ -376,7 +383,6 @@ describe('Context documents are created and updated correctly', () => {
     expect(allContexts.length).toBe(2); // should still be 2
 
   });
-
 
 });
 

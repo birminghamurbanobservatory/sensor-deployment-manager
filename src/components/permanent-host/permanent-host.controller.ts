@@ -20,8 +20,9 @@ const newPermanentHostSchema = joi.object({
   id: joi.string(),
   label: joi.string(),
   description: joi.string().allow(''),
-  static: joi.boolean()
+  static: joi.boolean(),
   // N.B. updateLocationWithSensor is not allow here, as the client first has to create this permanent host in order to add locational sensors to it and then it can be updated to use one of these sensors for location.
+  passLocationToObservations: joi.boolean()
 })
 .or('id', 'label')
 .required();
@@ -113,7 +114,8 @@ const updatePermanentHostSchema = joi.object({
   label: joi.string(),
   description: joi.string().allow(''),
   static: joi.boolean(),
-  updateLocationWithSensor: joi.string().allow(null)
+  updateLocationWithSensor: joi.string().allow(null),
+  passLocationToObservations: joi.boolean()
 })
 .required();
 

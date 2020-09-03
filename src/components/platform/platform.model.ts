@@ -96,6 +96,10 @@ const schema = new mongoose.Schema({
     required: false
   },
   updateLocationWithSensor: String,
+  passLocationToObservations: {
+    type: Boolean,
+    default: true
+  },
   // if created from a permanentHost then make a note of the permanentHost id.
   initialisedFrom: {
     type: String

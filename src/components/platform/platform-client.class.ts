@@ -11,6 +11,7 @@ export class PlatformClient {
   public static?: boolean;
   public location?: Location;
   public updateLocationWithSensor?: string;
+  public passLocationToObservations?: boolean;
   public createdAt?: string;
   public updatedAt?: string;
   public deletedAt?: string;

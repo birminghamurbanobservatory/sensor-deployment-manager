@@ -1,6 +1,6 @@
 import {ObservationApp} from '../observation/observation-app.class';
 import {ContextApp} from './context-app.class';
-import {cloneDeep, isMatch} from 'lodash';
+import {cloneDeep, isMatch, last} from 'lodash';
 import * as check from 'check-types';
 
 
@@ -8,13 +8,33 @@ export function giveObsContext(observation: ObservationApp, context: ContextApp)
 
   const merged = cloneDeep(observation);
 
-  const easyMergeKeys = ['hasDeployment', 'hostedByPath'];
+  //------------------------
+  // Deployment
+  //------------------------
+  const easyMergeKeys = ['hasDeployment'];
   easyMergeKeys.forEach((key) => {
     if (check.not.assigned(observation[key]) && check.assigned(context[key])) {
       merged[key] = context[key];
     }
   });
 
+  //------------------------
+  // Platforms
+  //------------------------
+  if (check.assigned(context.hostedByPath) && context.hostedByPath.length) {
+    const isPopulated = check.object(context.hostedByPath[0]);
+    if (isPopulated) {
+      // Because the platforms are populated we'll need to extract their id fields to build the observation's hostedByPath array
+      merged.hostedByPath = context.hostedByPath.map((platform) => platform.id);
+    } else {
+      // If the hostedByPath array is just an array of platform IDs then it's a simple as copying them over
+      merged.hostedByPath = context.hostedByPath;
+    }
+  }
+
+  //------------------------
+  // Config properties
+  //------------------------
   const observedPropertyInObservation = observation.observedProperty;
 
   let configToMerge;

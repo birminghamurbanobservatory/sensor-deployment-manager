@@ -79,18 +79,26 @@ export async function getLiveContextForSensor(sensorId: string): Promise<Context
 
 }
 
-export async function getContextForSensorAtTime(sensorId: string, time: Date): Promise<ContextApp> {
+
+export async function getContextForSensorAtTime(sensorId: string, time: Date, options: {populatePlatforms?: boolean} = {}): Promise<ContextApp> {
+
+  let query = Context.findOne({
+    sensor: sensorId,
+    startDate: {$lte: time},
+    $or: [
+      {endDate: {$gt: time}},
+      {endDate: {$exists: false}}
+    ]
+  });
+
+  if (options.populatePlatforms) {
+    // We don't need to get every single platform property here, just those that help us add context to an observation
+    query = query.populate('hostedByPath', '_id location passLocationToObservations updateLocationWithSensor');
+  }
 
   let context;
   try {
-    context = await Context.findOne({
-      sensor: sensorId,
-      startDate: {$lte: time},
-      $or: [
-        {endDate: {$gt: time}},
-        {endDate: {$exists: false}}
-      ]
-    }).exec();
+    context = await query.exec();
   } catch (err) {
     throw new GetContextForSensorAtTimeFail(undefined, err.message);
   }
@@ -457,6 +465,10 @@ function contextDbToApp(contextDb: any): ContextApp {
   delete contextApp._id;
   delete contextApp.__v;
   contextApp.config = contextApp.config.map(renameId);
+  // If the platforms in the hostedByPath have been populated then format these too
+  if (contextApp.hostedByPath && contextApp.hostedByPath.length && check.object(contextApp.hostedByPath[0])) {
+    contextApp.hostedByPath = contextApp.hostedByPath.map(renameId);
+  }
   return contextApp;
 }
 

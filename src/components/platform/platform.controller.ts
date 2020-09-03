@@ -41,8 +41,9 @@ const newPlatformSchema = joi.object({
       return value;
     })
     .required()
-  }),
+  }).when('static', {is: true, then: joi.required()}),
   // N.B. it doesn't make sense to allow updateLocationWithSensor to be defined here, because we've only just created the platform and therefore there won't be any sensors on it yet that we can choose from.
+  passLocationToObservations: joi.boolean(),
   isHostedBy: joi.string(),
   inDeployment: joi.string().required()
 })
@@ -365,6 +366,7 @@ const platformUpdatesSchema = joi.object({
   }),
   updateLocationWithSensor: joi.string().allow(null)
     .when('static', {is: true, then: joi.forbidden()}),
+  passLocationToObservations: joi.boolean()
 });
 // N.B. this particular function only allows certain properties of a platform to be updated, i.e. direct features of a platform rather than its relationships with other things, e.g. other platforms and deployments. Other controller functions handle this.
 export async function updatePlatform(id: string, updates: any): Promise<PlatformClient> {
@@ -470,7 +472,7 @@ export async function rehostPlatform(id: string, hostId: string): Promise<Platfo
   await contextService.processPlatformHostChange(id, oldAncestors, newAncestors);
 
   // - If hosted platform is static
-  //     -> Do nothing, as static platforms can't have updateLocationWithSensor, and location should be defined. 
+  //     -> Do nothing, as static platforms can't have updateLocationWithSensor, and hosted platform should already have location 
   // - If hosted platform is mobile:
   //     - If hosted platform has updateLocationWithSensor:
   //         - and the host platform is static 

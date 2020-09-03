@@ -48,9 +48,12 @@ const schema = new mongoose.Schema({
   hasDeployment: {
     type: String,
   },
+  // came to the conclusion that an Array of Ancestors is easier than a materialized path.
   hostedByPath: {
-    // came to the conclusion that an Array of Ancestors is easier than a materialized path.
-    type: [String],
+    type: [{
+      type: String,
+      ref: 'Platform'
+    }],
     default: undefined
   },
   config: {

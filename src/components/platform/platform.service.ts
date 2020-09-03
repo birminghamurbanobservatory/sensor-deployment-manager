@@ -918,7 +918,7 @@ function platformAppToDb(platformApp: PlatformApp): any {
 }
 
 
-function platformDbToApp(platformDb: any): PlatformApp {
+export function platformDbToApp(platformDb: any): PlatformApp {
   const platformApp = platformDb.toObject();
   platformApp.id = platformApp._id.toString();
   delete platformApp._id;

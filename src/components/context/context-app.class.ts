@@ -4,7 +4,7 @@ export class ContextApp {
   public startDate?: Date;
   public endDate?: Date;
   public hasDeployment?: string;
-  public hostedByPath?: string[];
+  public hostedByPath?: any[];
   public config?: Config[];
 }
 

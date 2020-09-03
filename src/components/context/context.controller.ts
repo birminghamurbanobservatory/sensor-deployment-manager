@@ -5,7 +5,7 @@ import {ObservationApp} from '../observation/observation-app.class';
 import {giveObsContext} from './context.helpers';
 import * as logger from 'node-logger';
 import {getPlatformsWithIds, updatePlatformsWithLocationObservation} from '../platform/platform.service';
-import {cloneDeep} from 'lodash';
+import {cloneDeep, last} from 'lodash';
 import {validateGeometry} from '../../utils/geojson-validator';
 import {v4 as uuid} from 'uuid';
 import {observationAppToClient, observationClientToApp} from '../observation/observation.service';
@@ -34,12 +34,15 @@ export async function addContextToObservation(observation: ObservationClient): P
     throw new BadRequest(validationError.message);
   }
 
+  const arrivedWithALocation = check.assigned(observation.location);
+
   const obsWithoutContext: ObservationApp = observationClientToApp(observation);
 
   // Find the appropriate context
   let context;
   try {
-    context = await contextService.getContextForSensorAtTime(obsWithoutContext.madeBySensor, new Date(obsWithoutContext.resultTime));
+    // TODO: Use populate (https://mongoosejs.com/docs/populate.html) to get any platforms listed in the context at the same time, this way we can also get the passLocationToObservations or updateLocationWithSensor settings in the same request.
+    context = await contextService.getContextForSensorAtTime(obsWithoutContext.madeBySensor, new Date(obsWithoutContext.resultTime), {populatePlatforms: true});
   } catch (err) {
     if (err.name === 'ContextNotFound') {
 
@@ -78,9 +81,8 @@ export async function addContextToObservation(observation: ObservationClient): P
     updatedObs = cloneDeep(obsWithoutContext);
   }
 
-
   // Chances are if I'm getting data from GPS sensors then the ingestor will add the location to the 'location' property, and not just have it as the value, but just in case it doesn't let's use the code below to make sure the 'location' property is added. It's worth adding this now so that it's given an id that's stored in any platform locations that are updated, and will be passed on to be saved by the observations-manager.
-  if (updatedObs.observedProperty === 'Location' && !updatedObs.location) {
+  if (updatedObs.observedProperty === 'location' && !updatedObs.location) {
     // Let's double check that the value is valid geometry
     validateGeometry(updatedObs.hasResult.value);
     updatedObs.location = {
@@ -90,42 +92,28 @@ export async function addContextToObservation(observation: ObservationClient): P
     };
   }
 
+  // Are there any platforms waiting to have their location updated with this observation's location
+  if (arrivedWithALocation && updatedObs.hasDeployment) {
+    await updatePlatformsWithLocationObservation(updatedObs);
+  }
 
-  const observesLocation = check.nonEmptyObject(updatedObs.location);
-
-  //------------------------
-  // Observation without location
-  //------------------------
-  if (!observesLocation) {
-
-    // If the observation has no location, see if we can derive the location from its host platforms.
-    // First get the platform documents of all this sensor's hosts
-    // Find the most direct platform with a location, and use that.
-    if (!updatedObs.location && updatedObs.hostedByPath) {
-      logger.debug('Context includes a hostedByPath which will be used to add a possible location for the observation.', updatedObs.hostedByPath);
-      const platforms = await getPlatformsWithIds(updatedObs.hostedByPath);
-      // This keeps overwriting the location if more direct platforms have a location.
-      updatedObs.hostedByPath.forEach((platformId) => {
-        const matchingPlatform = platforms.find((platform) => platform.id === platformId);
-        if (matchingPlatform && matchingPlatform.location) {
-          updatedObs.location = matchingPlatform.location;
-        } 
-      });
-      if (updatedObs.location) {
-        logger.debug('A location was added to the observation.', updatedObs.location);
+  // Check to see if the observation should inherit the location of its platform
+  if (context.hostedByPath && context.hostedByPath.length && check.object(context.hostedByPath[0])) {
+    const bottomPlatform: any = last(context.hostedByPath);
+    // Only pass the location to the observation if the most direct (bottommost) platform has passLocationToObservations set to true.
+    const shouldPassLocation = bottomPlatform.passLocationToObservations;
+    // Also don't do this if this platform has its location updated by this particular sensor, otherwise we'll end up overwriting the new location with the previous one.
+    const sensorUpdatesBottomPlatformLocation = bottomPlatform.updateLocationWithSensor !== observation.madeBySensor;
+    // Nor should we overwrite location observations, i.e. an observation with observed-property='location'.
+    const isLocationObservation = observation.observedProperty === 'location';
+    if (shouldPassLocation && !sensorUpdatesBottomPlatformLocation && !isLocationObservation) {
+      if (bottomPlatform.location) {
+        observation.location = bottomPlatform.location;
+      } else {
+        // Decided that if the user has set observations to inherit their platform's location, and that platform does not have a location then we should delete an location the platform may already have.
+        delete observation.location;
       }
     }
-
-  //------------------------
-  // Observation with location
-  //------------------------
-  } else {
-
-    // Are there any platforms that have their location updated by this sensor
-    if (updatedObs.hasDeployment) {
-      await updatePlatformsWithLocationObservation(updatedObs);
-    }
-
   }
 
   const updatedObsForClient = observationAppToClient(updatedObs);

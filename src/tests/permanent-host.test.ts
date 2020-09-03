@@ -47,7 +47,6 @@ describe('Permanent host testing', () => {
     //------------------------
     // Create
     //------------------------
-
     const permanentHostClient = {
       label: 'Weather Station 5',
       description: 'A weather station with lots of intergrated sensors on it',
@@ -70,6 +69,7 @@ describe('Permanent host testing', () => {
       description: permanentHostClient.description,
       static: permanentHostClient.static,
       registrationKey: permanentHost.registrationKey,
+      passLocationToObservations: true, // whatever the default is
       createdAt: permanentHost.createdAt,
       updatedAt: permanentHost.updatedAt
     });
