@@ -57,7 +57,7 @@ describe('Location observations are correctly processed by the addContextToObser
     const primaryDeployment = await deploymentController.createDeployment(deploymentClient);
 
     // Create a sensor
-    const exampleObservedProperty = 'Location';
+    const exampleObservedProperty = 'location';
     await observablePropertyController.createObservableProperty({id: exampleObservedProperty});
     const sensorClient = {
       hasDeployment: primaryDeployment.id,
@@ -86,7 +86,6 @@ describe('Location observations are correctly processed by the addContextToObser
 
     // Update the platform so that it updates its location with this sensor
     const updatedPlatform = await platformController.updatePlatform(platform.id, {updateLocationWithSensor: sensor.id});
-
     expect(updatedPlatform.updateLocationWithSensor).toBe(sensor.id);
 
     // Ask to add context to a new observation from the sensor.
@@ -213,7 +212,7 @@ describe('Location observations are correctly processed by the addContextToObser
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 
     // Create a location sensor on this permanent host
-    const exampleObservedPropertyForLocationSensor = 'Location';
+    const exampleObservedPropertyForLocationSensor = 'location';
     await observablePropertyController.createObservableProperty({id: exampleObservedPropertyForLocationSensor});
     const locationSensorClient = {
       id: 'zephyr-123-gps',

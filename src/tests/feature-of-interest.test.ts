@@ -4,7 +4,6 @@ import {config} from '../config';
 import * as MongodbMemoryServer from 'mongodb-memory-server';
 import * as featureOfInterestController from '../components/feature-of-interest/feature-of-interest.controller';
 import * as check from 'check-types';
-import {FeatureOfInterestNotFound} from '../components/feature-of-interest/errors/FeatureOfInterestNotFound';
 import {FeatureOfInterestIsDeleted} from '../components/feature-of-interest/errors/FeatureOfInterestIsDeleted';
 
 

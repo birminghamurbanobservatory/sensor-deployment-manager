@@ -34,8 +34,6 @@ export async function addContextToObservation(observation: ObservationClient): P
     throw new BadRequest(validationError.message);
   }
 
-  const arrivedWithALocation = check.assigned(observation.location);
-
   const obsWithoutContext: ObservationApp = observationClientToApp(observation);
 
   // Find the appropriate context
@@ -76,7 +74,7 @@ export async function addContextToObservation(observation: ObservationClient): P
 
   let updatedObs;
   if (context) {
-    updatedObs = giveObsContext(obsWithoutContext, context);
+    updatedObs = giveObsContext(obsWithoutContext, context); // N.B. this function doesn't handle adding the location
   } else {
     updatedObs = cloneDeep(obsWithoutContext);
   }
@@ -92,26 +90,29 @@ export async function addContextToObservation(observation: ObservationClient): P
     };
   }
 
+  // We set this here because by this stage location observations which came in without a location object will now have that added based on hasResult.value, but this is still before the section of code where a location could be inherited from the platform.
+  const arrivedWithALocation = check.assigned(updatedObs.location);
+
   // Are there any platforms waiting to have their location updated with this observation's location
   if (arrivedWithALocation && updatedObs.hasDeployment) {
     await updatePlatformsWithLocationObservation(updatedObs);
   }
 
   // Check to see if the observation should inherit the location of its platform
-  if (context.hostedByPath && context.hostedByPath.length && check.object(context.hostedByPath[0])) {
+  if (context && context.hostedByPath && context.hostedByPath.length && check.object(context.hostedByPath[0])) {
     const bottomPlatform: any = last(context.hostedByPath);
     // Only pass the location to the observation if the most direct (bottommost) platform has passLocationToObservations set to true.
     const shouldPassLocation = bottomPlatform.passLocationToObservations;
     // Also don't do this if this platform has its location updated by this particular sensor, otherwise we'll end up overwriting the new location with the previous one.
-    const sensorUpdatesBottomPlatformLocation = bottomPlatform.updateLocationWithSensor !== observation.madeBySensor;
+    const sensorUpdatesBottomPlatformLocation = check.assigned(bottomPlatform.updateLocationWithSensor) && bottomPlatform.updateLocationWithSensor === updatedObs.madeBySensor;
     // Nor should we overwrite location observations, i.e. an observation with observed-property='location'.
-    const isLocationObservation = observation.observedProperty === 'location';
+    const isLocationObservation = updatedObs.observedProperty === 'location';
     if (shouldPassLocation && !sensorUpdatesBottomPlatformLocation && !isLocationObservation) {
       if (bottomPlatform.location) {
-        observation.location = bottomPlatform.location;
+        updatedObs.location = bottomPlatform.location;
       } else {
         // Decided that if the user has set observations to inherit their platform's location, and that platform does not have a location then we should delete an location the platform may already have.
-        delete observation.location;
+        delete updatedObs.location;
       }
     }
   }

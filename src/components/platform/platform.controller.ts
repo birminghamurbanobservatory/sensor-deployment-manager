@@ -41,7 +41,7 @@ const newPlatformSchema = joi.object({
       return value;
     })
     .required()
-  }).when('static', {is: true, then: joi.required()}),
+  }), // decided not to make the location required, even if the platform is static, this is partly because the static property isn't required and defaults to true, and therefore it would be confusing for a user to be force to set the location without setting static first, also the other way platforms are created is from permanentHosts, which don't have a location, and thus we need to support static platforms without a location anyway.
   // N.B. it doesn't make sense to allow updateLocationWithSensor to be defined here, because we've only just created the platform and therefore there won't be any sensors on it yet that we can choose from.
   passLocationToObservations: joi.boolean(),
   isHostedBy: joi.string(),
@@ -472,18 +472,27 @@ export async function rehostPlatform(id: string, hostId: string): Promise<Platfo
   await contextService.processPlatformHostChange(id, oldAncestors, newAncestors);
 
   // - If hosted platform is static
-  //     -> Do nothing, as static platforms can't have updateLocationWithSensor, and hosted platform should already have location 
+  //   - If hosted platform has no location
+  //       -> Inherit the host platform's location
+  //   - Otherwise 
+  //       -> Do nothing, as static platforms can't have updateLocationWithSensor anyway.
   // - If hosted platform is mobile:
-  //     - If hosted platform has updateLocationWithSensor:
-  //         - and the host platform is static 
-  //             -> then do nothing.
-  //         - and the host platform is mobile and does not have updateLocationWithSensor set:
-  //             - Find any new relatives WITHOUT a updateLocationWithSensor property
-  //                 -> and assign them the hosted platform's updateLocationWithSensor
-  //     - If hosted platform does NOT have a updateLocationWithSensor property:
-  //         --> Also get this hosted platform's children that don't have updateLocationWithSensor set
-  //             --> set the location of these children and the hosted platform to that of the new host
-  //             --> set the updateLocationWithSensor property as that of the new host (if available)
+  //   - If hosted platform has updateLocationWithSensor:
+  //     - and the host platform is static 
+  //       -> then do nothing.
+  //     - and the host platform is mobile and does not have updateLocationWithSensor set:
+  //       - Find any new relatives WITHOUT a updateLocationWithSensor property
+  //         -> and assign them the hosted platform's updateLocationWithSensor
+  //   - If hosted platform does NOT have a updateLocationWithSensor property:
+  //      --> Also get this hosted platform's children that don't have updateLocationWithSensor set
+  //         --> set the location of these children and the hosted platform to that of the new host
+  //         --> set the updateLocationWithSensor property as that of the new host (if available)
+
+  if (platform.static === true) {
+    if (!platform.location && hostPlatform.location) {
+      await platformService.updatePlatform(platform.id, {location: hostPlatform.location});
+    }
+  }
 
   if (platform.static === false) {
 

@@ -211,7 +211,14 @@ describe('Platform hosting tests', () => {
     // Create parent platform
     const parentPlatformClient = {
       label: 'Met Enclosure',
-      inDeployment: deployment.id
+      inDeployment: deployment.id,
+      static: true,
+      location: {
+        geometry: {
+          type: 'Point',
+          coordinates: [-1.932, 52.43]
+        }
+      }
     };
     const parentPlatform = await platformController.createPlatform(parentPlatformClient);
 
@@ -227,7 +234,14 @@ describe('Platform hosting tests', () => {
     const stdChildPlatformClient = {
       label: 'Stevenson screen',
       isHostedBy: parentPlatform.id,
-      inDeployment: deployment.id
+      inDeployment: deployment.id,
+      static: true,
+      location: {
+        geometry: {
+          type: 'Point',
+          coordinates: [-1.9322, 52.432]
+        }
+      }
     };
     const stdChildPlatform = await platformController.createPlatform(stdChildPlatformClient);
 
@@ -241,7 +255,8 @@ describe('Platform hosting tests', () => {
 
     // Create a permanent host
     const permanentHostClient = {
-      label: 'climavue50'
+      label: 'climavue50',
+      static: false
     }; 
     const permanentHost = await permanentHostController.createPermanentHost(permanentHostClient);
 

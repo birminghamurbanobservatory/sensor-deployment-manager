@@ -11,7 +11,7 @@ import {register} from '../components/registration/registration.controller';
 import {addContextToObservation} from '../components/context/context.controller';
 import {cloneDeep} from 'lodash';
 import * as observablePropertyController from '../components/observable-property/observable-property.controller';
-
+import * as contextService from '../components/context/context.service';
 
 
 describe('Check that the passLocationToObservations property has the expected affect', () => {
@@ -44,7 +44,7 @@ describe('Check that the passLocationToObservations property has the expected af
 
   test('Check a platform with passLocationToObservations=false does NOT pass its location to an observation', async () => {
     
-    expect.assertions(2);
+    expect.assertions(5);
 
     // Create a permanent host
     const permanentHost = {
@@ -52,6 +52,7 @@ describe('Check that the passLocationToObservations property has the expected af
       passLocationToObservations: false
     };
     const createdPermanentHost = await permanentHostController.createPermanentHost(permanentHost);
+    expect(createdPermanentHost.passLocationToObservations).toBe(false);
 
     // Need to create the following before the sensor can be created
     await observablePropertyController.createObservableProperty({id: 'PrecipitationRate'});
@@ -78,10 +79,12 @@ describe('Check that the passLocationToObservations property has the expected af
     const deployment = await deploymentController.createDeployment(deploymentClient);
 
     // Now to add the permanentHost (with its sensor) to a deployment.
-    const platformClient = await register(createdPermanentHost.registrationKey, deployment.id);
+    const platform = await register(createdPermanentHost.registrationKey, deployment.id);
+    // Check the platform created from the permanentHost inherited its passLocationToObservations value
+    expect(platform.passLocationToObservations).toBe(false);
 
     // Let's give this platform a location
-    const platformWithLocation = await platformController.updatePlatform(platformClient.id, {
+    const platformWithLocation = await platformController.updatePlatform(platform.id, {
       location: {
         geometry: {
           type: 'Point',
@@ -89,6 +92,7 @@ describe('Check that the passLocationToObservations property has the expected af
         }
       }
     });
+    expect(platformWithLocation.passLocationToObservations).toBe(false);
 
     // Try giving an observation without any location some context and check it doesn't have a location added.
     const locationlessObsWithoutContext = {
@@ -126,7 +130,7 @@ describe('Check that the passLocationToObservations property has the expected af
 
   test('Check a platform with passLocationToObservations=true DOES pass its location to an observation', async () => {
     
-    expect.assertions(3);
+    expect.assertions(6);
 
     // Create a permanent host
     const permanentHost = {
@@ -163,6 +167,10 @@ describe('Check that the passLocationToObservations property has the expected af
     // Now to add the permanentHost (with its sensor) to a deployment.
     const mobilePlatform = await register(createdPermanentHost.registrationKey, deployment.id);
 
+    // Let's double check that the sensor is now hosted by this platform
+    const registeredSensor = await sensorController.getSensor(sensor.id); 
+    expect(registeredSensor.isHostedBy).toBe(mobilePlatform.id);
+
     // Let's create a static platform to host this mobile platform on
     const staticPlatformClient = {
       id: 'lamppost-123',
@@ -183,6 +191,10 @@ describe('Check that the passLocationToObservations property has the expected af
     const rehostedMobilePlatform = await platformController.rehostPlatform(mobilePlatform.id, staticPlatform.id);
     expect(rehostedMobilePlatform.location).toEqual(staticPlatform.location);
 
+    // Let's double check the hostedByPath in the sensor's context is as we'd expect
+    const sensorContext = await contextService.getLiveContextForSensor(sensor.id);
+    expect(sensorContext.hostedByPath).toEqual([staticPlatform.id, mobilePlatform.id]);
+
     // Try giving an observation without any location some context and check it adds the location
     const locationlessObsWithoutContext = {
       madeBySensor: sensor.id,
@@ -192,6 +204,7 @@ describe('Check that the passLocationToObservations property has the expected af
       resultTime: new Date().toISOString()
     };
     const locationlessObsWithContext = await addContextToObservation(locationlessObsWithoutContext);
+    expect(locationlessObsWithContext.hostedByPath).toEqual([staticPlatform.id, mobilePlatform.id]);
     expect(locationlessObsWithContext.location).toEqual(staticPlatform.location);
 
     // Now try giving an observation with a location some context and check the location is overwritten.
@@ -219,7 +232,7 @@ describe('Check that the passLocationToObservations property has the expected af
 
   test('Check that passLocationToObservations and updateLocationWithSensor work as expected in combination', async () => {
     
-    expect.assertions(4);
+    expect.assertions(6);
 
     // Create a deployment
     const deploymentClient = {
@@ -238,12 +251,15 @@ describe('Check that the passLocationToObservations property has the expected af
     };
     const platform = await platformController.createPlatform(platformClient);
 
+    // Need to create the following before the sensor can be created
+    await observablePropertyController.createObservableProperty({id: 'air-temperature'});
+
     // Create a non-gps sensor on this platform
     const nonGpsSensorClient = {
       id: 'van-2-thermistor',
       label: 'Van 2 thermistor',
       isHostedBy: platform.id,
-      inDeployment: deployment.id,
+      hasDeployment: deployment.id,
       initialConfig: [
         {
           hasPriority: true,
@@ -253,12 +269,15 @@ describe('Check that the passLocationToObservations property has the expected af
     };
     const nonGpsSensor = await sensorController.createSensor(nonGpsSensorClient);
 
+    // Need to create the following before the sensor can be created
+    await observablePropertyController.createObservableProperty({id: 'location'});
+
     // Create a gps sensor on this platform
     const gpsSensorClient = {
       id: 'van-2-gps',
       label: 'Van 2 GPS',
       isHostedBy: platform.id,
-      inDeployment: deployment.id,
+      hasDeployment: deployment.id,
       initialConfig: [
         {
           hasPriority: true,
@@ -268,9 +287,12 @@ describe('Check that the passLocationToObservations property has the expected af
     };
     const gpsSensor = await sensorController.createSensor(gpsSensorClient);
 
-    // Update the platform so that it updates it's location using the gps sensor location observations
+    // Update the platform so that it is set to update it's location using the gps sensor location observations
     const platformUpdate1 = await platformController.updatePlatform(platform.id, {updateLocationWithSensor: gpsSensor.id});
+    expect(platformUpdate1.updateLocationWithSensor).toBe(gpsSensor.id);
+    expect(platformUpdate1.passLocationToObservations).toBe(true);
 
+    // Pass a non-gps reading through the system first
     const obs1WithoutContext = {
       madeBySensor: nonGpsSensor.id,
       hasResult: {
@@ -286,7 +308,7 @@ describe('Check that the passLocationToObservations property has the expected af
 
     // Now it's time for a gps observation
     const obs2WithoutContext = {
-      madeBySensor: nonGpsSensor.id,
+      madeBySensor: gpsSensor.id,
       hasResult: {
         value: {
           type: 'Point',

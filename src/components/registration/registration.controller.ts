@@ -10,6 +10,7 @@ import {ContextApp} from '../context/context-app.class';
 import * as logger from 'node-logger';
 import {PlatformClient} from '../platform/platform-client.class';
 import {PermanentHostAlreadyRegistered} from '../permanent-host/errors/PermanentHostAlreadyRegistered';
+import * as check from 'check-types';
 
 
 export async function register(registrationKey, deploymentId): Promise<PlatformClient> {
@@ -38,17 +39,19 @@ export async function register(registrationKey, deploymentId): Promise<PlatformC
   });
 
   // Create a new platform in the deployment based on this permanentHost
-  const platformToCreate = {
+  const platformToCreate: any = {
     id: `${permanentHost.id}-${generateClientIdSuffix()}`,
     label: permanentHost.label,
     description: permanentHost.description,
     inDeployment: deploymentId,
     static: permanentHost.static,
-    initialisedFrom: permanentHost.id,
-    updateLocationWithSensor: permanentHost.updateLocationWithSensor
+    initialisedFrom: permanentHost.id
   };
   if (permanentHost.updateLocationWithSensor) {
     platformToCreate.updateLocationWithSensor = permanentHost.updateLocationWithSensor;
+  }
+  if (check.assigned(permanentHost.passLocationToObservations)) {
+    platformToCreate.passLocationToObservations = permanentHost.passLocationToObservations;
   }
   const platform = await platformService.createPlatform(platformToCreate);
   logger.debug(`A new platform has been created using the permanentHost ${permanentHost.id} as a basis.`, platform);
