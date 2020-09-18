@@ -111,7 +111,7 @@ export async function addContextToObservation(observation: ObservationClient): P
       if (bottomPlatform.location) {
         updatedObs.location = bottomPlatform.location;
       } else {
-        // Decided that if the user has set observations to inherit their platform's location, and that platform does not have a location then we should delete an location the platform may already have.
+        // Decided that if the user has set observations to inherit their platform's location, and that platform does not have a location then we should delete any location the platform may already have.
         delete updatedObs.location;
       }
     }

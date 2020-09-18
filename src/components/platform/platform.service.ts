@@ -277,6 +277,7 @@ const updatesSchema = joi.object({
   description: joi.string().allow(''),
   static: joi.boolean(),
   location: joi.any(),
+  passLocationToObservations: joi.boolean(),
   updateLocationWithSensor: joi.string().allow(null)
 });
 
