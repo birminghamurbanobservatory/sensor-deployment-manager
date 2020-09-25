@@ -159,7 +159,7 @@ export async function getPlatform(id: string, options: {nest?: boolean} = {}): P
 
 
 
-// Given a platformId this will find all the platforms and sensors hosted on this platform. It can then be used as the "hosts" array for the returned platform. It will have a nested structure, e.g. if this platform hosts another platform that then hosts some other sensors then the child platfrom will itself have a hosts array.
+// Given a platformId this will find all the platforms and sensors hosted on this platform. It can then be used as the "hosts" array for the returned platform. It will have a nested structure, e.g. if this platform hosts another platform that then hosts some other sensors then the child platform will itself have a hosts array.
 export async function getNestedHostsArrayForApp(platformId: string): Promise<any[]> {
 
   // First let's find an sub-platforms, direct or indirect.

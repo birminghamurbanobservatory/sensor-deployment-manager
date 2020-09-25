@@ -302,7 +302,7 @@ describe('Platform hosting tests', () => {
     expect(parentSensorContextAfter.hasDeployment).toBe(deployment.id);
     expect(parentSensorAfter).not.toHaveProperty('hostedByPath');
 
-    // Check standard child platfrom
+    // Check standard child platform
     const stdChildPlatformAfter = await platformController.getPlatform(stdChildPlatform.id);
     expect(stdChildPlatformAfter).not.toHaveProperty('isHostedBy');
     expect(stdChildPlatformAfter).not.toHaveProperty('hostedByPath');

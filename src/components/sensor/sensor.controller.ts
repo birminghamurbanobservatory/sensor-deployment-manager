@@ -314,7 +314,7 @@ export async function updateSensor(id: string, updates: any): Promise<SensorClie
 
     // This will check if it actually exists
     newHostPlatform = await platformService.getPlatform(validUpdates.isHostedBy);
-    // N.B. we'll allow sensor can be hosted on a platfrom from another deployment.
+    // N.B. we'll allow sensor can be hosted on a platform from another deployment.
 
     // We also don't want any more sensors being hosted on a platform that was initialised from a permanentHost.
     if (check.assigned(newHostPlatform.initialisedFrom)) {

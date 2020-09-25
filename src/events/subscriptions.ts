@@ -12,6 +12,7 @@ import {subscribeToAggregationEvents} from '../components/aggregation/aggregatio
 import {subscribeToObservablePropertyEvents} from '../components/observable-property/observable-property.events';
 import {subscribeToUnitEvents} from '../components/unit/unit.events';
 import {subscribeToFeatureOfInterestEvents} from '../components/feature-of-interest/feature-of-interest.events';
+import {subscribeToDeploymentInviteEvents} from '../components/deployment-invite/deployment-invite.events';
 
 
 
@@ -19,6 +20,7 @@ export async function invokeAllSubscriptions(): Promise<void> {
 
   await subscribeToDeploymentEvents();
   await subscribeToDeploymentUserEvents();
+  await subscribeToDeploymentInviteEvents();
   await subscribeToPlatformEvents();
   await subscribeToPermanentHostEvents();
   await subscribeToRegistrationEvents();

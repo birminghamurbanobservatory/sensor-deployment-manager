@@ -1,8 +1,8 @@
 import {Forbidden} from '../../../errors/Forbidden';
 
-export class PlatformAlreadyUnhosted extends Forbidden {
+export class CannotDowngradeDeploymentLevel extends Forbidden {
 
-  public constructor(message = 'The platform is already unhosted.') {
+  public constructor(message = 'Cannot downgrade deployment access level.') {
     super(message); // 'Error' breaks prototype chain here
     Object.setPrototypeOf(this, new.target.prototype); // restore prototype chain   
   }

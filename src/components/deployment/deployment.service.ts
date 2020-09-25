@@ -166,6 +166,9 @@ export async function getDeploymentsById(deploymentIds: string[]): Promise<Deplo
 
 export async function updateDeployment(id: string, updates: any): Promise<DeploymentApp> {
 
+  // The following helps rename id to _id for users (if provided)
+  const updatesDb = deploymentAppToDb(updates);
+
   let updatedDeployment;
   try {
     updatedDeployment = await Deployment.findOneAndUpdate(
@@ -173,7 +176,7 @@ export async function updateDeployment(id: string, updates: any): Promise<Deploy
         _id: id,
         deletedAt: {$exists: false}
       }, 
-      updates,
+      updatesDb,
       {
         new: true,
         runValidators: true
