@@ -587,7 +587,7 @@ export async function deletePlatform(id: string): Promise<void> {
 
   });
 
-  // The following will mop up any sensor's that weren't directly hosted on this platform, but whose context will need updating in order to remove the delete platform from their hostedByPath.
+  // The following will mop up any sensor's that weren't directly hosted on this platform, but whose context will need updating in order to remove the deleted platform from their hostedByPath.
   await contextService.processPlatformDeleted(id);
 
   // If the platform was generated from a permanentHost then we can set this permanentHost as being unregistered, and therefore free to be added to a different deployment.
