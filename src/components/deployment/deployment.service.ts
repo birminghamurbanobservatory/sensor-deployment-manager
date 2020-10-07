@@ -230,8 +230,6 @@ export async function deleteDeployment(id: string): Promise<void> {
 }
 
 
-
-
 function deploymentAppToDb(deploymentApp: DeploymentApp): object {
   const deploymentDb: any = cloneDeep(deploymentApp);
   deploymentDb._id = deploymentApp.id;

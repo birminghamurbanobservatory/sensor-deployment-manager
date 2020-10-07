@@ -57,16 +57,16 @@ async function subscribeToDeploymentUsersGetRequests(): Promise<any> {
 
     logger.debug(`New ${eventName} message.`, message);
 
-    let deploymentUsers: DeploymentUserClient[];
+    let response: any;
     try {
       const {error: err} = deploymentUsersGetRequestSchema.validate(message);
       if (err) throw new BadRequest(`Invalid ${eventName} request: ${err.message}`);    
-      deploymentUsers = await getDeploymentUsers(message.where.deploymentId);
+      response = await getDeploymentUsers(message.where.deploymentId);
     } catch (err) {
       logCensorAndRethrow(eventName, err);
     }
 
-    return deploymentUsers; // TODO: need to make client friendly?
+    return response;
   });
 
   logger.debug(`Subscribed to ${eventName} requests`);

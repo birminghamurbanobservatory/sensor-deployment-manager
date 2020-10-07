@@ -6,4 +6,4 @@ import {DeploymentUserApp} from './deployment-user-app.class';
 export function deploymentUserAppToClient(deploymentUserApp: DeploymentUserApp): DeploymentUserClient {
   const deploymentUserClient: any = cloneDeep(deploymentUserApp);
   return deploymentUserClient;
-} 
+}

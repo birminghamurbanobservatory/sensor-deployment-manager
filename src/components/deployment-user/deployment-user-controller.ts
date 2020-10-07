@@ -5,13 +5,19 @@ import {DeploymentUserClient} from './deployment-user-client.class';
 import {DeploymentUserNotFound} from './errors/DeploymentUserNotFound';
 
 
-export async function getDeploymentUsers(deploymentId: string): Promise<DeploymentUserClient[]> {
+export async function getDeploymentUsers(deploymentId: string): Promise<{data: DeploymentUserClient[]; meta: any}> {
 
   const deployment = await deploymentService.getDeployment(deploymentId);
   logger.debug('Deployment found', deployment);
   const users = deployment.users || [];
 
-  return users.map(deploymentUserService.deploymentUserAppToClient);
+  return {
+    data: users.map(deploymentUserService.deploymentUserAppToClient),
+    meta: {
+      count: users.length,
+      total: users.length
+    }
+  } ;
 
 }
 
@@ -83,6 +89,21 @@ export async function updateDeploymentUser(deploymentId: string, userId: string,
 
 export async function deleteDeploymentUser(deploymentId: string, userId: string): Promise<void> {
 
-  // TODO
+  const deployment = await deploymentService.getDeployment(deploymentId);
+  logger.debug('Deployment found', deployment);
+  const users = deployment.users || [];
+  const foundUser = users.find((user) => user.id === userId);
+
+  if (!foundUser) {
+    throw new DeploymentUserNotFound(`Failed to find a user with id '${userId}' in deployment '${deploymentId}'.`);
+  }
+
+  const newUsersArray = users.filter((user) => {
+    return user.id !== userId;
+  });
+
+  const updatedDeployment = await deploymentService.updateDeployment(deploymentId, {users: newUsersArray});
+
+  return;
 
 }
