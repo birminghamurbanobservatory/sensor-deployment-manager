@@ -453,6 +453,11 @@ export async function rehostPlatform(id: string, hostId: string): Promise<Platfo
 
   logger.debug(`About to rehost platform ${id} on ${hostId}`);
 
+  // Prevent a platform from being hosted on itself
+  if (id === hostId) {
+    throw new Forbidden('Hosting a platform on itself is not permitted');
+  }
+
   const platform = await platformService.getPlatform(id);
   const hostPlatform = await platformService.getPlatform(hostId);
 
