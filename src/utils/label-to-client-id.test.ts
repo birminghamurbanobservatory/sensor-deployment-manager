@@ -27,4 +27,11 @@ describe('name to clientId function', () => {
   });  
 
 
+  test('Handles white space at the start and end', () => {
+    const label = ' Reference Weather Stations ';
+    const expected = 'reference-weather-stations';
+    expect(labelToClientId(label)).toBe(expected);
+  });  
+
+
 });
