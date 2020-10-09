@@ -8,6 +8,7 @@ export class PlatformClient {
   public hostedByPath?: string[];
   public topPlatform?: string;
   public hosts?: any[];
+  public initialisedFrom?: string;
   public static?: boolean;
   public location?: Location;
   public updateLocationWithSensor?: string;

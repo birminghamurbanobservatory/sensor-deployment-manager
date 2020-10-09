@@ -933,7 +933,6 @@ export function platformDbToApp(platformDb: any): PlatformApp {
 
 export function platformAppToClient(platformApp: PlatformApp): PlatformClient {
   const platformClient: any = cloneDeep(platformApp);
-  delete platformClient.initialisedFrom;
   if (platformClient.location && platformClient.location.validAt) {
     platformClient.location.validAt = platformClient.location.validAt.toISOString();
   }  
