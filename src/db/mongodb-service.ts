@@ -29,7 +29,7 @@ export function connectDb(uri): Promise<void> {
     useNewUrlParser: true, 
     useCreateIndex: true, 
     useFindAndModify: false,
-    useUnifiedTopology: true // N.B. having this as true can cause "Server selection timed out after 30000 ms" errors in production
+    useUnifiedTopology: false // N.B. having this as true can cause "Server selection timed out after 30000 ms" errors in production
   });
 }
 
